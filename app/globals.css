@@ -146,6 +146,14 @@
   }
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1e293b;
+  -webkit-box-shadow: 0 0 0 1000px white inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Bill pages should begin beside the application sidebar, not recenter in the
    remaining viewport and create a second gutter. */
 .bill-route-content > main {

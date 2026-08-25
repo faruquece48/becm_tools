@@ -18,7 +18,7 @@ type VisitorCounts = {
   available: boolean;
 };
 
-export default function SiteVisitorPanel() {
+export default function SiteVisitorPanel({ variant = "sidebar" }: { variant?: "sidebar" | "compact" }) {
   const [counts, setCounts] = useState<VisitorCounts>(emptyCounts);
 
   useEffect(() => {
@@ -62,6 +62,19 @@ export default function SiteVisitorPanel() {
       window.removeEventListener("pagehide", leave);
     };
   }, []);
+
+  if (variant === "compact") {
+    const value = (count: number) => counts.available ? count.toLocaleString() : "—";
+    return <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-2.5 rounded-tl-xl border border-white bg-white/90 px-3 py-1 text-sm text-slate-600 shadow-[0_6px_18px_rgba(15,64,93,0.15)] backdrop-blur-md" aria-label="Site visitor counts">
+      <span className="flex shrink-0 items-center gap-2 font-bold uppercase tracking-wide text-[#102555]"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-50 text-[#07878d]"><Eye className="h-4 w-4" /></span> Site Visitors</span>
+      <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,0.7)]" /><span>Live</span><strong className="text-[15px] text-emerald-700">{value(counts.live)}</strong></span>
+      <span className="h-5 w-px bg-slate-200" />
+      <span className="flex items-center gap-1.5"><Sun className="h-4 w-4 text-amber-500" /><span>Today</span><strong className="text-[15px] text-amber-700">{value(counts.today)}</strong></span>
+      <span className="h-5 w-px bg-slate-200" />
+      <span className="flex items-center gap-1.5"><Globe2 className="h-4 w-4 text-blue-500" /><span>Total</span><strong className="text-[15px] text-blue-700">{value(counts.total)}</strong></span>
+    </div>;
+  }
 
   return <div className="overflow-hidden rounded-2xl border border-cyan-300/25 bg-transparent p-3">
     <div className="flex items-center justify-between gap-2 text-white">
