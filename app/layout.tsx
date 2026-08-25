@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "RUET Bill Generator",
-  description: "Examination Bill Management System",
+  title: "BECM Tools",
+  description: "BECM digital portal for students, teachers and staff",
 };
 
 export default function RootLayout({

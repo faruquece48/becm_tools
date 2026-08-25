@@ -1,5 +1,5 @@
-import TeacherDashboard from "./teacher-test/page";
+import RoleLoginPortal from "@/components/RoleLoginPortal";
 
 export default function HomePage() {
-  return <TeacherDashboard />;
+  return <RoleLoginPortal />;
 }

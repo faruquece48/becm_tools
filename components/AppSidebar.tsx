@@ -32,7 +32,7 @@ type NavigationItem = {
 };
 
 const mainNavigation: NavigationItem[] = [
-  { label: "Dashboard", icon: Grid2X2, href: "/" },
+  { label: "Dashboard", icon: Grid2X2, href: "/teacher/dashboard" },
   {
     label: "Remuneration Bill",
     icon: FileText,
@@ -53,7 +53,7 @@ function SidebarLink({ item, onNavigate }: { item: NavigationItem; onNavigate?: 
   const pathname = usePathname();
   const active = item.activeFor
     ? item.activeFor(pathname)
-    : item.href === pathname || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+    : item.href === pathname || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
   const classes = `flex w-full items-center gap-4 rounded-xl px-5 py-2.5 text-left text-sm font-medium transition ${
     active

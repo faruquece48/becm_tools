@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import {
   Bell,
   BookOpenText,
@@ -12,6 +13,7 @@ import {
   Download,
   FileText,
   Grid2X2,
+  LogOut,
   Megaphone,
   Menu,
   Settings,
@@ -23,7 +25,7 @@ import dashboardReference from "../images/image_04..png";
 import SiteVisitorPanel from "@/components/SiteVisitorPanel";
 
 const mainNavigation = [
-  { label: "Dashboard", icon: Grid2X2, active: true, href: "/" },
+  { label: "Dashboard", icon: Grid2X2, active: true, href: "/teacher/dashboard" },
   { label: "Remuneration Bill", icon: FileText, href: "/bills/create" },
   { label: "OBE", icon: BookOpenText },
   { label: "File", icon: Megaphone, href: "/files" },
@@ -98,6 +100,8 @@ const quickLinks = [
 ];
 
 export default function TeacherTestPage() {
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
   return (
     <main className="min-h-screen bg-[#f7f9fd] text-[#102555]">
       <div className="mx-auto flex min-h-screen max-w-[1800px] bg-white">
@@ -148,14 +152,37 @@ export default function TeacherTestPage() {
                 <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
               </button>
               <div className="h-10 border-l border-slate-200" />
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
-                <UserRound className="h-6 w-6" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setProfileMenuOpen((open) => !open)}
+                  className="flex items-center gap-4 rounded-xl p-1.5 text-left transition hover:bg-slate-50"
+                  aria-expanded={profileMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                    <UserRound className="h-6 w-6" />
+                  </span>
+                  <span className="hidden sm:block">
+                    <span className="block font-semibold text-[#14274e]">Faruque Abdullah</span>
+                    <span className="block text-sm text-slate-500">Teacher</span>
+                  </span>
+                  <ChevronDown className={`h-5 w-5 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {profileMenuOpen && (
+                  <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                    <Link
+                      href="/"
+                      role="menuitem"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </Link>
+                  </div>
+                )}
               </div>
-              <div className="hidden sm:block">
-                <p className="font-semibold text-[#14274e]">Faruque Abdullah</p>
-                <p className="text-sm text-slate-500">Teacher</p>
-              </div>
-              <ChevronDown className="h-5 w-5" />
             </div>
           </header>
 
