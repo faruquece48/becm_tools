@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import logoImage from "../images/image_03.png";
 import dashboardReference from "../images/image_04..png";
-import SiteVisitorPanel from "@/components/SiteVisitorPanel";
 
 const mainNavigation = [
   { label: "Dashboard", icon: Grid2X2, active: true, href: "/teacher/dashboard" },
@@ -132,7 +131,10 @@ export default function TeacherTestPage() {
           </nav>
 
           <div className="mt-auto border-t border-white/10 px-4 py-4">
-            <SiteVisitorPanel />
+            <Link href="/" className="flex w-full items-center gap-4 rounded-xl px-5 py-3 text-sm font-semibold text-blue-100 transition hover:bg-white/10 hover:text-white">
+              <LogOut className="h-5 w-5" />
+              Logout
+            </Link>
             <p className="mt-3 border-t border-white/15 pt-3 text-center text-xs leading-snug text-white">
               Developed by Faruque Abdullah
               <br />
