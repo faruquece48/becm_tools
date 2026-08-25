@@ -1,0 +1,20 @@
+Windows Registry Editor Version 5.00
+
+; One-time setup: double-click this file, then click "Yes"/"OK" on the prompts.
+; It registers the "ruetdownloader://" link protocol for your Windows user account only
+; (no admin rights needed), pointing to launch-protocol.bat in this same folder.
+;
+; After this, the "Download" page on the website (even the deployed/online version) can
+; launch your local downloader server by opening a "ruetdownloader://start" link -
+; Windows will ask you to confirm opening it the first time.
+
+[HKEY_CURRENT_USER\Software\Classes\ruetdownloader]
+@="URL:RUET Downloader Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\Software\Classes\ruetdownloader\shell]
+
+[HKEY_CURRENT_USER\Software\Classes\ruetdownloader\shell\open]
+
+[HKEY_CURRENT_USER\Software\Classes\ruetdownloader\shell\open\command]
+@="\"C:\\Users\\HP\\Downloads\\ruet-bill-generator\\app\\Downloader\\launch-protocol.bat\" \"%1\""
