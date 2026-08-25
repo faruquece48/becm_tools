@@ -1,0 +1,88 @@
+import type { ExaminationBillData } from "./types";
+import { defaultLayoutSettings } from "./types";
+
+const practicalSurveyingTeachers = [
+  "Dr. Md. Abdul Alim",
+  "Dr. N.H.M. Kamrujjaman Serker",
+  "Dr. Md. Kumruzzaman (1)",
+  "Dr. Md. Niamul Bari",
+  "Dr. Md. Kamruzzaman (2)",
+  "Dr. Md. Mahmud Sazzad",
+  "Dr. S. M. Zahurul Islam",
+  "Dr. Md. Akhtar Hossain",
+  "Dr. Md. Shafiqul Islam",
+  "Dr. Md. Robiul Awall",
+  "Dr. Abu Sufian Md. Zia Hasan",
+  "Dr. H. M. Rasel",
+  "Dr. Md. Abu Sayeed",
+  "Dr. Md. Zahangir Alam",
+  "Dr. Anupam Chowdhury",
+  "Dr. Bulbul Ahmed",
+].map((name) => ({ name, designation: "" as const, department: "Dept. of CE, RUET" }));
+
+const becmPracticalSurveyingTeachers = [
+  "Mr. Mithun Chakrabartty",
+  "Mrs. Shayla Sharmin",
+  "Mr. Mehedi Hasan",
+  "Mr. Aojoy Kumar Shuvo",
+  "Mr. Faruque Abdullah",
+  "Mr. Md. Ashraful Islam",
+  "Mr. Nur Alam Riad",
+  "Mr. Towfik Hassan",
+  "Mr. MD. Mehedi Hassan Galib",
+  "Mr. Md. Rumman Howlader",
+].map((name) => ({ name, designation: "" as const, department: "Dept. of BECM, RUET" }));
+
+export const emptyBill: ExaminationBillData = {
+  billInfo: {
+    billNo: "",
+    examination: "",
+    year: "",
+    examType: "semester",
+    semester: "",
+    examYear: "",
+    series: "",
+    evaluationSystem: "obe",
+    hasGraduatingStudents: "no",
+    totalStudents: "30",
+  },
+  committees: [
+    {
+      name: "",
+      designation: "Assistant Professor & Head",
+      department: "Dept. of BECM, RUET",
+      role: "Member",
+    },
+  ],
+  courseDuties: { obe: [], nonObe: [] },
+  sessionalDuties: [],
+  sessionalEvaluationSystem: "obe",
+  vivaBoardTeachers: [],
+  boardVivaMemberOrder: [],
+  questionWorks: [],
+  questionWorkTotal: "5",
+  pageBreakAfter: {},
+  sectionOrder: [
+    "committee", "paperSetterObe", "classTest", "assignment", "courseFile",
+    "questionWork", "scrutinyObe", "sessionalDuty", "boardViva", "tabulation",
+    "gradeSheetPreparation", "gradeSheetVerification", "courseAdviser",
+    "courseCoordinator", "thesis", "verification", "practicalSurveying",
+  ],
+  tableSpacing: { verification: 6 },
+  scrutinies: { obe: [], nonObe: [] },
+  studentDuties: [],
+  tabulationStudentCount: "30",
+  courseAdvisers: [],
+  courseAdviserStudentCount: "30",
+  practicalSurveyingTeachers: [
+    ...practicalSurveyingTeachers,
+    ...becmPracticalSurveyingTeachers,
+  ],
+  practicalSurveyingStudentCount: "27",
+  thesisTeachers: [],
+  verificationTeachers: [],
+  verificationStudentCount: "30",
+  courseCoordinatorTeachers: [],
+  layoutSettings: defaultLayoutSettings,
+  layoutSpacing: { sectionGap: 6, footerArea: 68 },
+};

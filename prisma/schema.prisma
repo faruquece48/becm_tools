@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model VisitorSession {
+  id          String   @id
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  lastSeenDay String
+
+  @@index([lastSeenAt])
+  @@index([lastSeenDay])
+}
+
+model VisitEvent {
+  id        String   @id
+  visitedAt DateTime @default(now())
+  visitDay  String
+
+  @@index([visitDay])
+}
