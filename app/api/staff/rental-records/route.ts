@@ -17,12 +17,20 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const prisma = getPrisma();
   if (!prisma) return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
-  const body = await request.json().catch(() => null) as { orderId?: string; itemId?: string; action?: "return" | "mark_paid" | "reopen"; password?: string } | null;
-  if (!body?.action || (body.action === "mark_paid" ? !body.orderId : !body.itemId)) return NextResponse.json({ error: "Invalid rental update request" }, { status: 400 });
-  if ((body.action === "return" || body.action === "reopen") && body.password !== process.env.STAFF_RETURN_PASSWORD) {
+  const body = await request.json().catch(() => null) as { orderId?: string; itemId?: string; action?: "return" | "mark_paid" | "delete_pending" | "reopen"; password?: string } | null;
+  const orderAction = body?.action === "mark_paid" || body?.action === "delete_pending";
+  if (!body?.action || (orderAction ? !body.orderId : !body.itemId)) return NextResponse.json({ error: "Invalid rental update request" }, { status: 400 });
+  if (body.password !== process.env.STAFF_RETURN_PASSWORD) {
     return NextResponse.json({ error: "Incorrect password" }, { status: 403 });
   }
   try {
+    if (body.action === "delete_pending") {
+      const order = await prisma.rentalOrder.findUnique({ where: { id: body.orderId! }, select: { status: true, paymentId: true } });
+      if (!order) throw new Error("Pending rental record not found");
+      if (order.status !== "PENDING_PAYMENT") throw new Error("Only pending payments can be removed");
+      await prisma.studentBillPayment.delete({ where: { id: order.paymentId } });
+      return NextResponse.json({ deleted: true });
+    }
     await prisma.$transaction(async (tx) => {
       const order = body.action === "mark_paid"
         ? await tx.rentalOrder.findUnique({ where: { id: body.orderId! }, include: { items: true, payment: true } })
@@ -67,7 +75,7 @@ export async function PATCH(request: Request) {
           ? { status: "RETURNED", returnedAt }
           : { status: "ACTIVE", returnedAt: null },
       });
-    });
+    }, { maxWait: 15_000, timeout: 30_000 });
     return NextResponse.json({ updated: true });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to return books" }, { status: 409 }); }
 }

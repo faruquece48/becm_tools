@@ -72,20 +72,31 @@ export default function RoleLoginPortal() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    if (authMode === "signup" && String(form.get("password") || "") !== String(form.get("confirmPassword") || "")) {
+      window.alert("Password and Confirm Password do not match.");
+      return;
+    }
+    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), role: activeRole, mode: authMode, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined }) }).catch(() => null);
+    if (!trackingResponse) {
+      window.alert("Unable to connect to the account service.");
+      return;
+    }
+    if (!trackingResponse.ok) {
+      const data = await trackingResponse.json().catch(() => ({ error: "Unable to access this account" }));
+      window.alert(data.error || "Unable to access this account");
+      return;
+    }
     if (activeRole === "student") {
-      let existing: { studentName?: string; phone?: string } = {};
+      let existing: { studentName?: string; phone?: string; roll?: string; series?: string; department?: string } = {};
       try { existing = JSON.parse(window.localStorage.getItem("becm-student-profile") || "{}"); } catch {}
       window.localStorage.setItem("becm-student-profile", JSON.stringify({
         studentName: authMode === "signup" ? String(form.get("fullName") || "") : existing.studentName || "",
         email: String(form.get("identifier") || ""),
         phone: authMode === "signup" ? String(form.get("phone") || "") : existing.phone || "",
+        roll: authMode === "signup" ? String(form.get("roll") || "") : existing.roll || "",
+        series: authMode === "signup" ? String(form.get("series") || "") : existing.series || "",
+        department: existing.department || "BECM",
       }));
-    }
-    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), role: activeRole, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined }) }).catch(() => null);
-    if (trackingResponse?.status === 403) {
-      const data = await trackingResponse.json().catch(() => ({ error: "This account is disabled" }));
-      window.alert(data.error || "This account is disabled");
-      return;
     }
     router.push(role.destination);
   }
@@ -182,18 +193,22 @@ export default function RoleLoginPortal() {
                       <div><label htmlFor="user-id" className="mb-2 block text-sm font-semibold text-slate-800">Email ID</label><div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="user-id" name="identifier" required type="email" autoComplete="email" placeholder="Enter your email address" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>
                       {activeRole === "student" && <div><label htmlFor="mobile-number" className="mb-2 block text-sm font-semibold text-slate-800">Mobile Number</label><div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="mobile-number" name="phone" required type="tel" autoComplete="tel" placeholder="01XXXXXXXXX" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>}
                     </div>
+                    {activeRole === "student" && <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div><label htmlFor="roll-number" className="mb-2 block text-sm font-semibold text-slate-800">Roll Number</label><div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="roll-number" name="roll" required inputMode="numeric" placeholder="Enter your roll number" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>
+                      <div><label htmlFor="student-series" className="mb-2 block text-sm font-semibold text-slate-800">Series</label><div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="student-series" name="series" required inputMode="numeric" placeholder="e.g. 2021" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>
+                    </div>}
                   </> : <>
                     <label htmlFor="user-id" className="mb-2 block text-sm font-semibold text-slate-800">{role.idLabel}</label>
                     <div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="user-id" name="identifier" required type="email" autoComplete="email" placeholder={role.placeholder} className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div>
                   </>}
 
-                  <label htmlFor="password" className={`mb-2 block text-sm font-semibold text-slate-800 ${authMode === "signup" ? "mt-3" : "mt-4"}`}>Password</label>
-                  <div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="password" name="password" required type={showPassword ? "text" : "password"} autoComplete={authMode === "signin" ? "current-password" : "new-password"} placeholder="Enter your password" className={`${authMode === "signup" ? "h-11" : "h-12"} w-full rounded-lg border border-slate-200 bg-white pl-12 pr-14 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100`} /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-l border-slate-200 text-slate-500 transition hover:bg-slate-50" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></div>
-
-                  {authMode === "signup" && <>
-                    <label htmlFor="confirm-password" className="mb-2 mt-3 block text-sm font-semibold text-slate-800">Confirm Password</label>
-                    <div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="confirm-password" name="confirmPassword" required type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Re-enter your password" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div>
-                  </>}
+                  {authMode === "signin" ? <>
+                    <label htmlFor="password" className="mb-2 mt-4 block text-sm font-semibold text-slate-800">Password</label>
+                    <div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="password" name="password" required type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-14 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-l border-slate-200 text-slate-500 transition hover:bg-slate-50" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></div>
+                  </> : <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div><label htmlFor="password" className="mb-2 block text-sm font-semibold text-slate-800">Password</label><div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="password" name="password" required type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Enter your password" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-12 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-0 top-0 flex h-full w-10 items-center justify-center border-l border-slate-200 text-slate-500" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>
+                    <div><label htmlFor="confirm-password" className="mb-2 block text-sm font-semibold text-slate-800">Confirm Password</label><div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="confirm-password" name="confirmPassword" required type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Re-enter your password" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>
+                  </div>}
 
                   {authMode === "signin" && <div className="mt-4 flex items-center justify-between gap-4"><label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"><input type="checkbox" className="h-4 w-4 rounded border-slate-300" style={{ accentColor: role.accent }} />Remember me</label><button type="button" className="text-sm font-medium text-blue-600 hover:underline">Forgot password?</button></div>}
 

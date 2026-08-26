@@ -14,9 +14,9 @@ export default function StudentProfileForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let local = { studentName: "", email: "", phone: "" };
+    let local = { studentName: "", email: "", phone: "", roll: "", series: "", department: "BECM" };
     try { local = { ...local, ...JSON.parse(localStorage.getItem("becm-student-profile") || "{}") }; } catch {}
-    const initial = { ...emptyProfile, name: local.studentName, email: local.email, phone: local.phone };
+    const initial = { ...emptyProfile, name: local.studentName, email: local.email, phone: local.phone, roll: local.roll, series: local.series, department: local.department || "BECM" };
     setTimeout(() => setProfile(initial), 0);
     if (!local.email) { setTimeout(() => setLoading(false), 0); return; }
     fetch(`/api/student-profile?email=${encodeURIComponent(local.email)}`, { cache: "no-store" }).then((response) => response.json()).then((data) => { if (data.profile) setProfile(data.profile); }).catch(() => setError("Unable to load your saved profile")).finally(() => setLoading(false));

@@ -1,14 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { Check, CheckCircle2, LoaderCircle, Search, UserRound, X } from "lucide-react";
+import { Check, LoaderCircle, Search, UserRound, X } from "lucide-react";
 
 type RecordItem = {
   id: string;
   quantity: number;
   returnedAt: string | null;
-  book: { title: string; author: string; edition: string | null; imageUrl: string };
+  book: { title: string; author: string; edition: string | null };
 };
 
 type RecordData = {
@@ -62,7 +61,7 @@ export default function StaffLendingRecords() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [updating, setUpdating] = useState<string | null>(null);
-  const [protectedAction, setProtectedAction] = useState<{ orderId: string; action: "return" | "reopen" } | null>(null);
+  const [protectedAction, setProtectedAction] = useState<{ targetId: string; action: "return" | "reopen" | "mark_paid" | "delete_pending" } | null>(null);
   const [password, setPassword] = useState("");
   const [now] = useState(() => Date.now());
 
@@ -115,14 +114,14 @@ export default function StaffLendingRecords() {
     return Array.from(grouped.values());
   }, [filter, now, records, search]);
 
-  async function updateRental(targetId: string, action: "return" | "mark_paid" | "reopen", actionPassword?: string) {
+  async function updateRental(targetId: string, action: "return" | "mark_paid" | "delete_pending" | "reopen", actionPassword?: string) {
     setUpdating(targetId);
     setError("");
     try {
       const response = await fetch("/api/staff/rental-records", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(action === "mark_paid" ? { orderId: targetId, action } : { itemId: targetId, action, password: actionPassword }),
+        body: JSON.stringify(action === "mark_paid" || action === "delete_pending" ? { orderId: targetId, action, password: actionPassword } : { itemId: targetId, action, password: actionPassword }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Unable to update the rental");
@@ -139,7 +138,7 @@ export default function StaffLendingRecords() {
   async function submitPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!protectedAction || !password) return;
-    const succeeded = await updateRental(protectedAction.orderId, protectedAction.action, password);
+    const succeeded = await updateRental(protectedAction.targetId, protectedAction.action, password);
     if (succeeded) {
       setProtectedAction(null);
       setPassword("");
@@ -194,10 +193,9 @@ export default function StaffLendingRecords() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Image</th>
-                        <th>Book title</th>
-                        <th>Author</th>
-                        <th>Edition</th>
+                        <th className="left-column">Book title</th>
+                        <th className="left-column">Author</th>
+                        <th className="left-column">Edition</th>
                         <th className="center-column">Quantity</th>
                         <th className="center-column">Transaction</th>
                         <th className="center-column">Status</th>
@@ -212,11 +210,6 @@ export default function StaffLendingRecords() {
                           const state = condition(record, item, now);
                           return (
                             <tr key={item.id}>
-                              <td>
-                                <span className="book-cover">
-                                  <Image src={item.book.imageUrl} alt={`${item.book.title} cover`} fill sizes="44px" />
-                                </span>
-                              </td>
                               <td><strong className="book-title">{item.book.title}</strong></td>
                               <td>{item.book.author}</td>
                               <td>{item.book.edition?.trim() || "Not specified"}</td>
@@ -234,19 +227,20 @@ export default function StaffLendingRecords() {
                                   <div className="rental-action">
                                     <span>{state === "overdue" ? "Term ended" : "Terminates"}: {formatDate(record.dueAt)}</span>
                                     <span className="completion-label">Not completed</span>
-                                    <button className="state-toggle state-toggle--complete" type="button" onClick={() => { setProtectedAction({ orderId: item.id, action: "return" }); setPassword(""); }} disabled={updating === item.id} aria-label={`Mark ${item.book.title} as completed and returned`} title="Mark as completed and returned">
+                                    <button className="state-toggle state-toggle--complete" type="button" onClick={() => { setProtectedAction({ targetId: item.id, action: "return" }); setPassword(""); }} disabled={updating === item.id} aria-label={`Mark ${item.book.title} as completed and returned`} title="Mark as completed and returned">
                                       <Check size={18} />
                                     </button>
                                   </div>
                                 ) : state === "pending_payment" ? (
-                                  <button type="button" onClick={() => void updateRental(record.id, "mark_paid")} disabled={updating === record.id}>
-                                    {updating === record.id ? <LoaderCircle className="spin" size={16} /> : <CheckCircle2 size={16} />}
-                                    Mark paid
-                                  </button>
+                                  <div className="pending-actions">
+                                    <span>Pending</span>
+                                    <button className="state-toggle state-toggle--complete" type="button" onClick={() => { setProtectedAction({ targetId: record.id, action: "mark_paid" }); setPassword(""); }} disabled={updating === record.id} aria-label="Confirm payment" title="Confirm payment"><Check size={18} /></button>
+                                    <button className="state-toggle state-toggle--undo" type="button" onClick={() => { setProtectedAction({ targetId: record.id, action: "delete_pending" }); setPassword(""); }} disabled={updating === record.id} aria-label="Delete pending payment" title="Delete pending payment"><X size={18} /></button>
+                                  </div>
                                 ) : state === "returned" ? (
                                   <div className="rental-action">
                                     <span className="completion-label completion-label--done">Completed</span>
-                                    <button className="state-toggle state-toggle--undo" type="button" onClick={() => { setProtectedAction({ orderId: item.id, action: "reopen" }); setPassword(""); }} disabled={updating === item.id} aria-label={`Change ${item.book.title} to incomplete and active`} title="Change to incomplete and active">
+                                    <button className="state-toggle state-toggle--undo" type="button" onClick={() => { setProtectedAction({ targetId: item.id, action: "reopen" }); setPassword(""); }} disabled={updating === item.id} aria-label={`Change ${item.book.title} to incomplete and active`} title="Change to incomplete and active">
                                       <X size={18} />
                                     </button>
                                   </div>
@@ -269,7 +263,7 @@ export default function StaffLendingRecords() {
         <div className="password-dialog" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setProtectedAction(null); }}>
           <form className="password-dialog__card" onSubmit={(event) => void submitPassword(event)}>
             <h2>Password required</h2>
-            <p>Enter the staff return password to {protectedAction.action === "return" ? "complete this return" : "change this rental back to incomplete"}.</p>
+            <p>Enter the staff password to {protectedAction.action === "return" ? "complete this return" : protectedAction.action === "reopen" ? "change this rental back to incomplete" : protectedAction.action === "mark_paid" ? "confirm this payment as paid" : "delete this pending payment"}.</p>
             <label>
               Password
               <input autoFocus type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
@@ -300,8 +294,7 @@ export default function StaffLendingRecords() {
         th { background:#f1f5fb; color:#183965; font-size:12px; letter-spacing:.02em; padding:11px 14px; text-align:center; text-transform:uppercase; }
         td { border-top:1px solid #e6ebf3; color:#183965; font-size:13px; padding:12px 14px; vertical-align:middle; }
         .center-column { text-align:center; }
-        .book-cover { background:#edf2f7; border:1px solid #dce4ef; border-radius:5px; display:block; height:58px; overflow:hidden; position:relative; width:44px; }
-        .book-cover :global(img) { object-fit:contain; }
+        .left-column { text-align:left; }
         .book-title { display:block; min-width:180px; }
         .transaction-id { font-size:11px; overflow-wrap:anywhere; }
         .payment-state { border-radius:999px; display:inline-block; font-size:11px; font-weight:700; padding:5px 9px; white-space:nowrap; }
@@ -316,6 +309,8 @@ export default function StaffLendingRecords() {
         .rental-action > span { color:#536b8e; font-size:11px; font-weight:600; white-space:nowrap; }
         .rental-action .completion-label { color:#a35b00; font-size:12px; }
         .rental-action .completion-label--done { color:#087b37; }
+        .pending-actions { align-items:center; display:flex; gap:7px; justify-content:center; }
+        .pending-actions > span { color:#a35b00; font-size:11px; font-weight:700; }
         .state-toggle { border-radius:50%; height:32px; justify-content:center; padding:0; width:32px; }
         .state-toggle--complete { background:#e8f8ee; color:#087b37; }
         .state-toggle--undo { background:#ffe9e9; color:#bd1010; }
