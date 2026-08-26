@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
+
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -17,7 +21,16 @@ export function getPrisma() {
   const connectionString = getConnectionString();
   if (!connectionString) return null;
 
-  if (!globalForPrisma.prisma) {
+  const existingClient = globalForPrisma.prisma as unknown as Record<string, unknown> | undefined;
+  const hasRequiredDelegates = Boolean(
+    existingClient?.studentBillPayment
+    && existingClient?.rentalBook
+    && existingClient?.rentalOrder
+    && existingClient?.portalAccount
+  );
+  if (!globalForPrisma.prisma || !hasRequiredDelegates) {
+    const oldClient = globalForPrisma.prisma;
+    if (oldClient) void oldClient.$disconnect();
     globalForPrisma.prisma = createPrismaClient(connectionString);
   }
 

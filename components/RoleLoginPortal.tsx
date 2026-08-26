@@ -24,8 +24,8 @@ const roles = {
     label: "Student",
     title: "Student Login",
     description: "Access academic notices, schedules, learning resources and student services.",
-    idLabel: "Student ID",
-    placeholder: "e.g., 20BECM001 or your email",
+    idLabel: "Email ID",
+    placeholder: "Enter your email address",
     destination: "/student/dashboard",
     icon: GraduationCap,
     accent: "#159f82",
@@ -34,8 +34,8 @@ const roles = {
     label: "Teacher",
     title: "Teacher Login",
     description: "Access your dashboard to manage official files and examination activities.",
-    idLabel: "Teacher ID",
-    placeholder: "e.g., T-1234 or your email",
+    idLabel: "Email ID",
+    placeholder: "Enter your email address",
     destination: "/teacher/dashboard",
     icon: Presentation,
     accent: "#2563eb",
@@ -44,8 +44,8 @@ const roles = {
     label: "Staff",
     title: "Staff Login",
     description: "Access office resources, document records and departmental services.",
-    idLabel: "Staff ID",
-    placeholder: "e.g., S-1234 or your email",
+    idLabel: "Email ID",
+    placeholder: "Enter your email address",
     destination: "/staff/dashboard",
     icon: BriefcaseBusiness,
     accent: "#7c3aed",
@@ -69,14 +69,30 @@ export default function RoleLoginPortal() {
   const role = roles[activeRole];
   const RoleIcon = role.icon;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    if (activeRole === "student") {
+      let existing: { studentName?: string; phone?: string } = {};
+      try { existing = JSON.parse(window.localStorage.getItem("becm-student-profile") || "{}"); } catch {}
+      window.localStorage.setItem("becm-student-profile", JSON.stringify({
+        studentName: authMode === "signup" ? String(form.get("fullName") || "") : existing.studentName || "",
+        email: String(form.get("identifier") || ""),
+        phone: authMode === "signup" ? String(form.get("phone") || "") : existing.phone || "",
+      }));
+    }
+    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), role: activeRole, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined }) }).catch(() => null);
+    if (trackingResponse?.status === 403) {
+      const data = await trackingResponse.json().catch(() => ({ error: "This account is disabled" }));
+      window.alert(data.error || "This account is disabled");
+      return;
+    }
     router.push(role.destination);
   }
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900 [zoom:0.98]">
-      <div className="mx-auto flex min-h-[calc(100vh-68px)] max-w-[1536px] items-start px-5 pb-7 pt-3.5 sm:px-8 lg:px-14 xl:px-[84px]">
+      <div className="mx-auto flex min-h-[calc(100vh-68px)] max-w-[1536px] items-start px-5 pb-7 pt-7 sm:px-8 lg:px-14 xl:px-[84px]">
         <div className="grid w-full grid-cols-1 gap-10 lg:h-[min(790px,calc(100vh-40px))] lg:grid-cols-[1.04fr_1fr] lg:gap-14 xl:gap-[58px]">
           <section className="relative flex min-h-0 flex-col overflow-hidden rounded-t-[28px] bg-white">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-[430px] overflow-hidden bg-gradient-to-br from-teal-50 via-white to-blue-50">
@@ -159,12 +175,17 @@ export default function RoleLoginPortal() {
                 </div>}
 
                 <div className="border-t border-slate-200 px-5 pb-4 pt-4">
-                  {authMode === "signup" && <>
+                  {authMode === "signup" ? <>
                     <label htmlFor="full-name" className="mb-2 block text-sm font-semibold text-slate-800">Full Name</label>
                     <div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="full-name" name="fullName" required autoComplete="name" placeholder="Enter your full name" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div>
+                    <div className={`mt-3 grid gap-3 ${activeRole === "student" ? "sm:grid-cols-2" : ""}`}>
+                      <div><label htmlFor="user-id" className="mb-2 block text-sm font-semibold text-slate-800">Email ID</label><div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="user-id" name="identifier" required type="email" autoComplete="email" placeholder="Enter your email address" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>
+                      {activeRole === "student" && <div><label htmlFor="mobile-number" className="mb-2 block text-sm font-semibold text-slate-800">Mobile Number</label><div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="mobile-number" name="phone" required type="tel" autoComplete="tel" placeholder="01XXXXXXXXX" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>}
+                    </div>
+                  </> : <>
+                    <label htmlFor="user-id" className="mb-2 block text-sm font-semibold text-slate-800">{role.idLabel}</label>
+                    <div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="user-id" name="identifier" required type="email" autoComplete="email" placeholder={role.placeholder} className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div>
                   </>}
-                  <label htmlFor="user-id" className={`mb-2 block text-sm font-semibold text-slate-800 ${authMode === "signup" ? "mt-3" : ""}`}>{authMode === "signup" ? "Email ID" : role.idLabel}</label>
-                  <div className="relative"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" /><input id="user-id" name="identifier" required type={authMode === "signup" ? "email" : "text"} autoComplete={authMode === "signup" ? "email" : "username"} placeholder={authMode === "signup" ? "Enter your email address" : role.placeholder} className={`${authMode === "signup" ? "h-11" : "h-12"} w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100`} /></div>
 
                   <label htmlFor="password" className={`mb-2 block text-sm font-semibold text-slate-800 ${authMode === "signup" ? "mt-3" : "mt-4"}`}>Password</label>
                   <div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="password" name="password" required type={showPassword ? "text" : "password"} autoComplete={authMode === "signin" ? "current-password" : "new-password"} placeholder="Enter your password" className={`${authMode === "signup" ? "h-11" : "h-12"} w-full rounded-lg border border-slate-200 bg-white pl-12 pr-14 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100`} /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-0 top-0 flex h-full w-12 items-center justify-center border-l border-slate-200 text-slate-500 transition hover:bg-slate-50" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></div>

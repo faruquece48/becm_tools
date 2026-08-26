@@ -23,3 +23,98 @@ model VisitEvent {
 
   @@index([visitDay])
 }
+
+model StudentBillPayment {
+  id                    String       @id @default(cuid())
+  transactionId         String       @unique
+  studentName           String
+  email                 String
+  phone                 String
+  rentalBookCount       Int          @default(0)
+  labReportOption       String       @default("none")
+  associationYear       Int          @default(0)
+  letterOfAttestation   Boolean      @default(false)
+  equivalentCertificate Boolean      @default(false)
+  amount                Int
+  currency              String       @default("BDT")
+  status                String       @default("PENDING")
+  validationId          String?
+  bankTransactionId     String?
+  createdAt             DateTime     @default(now())
+  paidAt                DateTime?
+  updatedAt             DateTime     @updatedAt
+  rentalOrder           RentalOrder?
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RentalBook {
+  id          String            @id @default(cuid())
+  title       String
+  author      String
+  edition     String?
+  publication String?
+  imageUrl    String
+  quantity    Int               @default(0)
+  price       Int               @default(20)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  items       RentalOrderItem[]
+
+  @@index([active])
+  @@index([title])
+}
+
+model RentalOrder {
+  id           String             @id @default(cuid())
+  paymentId    String             @unique
+  payment      StudentBillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  studentName  String
+  studentEmail String
+  studentPhone String
+  status       String             @default("PENDING_PAYMENT")
+  rentedAt     DateTime?
+  dueAt        DateTime?
+  returnedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  items        RentalOrderItem[]
+
+  @@index([studentEmail])
+  @@index([status])
+  @@index([dueAt])
+}
+
+model RentalOrderItem {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     RentalOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bookId    String
+  book      RentalBook  @relation(fields: [bookId], references: [id])
+  quantity  Int         @default(1)
+  unitPrice Int
+
+  @@unique([orderId, bookId])
+  @@index([bookId])
+}
+
+model PortalAccount {
+  id           String   @id @default(cuid())
+  email        String
+  role         String
+  name         String?
+  phone        String?
+  active       Boolean  @default(true)
+  registeredAt DateTime @default(now())
+  lastLoginAt  DateTime @default(now())
+  loginCount   Int      @default(1)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([email, role])
+  @@index([role])
+  @@index([active])
+  @@index([lastLoginAt])
+}
