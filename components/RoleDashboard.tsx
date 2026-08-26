@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowRight, Bell, BookOpenText, CalendarDays, FileText, Grid2X2, LogOut, Menu, ReceiptText, Settings, Users, X, type LucideIcon } from "lucide-react";
@@ -14,6 +14,13 @@ type Props = { role: "Student" | "Staff"; subtitle: string; welcome: string; ite
 export default function RoleDashboard({ role, subtitle, welcome, items, accent, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const [clientPathname, setClientPathname] = useState("");
+
+  useEffect(() => {
+    // Keep the server and first browser render identical, then mark the active link.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientPathname(pathname);
+  }, [pathname]);
   const navigation = role === "Student"
     ? [
         { label: "Dashboard", icon: Grid2X2, href: "/student/dashboard" },
@@ -22,13 +29,13 @@ export default function RoleDashboard({ role, subtitle, welcome, items, accent, 
         { label: "Learning Resources", icon: BookOpenText },
         { label: "Rental Library", icon: BookOpenText, href: "/student/rental-library" },
         { label: "Bill Payment", icon: ReceiptText, href: "/student/bill-payment" },
-        { label: "My Profile", icon: Users },
+        { label: "My Profile", icon: Users, href: "/student/profile" },
       ]
     : [
         { label: "Dashboard", icon: Grid2X2, href: "/staff/dashboard" },
         { label: "Office Notices", icon: Bell },
         { label: "Document Records", icon: FileText },
-        { label: "Rental Inventory", icon: BookOpenText, href: "/staff/rental-library" },
+        { label: "Book Record", icon: BookOpenText, href: "/staff/book-lending" },
         { label: "Department Calendar", icon: CalendarDays },
         { label: "Settings", icon: Settings },
       ];
@@ -42,14 +49,14 @@ export default function RoleDashboard({ role, subtitle, welcome, items, accent, 
     </div>
     <nav className="space-y-1 px-4 py-4" aria-label={`${role} navigation`}>
       {navigation.map(({ label, icon: Icon, href }) => {
-        const active = href === pathname;
+        const active = href === clientPathname;
         const className = `flex w-full items-center gap-4 rounded-xl px-5 py-3 text-sm font-medium ${active ? `bg-gradient-to-r ${accent} text-white shadow-lg shadow-blue-950/40` : href ? "text-blue-100 transition hover:bg-white/10" : "cursor-not-allowed text-blue-200/50"}`;
         const content = <><Icon className="h-5 w-5" /><span>{label}</span></>;
-        return href ? <Link key={label} href={href} onClick={() => setMobileOpen(false)} aria-current={active ? "page" : undefined} className={className}>{content}</Link> : <span key={label} aria-disabled title="This page is coming soon" className={className}>{content}</span>;
+        return href ? <Link key={label} href={href} onClick={() => setMobileOpen(false)} aria-current={active ? "page" : undefined} className={className} suppressHydrationWarning>{content}</Link> : <span key={label} aria-disabled title="This page is coming soon" className={className}>{content}</span>;
       })}
     </nav>
     <div className="mt-auto border-t border-white/10 p-4">
-      <Link href="/" className="flex items-center gap-4 rounded-xl px-5 py-3 text-sm font-semibold text-blue-100 transition hover:bg-white/10 hover:text-white"><LogOut className="h-5 w-5" /> Logout</Link>
+      <Link href="/" className="flex items-center gap-4 rounded-xl px-5 py-3 text-sm font-semibold text-blue-100 transition hover:bg-white/10 hover:text-white" suppressHydrationWarning><LogOut className="h-5 w-5" /> Logout</Link>
       <p className="mt-4 border-t border-white/10 pt-4 text-center text-xs leading-5 text-white">
         Developed by Faruque Abdullah
         <br />

@@ -146,6 +146,13 @@
   }
 }
 
+/* Book covers should always remain fully visible inside rental-library cards. */
+[data-rental-library] img.object-cover {
+  object-fit: contain !important;
+  padding: 0.5rem;
+  background: white;
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {

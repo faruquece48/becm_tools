@@ -63,6 +63,7 @@ model RentalBook {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   items       RentalOrderItem[]
+  teacherItems TeacherRentalItem[]
 
   @@index([active])
   @@index([title])
@@ -96,9 +97,11 @@ model RentalOrderItem {
   book      RentalBook  @relation(fields: [bookId], references: [id])
   quantity  Int         @default(1)
   unitPrice Int
+  returnedAt DateTime?
 
   @@unique([orderId, bookId])
   @@index([bookId])
+  @@index([returnedAt])
 }
 
 model PortalAccount {
@@ -117,4 +120,50 @@ model PortalAccount {
   @@index([role])
   @@index([active])
   @@index([lastLoginAt])
+}
+
+model StudentProfile {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  phone      String
+  roll       String
+  series     String
+  department String   @default("BECM")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([roll])
+  @@index([series])
+}
+
+model TeacherRentalRecord {
+  id           String              @id @default(cuid())
+  teacherName  String
+  teacherEmail String?
+  issuedAt     DateTime            @default(now())
+  dueAt        DateTime?
+  returnedAt   DateTime?
+  status       String              @default("ACTIVE")
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  items        TeacherRentalItem[]
+
+  @@index([teacherName])
+  @@index([teacherEmail])
+  @@index([status])
+}
+
+model TeacherRentalItem {
+  id         String              @id @default(cuid())
+  recordId   String
+  record     TeacherRentalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  bookId     String
+  book       RentalBook          @relation(fields: [bookId], references: [id])
+  quantity   Int                 @default(1)
+  returnedAt DateTime?
+
+  @@unique([recordId, bookId])
+  @@index([bookId])
+  @@index([returnedAt])
 }

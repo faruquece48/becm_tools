@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { normalizeBookImageUrl } from "@/lib/bookImage";
 
 const bookSchema = z.object({
   id: z.string().min(1).optional(), title: z.string().trim().min(2).max(200),
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid book" }, { status: 400 });
   const data = { ...parsed.data };
   delete data.id;
+  data.imageUrl = normalizeBookImageUrl(data.imageUrl);
   try {
     const duplicate = await prisma.rentalBook.findFirst({ where: {
       active: true,
@@ -54,6 +56,7 @@ export async function PATCH(request: Request) {
   const parsed = bookSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success || !parsed.data.id) return NextResponse.json({ error: "Invalid book" }, { status: 400 });
   const { id, ...data } = parsed.data;
+  data.imageUrl = normalizeBookImageUrl(data.imageUrl);
   try {
     const duplicate = await prisma.rentalBook.findFirst({ where: {
       id: { not: id }, active: true,

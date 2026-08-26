@@ -26,11 +26,12 @@ export function getPrisma() {
     existingClient?.studentBillPayment
     && existingClient?.rentalBook
     && existingClient?.rentalOrder
+    && existingClient?.teacherRentalRecord
+    && existingClient?.teacherRentalItem
     && existingClient?.portalAccount
+    && existingClient?.studentProfile
   );
   if (!globalForPrisma.prisma || !hasRequiredDelegates) {
-    const oldClient = globalForPrisma.prisma;
-    if (oldClient) void oldClient.$disconnect();
     globalForPrisma.prisma = createPrismaClient(connectionString);
   }
 

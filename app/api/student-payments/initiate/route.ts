@@ -30,7 +30,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "One or more selected books are no longer available" }, { status: 409 });
   }
   if (selectedBooks.length) {
-    const activeOrders = await prisma.rentalOrder.findMany({ where: { studentEmail: parsed.data.email.toLowerCase(), status: "ACTIVE" }, include: { items: true } });
+    const activeOrders = await prisma.rentalOrder.findMany({
+      where: { studentEmail: parsed.data.email.toLowerCase(), status: "ACTIVE" },
+      include: { items: { where: { returnedAt: null } } },
+    });
     const activeItems = activeOrders.flatMap((order) => order.items);
     if (activeItems.length + selectedBooks.length > 5) {
       return NextResponse.json({ error: `You may have at most 5 active rental books. You currently have ${activeItems.length}.` }, { status: 409 });
