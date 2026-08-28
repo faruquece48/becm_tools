@@ -37,6 +37,10 @@ export default function RoleDashboard({ role, subtitle, welcome, items, accent, 
         { label: "Office Notices", icon: Bell },
         { label: "Document Records", icon: FileText },
         { label: "Remuneration Bill", icon: ReceiptText, href: "/staff/remuneration-bill" },
+        { label: "Lab Report Payments", icon: ReceiptText, href: "/staff/payments/lab-report" },
+        { label: "Association Fee", icon: ReceiptText, href: "/staff/payments/association-fee" },
+        { label: "Attestation Letter", icon: FileText, href: "/staff/payments/letter-attestation" },
+        { label: "Equivalent Certificate", icon: FileText, href: "/staff/payments/equivalent-certificate" },
         { label: "Book Record", icon: BookOpenText, href: "/staff/book-lending" },
         { label: "Department Calendar", icon: CalendarDays },
         { label: "Settings", icon: Settings },
@@ -49,7 +53,7 @@ export default function RoleDashboard({ role, subtitle, welcome, items, accent, 
       <p className="mt-1 font-serif text-2xl font-bold tracking-wide">RUET</p>
       <p className="mt-1 text-sm font-medium text-blue-100">{subtitle}</p>
     </div>
-    <nav className="space-y-1 px-4 py-4" aria-label={`${role} navigation`}>
+    <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-4" aria-label={`${role} navigation`}>
       {navigation.map(({ label, icon: Icon, href }) => {
         const active = href === clientPathname;
         const className = `flex w-full items-center gap-4 rounded-xl px-5 py-3 text-sm font-medium ${active ? `bg-gradient-to-r ${accent} text-white shadow-lg shadow-blue-950/40` : href ? "text-blue-100 transition hover:bg-white/10" : "cursor-not-allowed text-blue-200/50"}`;

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "StudentProfile_roll_key" ON "StudentProfile"("roll");

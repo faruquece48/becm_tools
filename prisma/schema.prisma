@@ -44,6 +44,7 @@ model StudentBillPayment {
   paidAt                DateTime?
   updatedAt             DateTime     @updatedAt
   rentalOrder           RentalOrder?
+  serviceVerifications  StudentServiceVerification[]
 
   @@index([email])
   @@index([status])
@@ -80,6 +81,9 @@ model RentalOrder {
   rentedAt     DateTime?
   dueAt        DateTime?
   returnedAt   DateTime?
+  activationCodeHash   String?   @unique
+  activationCodeSentAt DateTime?
+  activatedAt          DateTime?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   items        RentalOrderItem[]
@@ -140,7 +144,7 @@ model StudentProfile {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@index([roll])
+  @@unique([roll])
   @@index([series])
 }
 
@@ -191,4 +195,18 @@ model TeacherCustomizationStore {
   preview   Json?
   summary   Json?
   updatedAt DateTime @updatedAt
+}
+model StudentServiceVerification {
+  id          String             @id @default(cuid())
+  paymentId   String
+  payment     StudentBillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  service     String
+  codeHash    String             @unique
+  sentAt      DateTime           @default(now())
+  verifiedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([paymentId, service])
+  @@index([service, verifiedAt])
 }

@@ -88,7 +88,7 @@ export default function RoleLoginPortal() {
       window.alert("Password and Confirm Password do not match.");
       return;
     }
-    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), password: String(form.get("password") || ""), role: activeRole, mode: authMode, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined }) }).catch(() => null);
+    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), password: String(form.get("password") || ""), role: activeRole, mode: authMode, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined, roll: String(form.get("roll") || "") || undefined, series: String(form.get("series") || "") || undefined }) }).catch(() => null);
     if (!trackingResponse) {
       window.alert("Unable to connect to the account service.");
       return;
@@ -99,6 +99,7 @@ export default function RoleLoginPortal() {
       return;
     }
     const trackingData = await trackingResponse.json().catch(() => ({}));
+    if (trackingData.pendingApproval) { window.alert("Registration submitted successfully. You can sign in after an administrator approves your student account."); setAuthMode("signin"); return; }
     if (trackingData.mustChangePassword) { router.push("/change-password"); return; }
     if (activeRole === "student") {
       let existing: { studentName?: string; phone?: string; roll?: string; series?: string; department?: string } = {};
@@ -198,7 +199,7 @@ export default function RoleLoginPortal() {
                   const Icon = item.icon;
                   const active = activeRole === key;
                   return (
-                    <button key={key} type="button" role="tab" aria-selected={active} onClick={() => setActiveRole(key)} className={`flex min-h-16 items-center justify-center gap-2.5 rounded-[9px] border bg-white px-3 font-semibold transition-all ${active ? "shadow-[0_4px_12px_rgba(15,23,42,0.06)]" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`} style={{ borderColor: active ? item.accent : undefined, color: item.accent, boxShadow: active ? `0 0 0 1px ${item.accent}18` : undefined }}>
+                    <button key={key} type="button" role="tab" aria-selected={active} onClick={() => { setActiveRole(key); if (key !== "student") setAuthMode("signin"); }} className={`flex min-h-16 items-center justify-center gap-2.5 rounded-[9px] border bg-white px-3 font-semibold transition-all ${active ? "shadow-[0_4px_12px_rgba(15,23,42,0.06)]" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`} style={{ borderColor: active ? item.accent : undefined, color: item.accent, boxShadow: active ? `0 0 0 1px ${item.accent}18` : undefined }}>
                       <Icon className="h-6 w-6" /><span className="hidden sm:inline">{item.label}</span>
                     </button>
                   );
@@ -242,10 +243,10 @@ export default function RoleLoginPortal() {
                   {authMode === "signin" && <p className="mt-3 text-center text-[12px] leading-5 text-slate-500">By signing in, you agree to our <button type="button" className="font-medium text-blue-600 hover:underline">Terms of Service</button> and <button type="button" className="font-medium text-blue-600 hover:underline">Privacy Policy</button>.</p>}
                 </div>
               </form>
-              <p className="mt-4 text-center text-sm text-slate-500">
+              {activeRole === "student" && <p className="mt-4 text-center text-sm text-slate-500">
                 {authMode === "signin" ? "New to BECM Tools?" : "Already have an account?"}{" "}
                 <button type="button" onClick={() => setAuthMode((mode) => mode === "signin" ? "signup" : "signin")} className="font-semibold text-blue-600 hover:underline">{authMode === "signin" ? "Sign Up" : "Sign In"}</button>
-              </p>
+              </p>}
               <p className="mt-auto pt-5 text-center text-[11px] font-medium leading-5 tracking-wide text-[#405777]">&copy; 2026 BECM, RUET <span className="mx-1.5 text-[#07949a]">&bull;</span> Empowering education, innovation &amp; collaboration.</p>
             </div>
           </section>

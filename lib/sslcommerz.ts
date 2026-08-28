@@ -96,10 +96,7 @@ export async function validateSslcommerzPayment(validationId: string, transactio
         const updated = await tx.rentalBook.updateMany({ where: { id: item.bookId, active: true, quantity: { gte: item.quantity } }, data: { quantity: { decrement: item.quantity } } });
         if (updated.count !== 1) throw new Error("A selected rental book is no longer available");
       }
-      const rentedAt = new Date();
-      const dueAt = new Date(rentedAt);
-      dueAt.setUTCDate(dueAt.getUTCDate() + 180);
-      await tx.rentalOrder.update({ where: { id: current.rentalOrder.id }, data: { status: "ACTIVE", rentedAt, dueAt } });
+      await tx.rentalOrder.update({ where: { id: current.rentalOrder.id }, data: { status: "AWAITING_ACTIVATION", rentedAt: null, dueAt: null } });
     }
 
     return tx.studentBillPayment.update({ where: { transactionId }, data: { status: "PAID", validationId, bankTransactionId: validation.bank_tran_id || null, paidAt: current.paidAt || new Date() } });

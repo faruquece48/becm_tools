@@ -16,8 +16,13 @@ export async function GET(request: Request) {
   if (!prisma) return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
   const email = new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
   if (!email) return NextResponse.json({ error: "Email is required" }, { status: 400 });
-  try { return NextResponse.json({ profile: await prisma.studentProfile.findUnique({ where: { email } }) }); }
-  catch { return NextResponse.json({ error: "Unable to load the student profile" }, { status: 503 }); }
+  try {
+    const [profile, rentals] = await Promise.all([
+      prisma.studentProfile.findUnique({ where: { email } }),
+      prisma.rentalOrder.findMany({ where: { studentEmail: email, status: { in: ["ACTIVE", "RETURNED"] } }, include: { items: { include: { book: true } } }, orderBy: { rentedAt: "desc" } }),
+    ]);
+    return NextResponse.json({ profile, rentals });
+  } catch { return NextResponse.json({ error: "Unable to load the student profile" }, { status: 503 }); }
 }
 
 export async function PUT(request: Request) {

@@ -21,6 +21,7 @@ const trackingSchema = z.object({
   mode: z.enum(["signin", "signup"]),
   name: z.string().trim().max(100).optional(), phone: z.string().trim().max(30).optional(),
   password: z.string().min(6).max(200),
+  roll: z.string().trim().min(1).max(50).optional(), series: z.string().trim().min(2).max(30).optional(),
 });
 const manualAccountSchema = z.object({
   email: z.email().max(150),
@@ -34,7 +35,9 @@ export async function POST(request: Request) {
   if (!prisma) return NextResponse.json({ tracked: false }, { status: 503 });
   const parsed = trackingSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid account information" }, { status: 400 });
-  const { email, role, mode, name, phone, password } = parsed.data;
+  const { email, role, mode, name, phone, password, roll, series } = parsed.data;
+  if (mode === "signup" && role !== "student") return NextResponse.json({ error: "Teacher and staff accounts can only be created by an administrator." }, { status: 403 });
+  if (mode === "signup" && (!name || !phone || !roll || !series)) return NextResponse.json({ error: "Name, phone, roll number and series are required for student registration." }, { status: 400 });
   const normalizedEmail = email.toLowerCase();
   const registeredAccounts = await prisma.$queryRaw<Array<{ id: string; email: string; role: string; name: string | null; phone: string | null; passwordHash: string | null; active: boolean; registeredAt: Date; mustChangePassword: boolean }>>`
     SELECT "id", "email", "role", "name", "phone", "passwordHash", "active", "registeredAt", "mustChangePassword" FROM "PortalAccount" WHERE "email" = ${normalizedEmail} ORDER BY "registeredAt" ASC
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `This email is registered as a ${owner.role} account and cannot be used in the ${role} portal.` }, { status: 409 });
   }
   const existing = owner?.role === role ? owner : undefined;
-  if (existing && !existing.active) return NextResponse.json({ error: "This account has been disabled by an administrator" }, { status: 403 });
+  if (existing && !existing.active) return NextResponse.json({ error: role === "student" ? "This student account is awaiting administrator approval." : "This account has been disabled by an administrator" }, { status: 403 });
   if (mode === "signin" && !existing) return NextResponse.json({ error: `No registered ${role} account was found for this email.` }, { status: 401 });
   if (mode === "signup" && existing) return NextResponse.json({ error: `This email is already registered as a ${role} account. Please sign in.` }, { status: 409 });
   if (existing && existing.passwordHash && !verifyPortalPassword(password, existing.passwordHash)) return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
@@ -55,13 +58,19 @@ export async function POST(request: Request) {
     await prisma.$executeRaw`UPDATE "PortalAccount" SET "passwordHash" = ${passwordHash}, "lastLoginAt" = NOW(), "loginCount" = "loginCount" + 1, "updatedAt" = NOW() WHERE "id" = ${existing.id}`;
     account = { id: existing.id };
   } else {
+    const usedRoll = await prisma.$queryRaw<Array<{ email: string }>>`SELECT "email" FROM "StudentProfile" WHERE "roll" = ${roll!} LIMIT 1`;
+    if (usedRoll.length) return NextResponse.json({ error: "This roll number is already registered with another email address." }, { status: 409 });
     const id = randomUUID();
+    const profileId = randomUUID();
     const passwordHash = hashPortalPassword(password);
-    await prisma.$executeRaw`
-      INSERT INTO "PortalAccount" ("id", "email", "role", "name", "phone", "passwordHash", "active", "registeredAt", "lastLoginAt", "loginCount", "updatedAt")
-      VALUES (${id}, ${normalizedEmail}, ${role}, ${name || null}, ${phone || null}, ${passwordHash}, true, NOW(), NOW(), 1, NOW())
-    `;
-    account = { id };
+    try {
+      await prisma.$executeRaw`INSERT INTO "PortalAccount" ("id", "email", "role", "name", "phone", "passwordHash", "active", "registeredAt", "lastLoginAt", "loginCount", "updatedAt") VALUES (${id}, ${normalizedEmail}, 'student', ${name!}, ${phone!}, ${passwordHash}, false, NOW(), NOW(), 0, NOW())`;
+      await prisma.$executeRaw`INSERT INTO "StudentProfile" ("id", "email", "name", "phone", "roll", "series", "department", "createdAt", "updatedAt") VALUES (${profileId}, ${normalizedEmail}, ${name!}, ${phone!}, ${roll!}, ${series!}, 'BECM', NOW(), NOW())`;
+    } catch {
+      await prisma.$executeRaw`DELETE FROM "PortalAccount" WHERE "id" = ${id}`;
+      return NextResponse.json({ error: "This email or roll number is already registered." }, { status: 409 });
+    }
+    return NextResponse.json({ tracked: true, pendingApproval: true });
   }
   const mustChangePassword = Boolean(existing?.mustChangePassword);
   const response = NextResponse.json({ tracked: true, mustChangePassword });
@@ -144,6 +153,7 @@ export async function DELETE(request: Request) {
   const prisma = getPrisma();
   if (!prisma) return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
   await prisma.$executeRaw`DELETE FROM "TeacherCustomizationStore" WHERE "teacherId" = ${id}`;
+  await prisma.$executeRaw`DELETE FROM "StudentProfile" WHERE "email" = (SELECT "email" FROM "PortalAccount" WHERE "id" = ${id} AND "role" = 'student')`;
   await prisma.$executeRaw`DELETE FROM "PortalAccount" WHERE "id" = ${id}`;
   return NextResponse.json({ deleted: true });
 }

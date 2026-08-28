@@ -30,11 +30,12 @@ type RecordData = {
   } | null;
 };
 
-type Filter = "all" | "active" | "overdue" | "returned" | "pending_payment";
+type Filter = "all" | "active" | "overdue" | "returned" | "pending_payment" | "awaiting_activation";
 
 function condition(record: RecordData, item: RecordItem, now: number) {
   if (item.returnedAt) return "returned";
   if (record.status === "PENDING_PAYMENT") return "pending_payment";
+  if (record.status === "AWAITING_ACTIVATION") return "awaiting_activation";
   if (record.dueAt && new Date(record.dueAt).getTime() < now) return "overdue";
   return "active";
 }
@@ -64,7 +65,14 @@ export default function StaffLendingRecords() {
   const [protectedAction, setProtectedAction] = useState<{ targetId: string; action: "return" | "reopen" | "mark_paid" | "delete_pending" } | null>(null);
   const [password, setPassword] = useState("");
   const [now] = useState(() => Date.now());
+  const [activationCode, setActivationCode] = useState("");
+  const [activationMessage, setActivationMessage] = useState("");
 
+  async function activateRental(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(""); setActivationMessage(""); setUpdating("activation");
+    try { const response=await fetch("/api/staff/rental-records",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"activate",code:activationCode})}); const payload=await response.json(); if(!response.ok)throw new Error(payload.error||"Unable to activate rental"); setActivationCode(""); setActivationMessage(`Rental activated. Valid until ${formatDate(payload.dueAt)}.`); await loadRecords(); }
+    catch(error){setError(error instanceof Error?error.message:"Unable to activate rental");} finally{setUpdating(null);}
+  }
   async function loadRecords() {
     setLoading(true);
     setError("");
@@ -81,9 +89,7 @@ export default function StaffLendingRecords() {
   }
 
   useEffect(() => {
-    // The records are provided by the staff API after the client view mounts.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadRecords();
+void loadRecords();
   }, []);
 
   const groups = useMemo(() => {
@@ -147,6 +153,8 @@ export default function StaffLendingRecords() {
 
   return (
     <section className="staff-records">
+      <form onSubmit={activateRental} className="activation-box"><div><h2>Activate paid book rental</h2><p>Enter the code emailed to the student. The 180-day validity begins after activation.</p></div><input value={activationCode} onChange={(event)=>setActivationCode(event.target.value.replace(/\D/g, "").slice(0, 6))} required inputMode="numeric" pattern="\d{6}" maxLength={6} placeholder="" aria-label="Six-digit rental activation code"/><button disabled={updating==="activation"}>{updating==="activation"?<LoaderCircle className="spin" size={16}/>:<Check size={16}/>} Activate</button></form>
+      {activationMessage && <p className="activation-success">{activationMessage}</p>}
       <div className="staff-records__tools">
         <label className="staff-records__search">
           <Search size={18} aria-hidden="true" />
@@ -163,6 +171,7 @@ export default function StaffLendingRecords() {
           <option value="overdue">Overdue</option>
           <option value="returned">Returned</option>
           <option value="pending_payment">Pending payment</option>
+          <option value="awaiting_activation">Awaiting activation</option>
         </select>
       </div>
 
@@ -183,9 +192,9 @@ export default function StaffLendingRecords() {
                   <div>
                     <h2>{profile?.name || student.studentName}</h2>
                     <p>
-                      Roll: {profile?.roll || "Not provided"} · Series: {profile?.series || "Not provided"} · {profile?.department || "Department not provided"}
+                      Roll: {profile?.roll || "Not provided"} <span aria-hidden="true">&bull;</span> Series: {profile?.series || "Not provided"} <span aria-hidden="true">&bull;</span> {profile?.department || "Department not provided"}
                     </p>
-                    <p>{student.studentEmail} · {profile?.phone || student.studentPhone || "Phone not provided"}</p>
+                    <p>{student.studentEmail} <span aria-hidden="true">&bull;</span> {profile?.phone || student.studentPhone || "Phone not provided"}</p>
                   </div>
                 </header>
 
@@ -244,7 +253,7 @@ export default function StaffLendingRecords() {
                                       <X size={18} />
                                     </button>
                                   </div>
-                                ) : "—"}
+                                 ) : <span aria-label="Not available">&mdash;</span>}
                               </td>
                             </tr>
                           );
@@ -277,6 +286,8 @@ export default function StaffLendingRecords() {
       )}
 
       <style jsx>{`
+        .activation-box { align-items:end; background:#fff; border:1px solid #cfe0f5; border-radius:16px; display:grid; gap:12px; grid-template-columns:1fr minmax(190px,260px) auto; margin-bottom:14px; padding:18px; }
+        .activation-box h2 { margin:0 0 4px; } .activation-box p { margin:0; } .activation-box input { border:1px solid #cad6e6; border-radius:10px; font:inherit; padding:11px 12px; } .activation-success { background:#e8f8ee; border-radius:10px; color:#087b37; margin:0 0 14px; padding:12px 14px; }
         .staff-records__tools { display:flex; gap:12px; margin-bottom:20px; }
         .staff-records__search { align-items:center; background:#fff; border:1px solid #d9e2ef; border-radius:12px; display:flex; flex:1; gap:9px; padding:0 14px; }
         .staff-records__search input { border:0; font:inherit; outline:0; padding:13px 0; width:100%; }
@@ -291,7 +302,7 @@ export default function StaffLendingRecords() {
         p { color:#45628c; font-size:13px; margin:2px 0; }
         .student-rental-table__scroll { overflow-x:auto; }
         table { border-collapse:collapse; min-width:940px; width:100%; }
-        th { background:#f1f5fb; color:#183965; font-size:12px; letter-spacing:.02em; padding:11px 14px; text-align:center; text-transform:uppercase; }
+        th { background:#f1f5fb; color:#183965; font-size:12px; letter-spacing:.02em; padding:11px 14px; text-align:center; }
         td { border-top:1px solid #e6ebf3; color:#183965; font-size:13px; padding:12px 14px; vertical-align:middle; }
         .center-column { text-align:center; }
         .left-column { text-align:left; }
@@ -304,7 +315,7 @@ export default function StaffLendingRecords() {
         .rental-state--active { background:#e8f8ee; color:#087b37; }
         .rental-state--overdue { background:#ffe9e9; color:#bd1010; }
         .rental-state--returned { background:#e8f1ff; color:#1258b8; }
-        .rental-state--pending_payment { background:#fff2c9; color:#a35b00; }
+        .rental-state--pending_payment, .rental-state--awaiting_activation { background:#fff2c9; color:#a35b00; }
         .rental-action { align-items:flex-start; display:flex; flex-direction:column; gap:7px; min-width:115px; }
         .rental-action > span { color:#536b8e; font-size:11px; font-weight:600; white-space:nowrap; }
         .rental-action .completion-label { color:#a35b00; font-size:12px; }
@@ -326,7 +337,7 @@ export default function StaffLendingRecords() {
         .password-dialog__card input { border:1px solid #cad6e6; border-radius:10px; font:inherit; outline:0; padding:11px 12px; }
         .password-dialog__card input:focus { border-color:#1769e8; box-shadow:0 0 0 3px #1769e822; }
         .password-dialog__actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
-        @media (max-width:700px) { .staff-records__tools { flex-direction:column; } select { padding:12px 14px; } .student-rental-table__header { align-items:flex-start; } }
+        @media (max-width:700px) { .activation-box { align-items:stretch; grid-template-columns:1fr; } .staff-records__tools { flex-direction:column; } select { padding:12px 14px; } .student-rental-table__header { align-items:flex-start; } }
       `}</style>
     </section>
   );
