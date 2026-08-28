@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Document, Page, View, Text, StyleSheet, Font } from "@react-pdf/renderer";
 import type { ExaminationBillData } from "../types";
+import { practicalSurveyingStaffGroups, staffSessionalGroups } from "@/lib/staffRemunerationMatching";
 import {
   flattenPaperSetter,
   flattenClassTest,
@@ -22,7 +23,7 @@ import {
   formatPaddedTableValue,
 } from "./pdfHelpers";
 // Requires the actual Monotype Corsiva .ttf file at /public/fonts/monotype-corsiva.ttf
-// (Monotype Corsiva is proprietary — typically bundled with Windows/Office — so you must
+// (Monotype Corsiva is proprietary â€” typically bundled with Windows/Office â€” so you must
 // supply your own licensed copy). If that file is missing, PDF generation will fail the
 // same way it did before. If you don't have a licensed copy, swap the src for a free
 // script font instead (e.g. Google Fonts "Dancing Script" or "Mrs Saint Delafield").
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
   subSectionTitle: { fontSize: 10, fontWeight: 700, marginTop: 5, marginBottom: 4 },
   // Table wrapper no longer carries a left/right border. A single View
   // spanning every row would get its border drawn as one continuous box
-  // even when react-pdf splits it across a page break — producing a
+  // even when react-pdf splits it across a page break â€” producing a
   // "phantom" vertical line that dangles into the blank space after the
   // last row on one page, and a mismatched fragment on the next. Instead,
   // every row (each already wrap={false}, so it can never itself be cut
@@ -405,6 +406,8 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
   const assignmentGroups = groupByCourse(assignmentRows);
   const courseFileGroups = groupByCourse(courseFileRows);
   const thesisVivaFormula = computeThesisVivaFormula(boardVivaRows, bill.thesisTeachers);
+  const staffSessional = staffSessionalGroups(bill);
+  const practicalStaff = practicalSurveyingStaffGroups(bill);
   const lw = bill.layoutSettings;
   const committeeRows = bill.committees.map((m) => ({
     name: m.name,
@@ -631,6 +634,22 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       ),
     },
     {
+      title: "List of Officer & Staff Associated with Sessional",
+      breakAfterKey: "staffSessional",
+      hasData: staffSessional.length > 0,
+      includeInBacklog: false,
+      content: (
+        <GroupedTable
+          courseWidth={lw.staffSessional.courseLine ?? 30}
+          entryColumns={[
+            { key: "staffMember", label: "Name of Officer & Staff", width: lw.staffSessional.staffMember ?? 55 },
+          ]}
+          groups={staffSessional}
+          groupMergeColumn={{ key: "students", label: "No. of Students", width: lw.staffSessional.students ?? 15, align: "center", value: (group) => (group as unknown as { students: number | string }).students }}
+        />
+      ),
+    },
+    {
       title: "List of Teachers Associated with Board Viva",
       breakAfterKey: "boardViva",
       hasData: boardVivaRows.length > 0,
@@ -644,7 +663,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
           ]}
           rows={boardVivaRows}
           mergeKey="students"
-          mergeValue={mixedSessionalTotal || bill.billInfo.totalStudents || "—"}
+          mergeValue={mixedSessionalTotal || bill.billInfo.totalStudents || "â€”"}
         />
       ),
     },
@@ -662,7 +681,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       ]}
       rows={tabulationRows}
       mergeKey="students"
-      mergeValue={sharedStudentTotal || "—"}
+      mergeValue={sharedStudentTotal || "â€”"}
     />
   ),
 },
@@ -682,7 +701,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       ]}
       rows={gradeSheetRows}
       mergeKey="studentsDisplay"
-      mergeValue={gradeSheetRows[0]?.studentsDisplay ?? "—"}
+      mergeValue={gradeSheetRows[0]?.studentsDisplay ?? "â€”"}
     />
   ),
 },
@@ -700,7 +719,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       ]}
       rows={gradeSheetRows}
       mergeKey="studentsDisplay"
-      mergeValue={gradeSheetRows[0]?.studentsDisplay ?? "—"}
+      mergeValue={gradeSheetRows[0]?.studentsDisplay ?? "â€”"}
     />
   ),
 },
@@ -724,7 +743,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
             formatCourseAdviserStudents(
               bill.courseAdviserStudentCount,
               bill.courseAdvisers.filter((a) => a.name.trim()).length
-            ) || "—"
+            ) || "â€”"
           }
           keepTogether
         />
@@ -767,7 +786,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
             examinerCount: t.examinerCount,
           }))}
           mergeKey="thesisViva"
-          mergeValue={thesisVivaFormula || "—"}
+          mergeValue={thesisVivaFormula || "â€”"}
         />
       ),
     },
@@ -790,7 +809,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
           mergeValue={
             bill.verificationStudentCount
               ? `${bill.verificationStudentCount}/${bill.verificationTeachers.filter((teacher) => teacher.name.trim()).length || 1}`
-              : "—"
+              : "â€”"
           }
         />
       ),
@@ -826,6 +845,22 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
         />
       ),
     },
+    {
+      title: "List of Officer & Staff Associated with practical Surveying (CE 1226)",
+      breakAfterKey: "staffPracticalSurveying",
+      hasData: practicalStaff.length > 0,
+      includeInBacklog: false,
+      content: (
+        <GroupedTable
+          courseWidth={lw.staffPracticalSurveying.courseLine ?? 30}
+          entryColumns={[
+            { key: "staffMember", label: "Name of Officer & Staff", width: lw.staffPracticalSurveying.staffMember ?? 55 },
+          ]}
+          groups={practicalStaff}
+          groupMergeColumn={{ key: "students", label: "No. of Students", width: lw.staffPracticalSurveying.students ?? 15, align: "center", value: (group) => (group as unknown as { students: number | string }).students }}
+        />
+      ),
+    },
   ];
   const sectionOrder = bill.sectionOrder ?? [];
   const orderedSections = [...sections].sort((a, b) => {
@@ -850,10 +885,10 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
         wrap
       >
         <View style={styles.billNo}>
-          <Text>Bill No.: {bill.billInfo.billNo || "—"}</Text>
+          <Text>Bill No.: {bill.billInfo.billNo || "â€”"}</Text>
         </View>
         <View style={styles.headerBlock}>
-          <Text style={styles.scriptLine}>Heaven’s Light is Our Guide</Text>
+          <Text style={styles.scriptLine}>Heavenâ€™s Light is Our Guide</Text>
           <Text style={styles.deptLine}>Department of Building Engineering &amp; Construction Management</Text>
           <Text style={styles.deptLine}>Rajshahi University of Engineering &amp; Technology</Text>
           <Text style={styles.titleLine}>

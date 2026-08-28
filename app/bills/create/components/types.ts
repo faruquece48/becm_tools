@@ -1,3 +1,5 @@
+import type { StaffRemunerationData } from "@/lib/storage/staffRemuneration";
+
 export type Designation =
   | ""
   | "Lecturer"
@@ -212,6 +214,7 @@ export interface ExaminationBillData {
   verificationTeachers: VerificationTeacher[];
   verificationStudentCount: string;
   courseCoordinatorTeachers: CourseCoordinatorTeacher[];
+  staffRemunerationData?: StaffRemunerationData;
   layoutSettings: TableLayoutSettings;
   layoutSpacing: { sectionGap: number; footerArea: number };
 }
@@ -234,6 +237,7 @@ export interface TableLayoutSettings {
   assignment: ColumnWidths;
   courseFile: ColumnWidths;
   sessionalDuty: ColumnWidths;
+  staffSessional: ColumnWidths;
   questionWork: ColumnWidths;
   scrutinyObe: ColumnWidths;
   scrutinyNonObe: ColumnWidths;
@@ -244,6 +248,7 @@ export interface TableLayoutSettings {
   gradeSheetVerification: ColumnWidths;
   courseAdviser: ColumnWidths;
   practicalSurveying: ColumnWidths;
+  staffPracticalSurveying: ColumnWidths;
   thesis: ColumnWidths;
   verification: ColumnWidths;
   courseCoordinator: ColumnWidths;
@@ -311,6 +316,7 @@ export const defaultLayoutSettings: TableLayoutSettings = {
     teacherLine: 54,
     students: 14,
   },
+  staffSessional: { courseLine: 30, staffMember: 55, students: 15 },
   questionWork: { sl: 7, teacherLine: 78, questionNumber: 15 },
   scrutinyObe: { sl: 7, teacherLine: 78, scriptCount: 15 },
   scrutinyNonObe: { sl: 7, teacherLine: 78, scriptCount: 15 },
@@ -321,6 +327,7 @@ export const defaultLayoutSettings: TableLayoutSettings = {
   gradeSheetVerification: { sl: 7, teacherLine: 78, studentsDisplay: 15 },
   courseAdviser: { sl: 7, teacherLine: 78, students: 15 },
   practicalSurveying: { sl: 7, teacherLine: 79, students: 14 },
+  staffPracticalSurveying: { courseLine: 30, staffMember: 55, students: 15 },
   thesis: {
     sl: 7,
     teacherLine: 57,

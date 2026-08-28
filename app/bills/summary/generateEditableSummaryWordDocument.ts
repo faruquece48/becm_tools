@@ -1,4 +1,5 @@
 import type { ImportedSummaryBill, SummaryTeacher } from "./summaryData";
+import type { TeacherRankData } from "@/lib/storage/teacherRank";
 import {
   aggregateTeachers,
   examinationIndexName,
@@ -6,6 +7,7 @@ import {
   teachersForBill,
 } from "./summaryData";
 import type { ExaminationBillData, TableLayoutSettings } from "../create/components/types";
+import { practicalSurveyingStaffGroups, staffSessionalGroups } from "@/lib/staffRemunerationMatching";
 import {
   buildExamLine,
   deriveGradeSheetRows,
@@ -31,6 +33,7 @@ type TableDefinition = {
   title: string;
   columns: Array<{ key: string; label: string }>;
   rows: Row[];
+  mergeColumns?: string[];
 };
 
 const textValue = (value: unknown): string => {
@@ -55,10 +58,11 @@ function editableTable(
     (sum, column) => sum + Math.max(0, widths[column.key] ?? 1),
     0,
   ) || definition.columns.length;
-  const makeCell = (text: string, width: number, bold = false, centered = false) =>
+  const makeCell = (text: string, width: number, bold = false, centered = false, verticalMerge?: "restart" | "continue") =>
     new docx.TableCell({
       width: { size: Math.round((width / total) * 100), type: docx.WidthType.PERCENTAGE },
       margins: { top: 70, bottom: 70, left: 80, right: 80 },
+      ...(verticalMerge ? { verticalMerge } : {}),
       children: [new docx.Paragraph({
         alignment: centered ? docx.AlignmentType.CENTER : docx.AlignmentType.LEFT,
         spacing: { before: 0, after: 0, line: 220 },
@@ -70,12 +74,17 @@ function editableTable(
     children: definition.columns.map((column) => makeCell(column.label, widths[column.key] ?? 1, true, column.key === "sl" || column.key === "count")),
   });
   const rows = definition.rows.map((row, rowIndex) => new docx.TableRow({
-    children: definition.columns.map((column) => makeCell(
-      column.key === "sl" ? String(rowIndex + 1).padStart(2, "0") : textValue(row[column.key]),
-      widths[column.key] ?? 1,
-      false,
-      column.key === "sl" || column.key === "count" || column.key.endsWith("Count") || column.key === "students",
-    )),
+    children: definition.columns.map((column) => {
+      const merges = Boolean(definition.mergeColumns?.includes(column.key) && row._groupId);
+      const continuing = Boolean(merges && rowIndex > 0 && definition.rows[rowIndex - 1]?._groupId === row._groupId);
+      return makeCell(
+        continuing ? "" : column.key === "sl" ? String(rowIndex + 1).padStart(2, "0") : textValue(row[column.key]),
+        widths[column.key] ?? 1,
+        false,
+        column.key === "sl" || column.key === "count" || column.key.endsWith("Count") || column.key === "students",
+        merges ? (continuing ? "continue" : "restart") : undefined,
+      );
+    }),
   }));
   return new docx.Table({
     width: { size: 100, type: docx.WidthType.PERCENTAGE },
@@ -109,6 +118,8 @@ function billTables(bill: ExaminationBillData): TableDefinition[] {
     ? [...flattenPaperSetter(bill.courseDuties.obe), ...flattenPaperSetter(bill.courseDuties.nonObe)]
     : flattenPaperSetter(bill.courseDuties.obe);
   const sessionalRows = flattenSessional(sessional);
+  const staffSessional = staffSessionalGroups(bill);
+  const practicalStaff = practicalSurveyingStaffGroups(bill);
   const boardRows = flattenBoardViva(sessional, bill.vivaBoardTeachers, Number(bill.billInfo.totalStudents) || "", bill.boardVivaMemberOrder ?? []);
   const studentRows = flattenTabulation(bill.studentDuties);
   const gradeRows = deriveGradeSheetRows(bill.studentDuties, String(bill.tabulationStudentCount));
@@ -162,7 +173,19 @@ function billTables(bill: ExaminationBillData): TableDefinition[] {
       layoutKey: "sessionalDuty",
       title: "List of Teachers Associated with Sessional Duty",
       columns: [{ key: "course", label: "Course No. & Title" }, { key: "credit", label: "Credit" }, { key: "teacherLine", label: "Name of Teachers & Designation" }, { key: "students", label: "No. of Students" }],
-      rows: withCourse(isShort ? [] : sessionalRows),
+      rows: withCourse(sessionalRows),
+    },
+    staffSessional: {
+      layoutKey: "staffSessional",
+      title: "List of Officer & Staff Associated with Sessional",
+      columns: [{ key: "course", label: "Course No. & Title" }, { key: "staffMember", label: "Name of Officer & Staff" }, { key: "students", label: "No. of Students" }],
+      rows: staffSessional.flatMap((group, groupIndex) => group.entries.map((entry) => ({
+        _groupId: `sessional-${groupIndex}`,
+        course: `${group.courseCode}\n${group.courseTitle}`,
+        staffMember: entry.staffMember,
+        students: group.students,
+      }))),
+      mergeColumns: ["course", "students"],
     },
     boardViva: {
       layoutKey: "boardViva",
@@ -218,14 +241,28 @@ function billTables(bill: ExaminationBillData): TableDefinition[] {
       columns: [{ key: "sl", label: "Sl." }, { key: "teacherLine", label: "Name of Teachers & Designation" }, { key: "students", label: "No. of Students" }],
       rows: bill.practicalSurveyingTeachers.filter((teacher) => teacher.name.trim()).map((teacher) => ({ teacherLine: formatTeacher(teacher.name, teacher.designation, teacher.department), students: bill.practicalSurveyingStudentCount })),
     },
+    staffPracticalSurveying: {
+      layoutKey: "staffPracticalSurveying",
+      title: "List of Officer & Staff Associated with practical Surveying (CE 1226)",
+      columns: [{ key: "course", label: "Course No. & Title" }, { key: "staffMember", label: "Name of Officer & Staff" }, { key: "students", label: "No. of Students" }],
+      rows: practicalStaff.flatMap((group, groupIndex) => group.entries.map((entry) => ({
+        _groupId: `practical-${groupIndex}`,
+        course: `${group.courseCode}\n${group.courseTitle}`,
+        staffMember: entry.staffMember,
+        students: group.students,
+      }))),
+      mergeColumns: ["course", "students"],
+    },
   };
   const aliases: Record<string, string> = {
     paperSetterObe: "paperSetter",
     scrutinyObe: "scrutiny",
     sessionalDuty: "sessional",
+    staffSessional: "staffSessional",
     gradeSheetPreparation: "gradePreparation",
     gradeSheetVerification: "gradeVerification",
     practicalSurveying: "practical",
+    staffPracticalSurveying: "staffPracticalSurveying",
   };
   return (bill.sectionOrder ?? [])
     .map((key) => definitions[aliases[key] ?? key])
@@ -261,6 +298,7 @@ export async function generateEditableSummaryWordDocument(
   bills: ImportedSummaryBill[],
   remunerationListYear: string,
   indexTableWidth: number,
+  rankData?: TeacherRankData,
 ): Promise<Blob> {
   const docx = await import("docx");
   const sections: Array<{ properties: { page: typeof LEGAL_PAGE & { margin: typeof PAGE_MARGINS } }; children: unknown[] }> = [];
@@ -283,7 +321,7 @@ export async function generateEditableSummaryWordDocument(
       properties: { page: { ...LEGAL_PAGE, margin: PAGE_MARGINS } },
       children: [
         paragraph(docx, examinationSummaryTitle(item.bill), { alignment: docx.AlignmentType.CENTER, bold: true }),
-        summaryTable(docx, teachersForBill(item.bill)),
+        summaryTable(docx, teachersForBill(item.bill, rankData)),
       ],
     });
   });
@@ -291,7 +329,7 @@ export async function generateEditableSummaryWordDocument(
     properties: { page: { ...LEGAL_PAGE, margin: PAGE_MARGINS } },
     children: [
       paragraph(docx, "Consolidated Remuneration List of Dept. of BECM for All Imported Examination Bills", { alignment: docx.AlignmentType.CENTER, bold: true }),
-      summaryTable(docx, aggregateTeachers(bills)),
+      summaryTable(docx, aggregateTeachers(bills, rankData)),
     ],
   });
   const document = new docx.Document({ sections: sections as never });

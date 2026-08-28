@@ -64,9 +64,9 @@ export const emptyBill: ExaminationBillData = {
   pageBreakAfter: {},
   sectionOrder: [
     "committee", "paperSetterObe", "classTest", "assignment", "courseFile",
-    "questionWork", "scrutinyObe", "sessionalDuty", "boardViva", "tabulation",
+    "questionWork", "scrutinyObe", "sessionalDuty", "staffSessional", "boardViva", "tabulation",
     "gradeSheetPreparation", "gradeSheetVerification", "courseAdviser",
-    "courseCoordinator", "thesis", "verification", "practicalSurveying",
+    "courseCoordinator", "thesis", "verification", "practicalSurveying", "staffPracticalSurveying",
   ],
   tableSpacing: { verification: 6 },
   scrutinies: { obe: [], nonObe: [] },

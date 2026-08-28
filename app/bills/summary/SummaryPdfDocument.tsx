@@ -2,6 +2,7 @@
 
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { ImportedSummaryBill, SummaryTeacher } from "./summaryData";
+import type { TeacherRankData } from "@/lib/storage/teacherRank";
 import { BillPdfPages } from "../create/components/pdf/BillPdfDocument";
 import {
   aggregateTeachers,
@@ -124,11 +125,13 @@ export default function SummaryPdfDocument({
   tableGap = 10,
   remunerationListYear = "2025-II",
   indexTableWidth = 75,
+  rankData,
 }: {
   bills: ImportedSummaryBill[];
   tableGap?: number;
   remunerationListYear?: string;
   indexTableWidth?: number;
+  rankData?: TeacherRankData;
 }) {
   return <Document title="Examination Bill Summary">
     <Page size="LEGAL" style={styles.indexPage}>
@@ -151,12 +154,12 @@ export default function SummaryPdfDocument({
     {bills.map(({ id, bill }) => <BillPdfPages key={`preview-${id}`} bill={bill} />)}
     {bills.map(({ id, bill }) => <Page key={id} size="LEGAL" style={styles.page}>
       <Header title={examinationSummaryTitle(bill)} tableGap={tableGap} />
-      <TeacherTable teachers={teachersForBill(bill)} />
+      <TeacherTable teachers={teachersForBill(bill, rankData)} />
       <Footer />
     </Page>)}
     <Page size="LEGAL" style={styles.page}>
       <Header title="Consolidated Remuneration List of Dept. of BECM for All Imported Examination Bills" tableGap={tableGap} />
-      <TeacherTable teachers={aggregateTeachers(bills)} />
+      <TeacherTable teachers={aggregateTeachers(bills, rankData)} />
       <Footer />
     </Page>
   </Document>;

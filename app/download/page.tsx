@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Menu } from "lucide-react";
+import { Download, Menu, RefreshCw, ShieldCheck } from "lucide-react";
 import AppSidebar from "@/components/AppSidebar";
 
 const DEFAULT_FOLDER = "C:\\Users\\HP\\Downloads";
+const SETUP_PERMISSION_KEY = "ruet-downloader-setup-complete";
 
 type FormState = {
   url: string;
@@ -47,6 +48,7 @@ export default function DownloadPage() {
   const hasAutoStarted = useRef(false);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [downloading, setDownloading] = useState(false);
+  const [setupApproved, setSetupApproved] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
   const startServer = useCallback(() => {
@@ -81,17 +83,31 @@ export default function DownloadPage() {
   };
 
   useEffect(() => {
-    // Guard against React StrictMode's double-invoke in development, which would launch two windows.
-    if (hasAutoStarted.current) return;
+    const timer = window.setTimeout(() => setSetupApproved(window.localStorage.getItem(SETUP_PERMISSION_KEY) === "true"), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Launch the local backend only after this device has confirmed the one-time setup.
+    if (!setupApproved || hasAutoStarted.current) return;
     hasAutoStarted.current = true;
     startServer();
-  }, [startServer]);
+  }, [setupApproved, startServer]);
+
+  const approveSetupAndRefresh = () => {
+    window.localStorage.setItem(SETUP_PERMISSION_KEY, "true");
+    window.location.reload();
+  };
 
   const updateField = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleDownload = async () => {
+    if (!setupApproved) {
+      alert("Download and run setup.ps1 first, then click Installed — Refresh & Enable Downloader.");
+      return;
+    }
     const url = form.url.trim();
     if (!url) {
       alert("Please paste a link first.");
@@ -175,6 +191,29 @@ export default function DownloadPage() {
               Paste any video link — YouTube, X/Twitter, Facebook link.
             </p>
 
+            <section className={`mt-6 rounded-xl border p-5 ${setupApproved ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+              <div className="flex items-start gap-3">
+                <ShieldCheck className={`mt-0.5 h-6 w-6 shrink-0 ${setupApproved ? "text-emerald-700" : "text-amber-700"}`} />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-slate-900">Required one-time PowerShell setup</h3>
+                  {setupApproved ? <p className="mt-1 text-sm text-emerald-800">Setup permission is enabled on this device. The page can start the local downloader backend.</p> : <>
+                    <p className="mt-1 text-sm leading-6 text-slate-700">Before downloading any video, download and run this setup file in PowerShell. It installs Python, yt-dlp, FFmpeg and Playwright.</p>
+                    <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+                      <li>Download <strong>setup.ps1</strong> using the button below.</li>
+                      <li>Open PowerShell as Administrator.</li>
+                      <li>Run: <code className="rounded bg-white px-1.5 py-0.5 text-xs">Unblock-File &quot;$env:USERPROFILE\Downloads\setup.ps1&quot;</code></li>
+                      <li>Run: <code className="rounded bg-white px-1.5 py-0.5 text-xs">powershell -ExecutionPolicy Bypass -File &quot;$env:USERPROFILE\Downloads\setup.ps1&quot;</code></li>
+                      <li>After it finishes successfully, click <strong>Installed — Refresh & Enable Downloader</strong>.</li>
+                    </ol>
+                  </>}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <a href="/download/setup.ps1" download="setup.ps1" className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"><Download className="h-4 w-4" /> Download setup.ps1</a>
+                    {!setupApproved && <button type="button" onClick={approveSetupAndRefresh} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"><RefreshCw className="h-4 w-4" /> Installed — Refresh & Enable Downloader</button>}
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <label className="mt-5 block text-xs font-semibold text-slate-600">Video link</label>
             <input
               type="text"
@@ -239,11 +278,11 @@ export default function DownloadPage() {
 
             <button
               type="button"
-              disabled={downloading}
+              disabled={downloading || !setupApproved}
               onClick={handleDownload}
               className="mt-5 w-full rounded-lg bg-indigo-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-indigo-300"
             >
-              {downloading ? "Downloading... please wait" : "Download Video"}
+              {!setupApproved ? "Complete PowerShell Setup First" : downloading ? "Downloading... please wait" : "Download Video"}
             </button>
 
             {result && (

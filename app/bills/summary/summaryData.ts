@@ -1,4 +1,6 @@
 import { emptyBill } from "../create/components/emptyBill";
+import { mergeStaffSectionOrder } from "@/lib/staffRemunerationMatching";
+import type { TeacherRankData } from "@/lib/storage/teacherRank";
 import type {
   Designation,
   ExaminationBillData,
@@ -35,6 +37,62 @@ const teacherKey = (name: string) =>
     .trim()
     .toLocaleLowerCase();
 
+const departmentOrder = ["becm", "ce", "arch", "eee", "me", "math", "chem", "phy", "hum"] as const;
+
+function normalizedDepartment(value: string): string {
+  return value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function isOtherUniversity(department: string): boolean {
+  const normalized = normalizedDepartment(department);
+  if (!normalized || /\bruet\b/.test(normalized)) return false;
+  return /\b(?:buet|cuet|duet|kuet|uet|iut|sust|aust|mist|bau|ju|du|cu|ru)\b/.test(normalized)
+    || /\b(?:university|institute of technology)\b/.test(normalized);
+}
+
+function departmentKey(department: string): string {
+  const normalized = normalizedDepartment(department);
+  if (/\bbecm\b|building engineering|construction management/.test(normalized)) return "becm";
+  if (/\bce\b|civil engineering/.test(normalized)) return "ce";
+  if (/\barch\b|architecture/.test(normalized)) return "arch";
+  if (/\beee\b|electrical and electronic/.test(normalized)) return "eee";
+  if (/\bme\b|mechanical engineering/.test(normalized)) return "me";
+  if (/\bmath\b|mathematics/.test(normalized)) return "math";
+  if (/\bchem\b|chemistry/.test(normalized)) return "chem";
+  if (/\bphy\b|physics/.test(normalized)) return "phy";
+  if (/\bhum\b|humanities/.test(normalized)) return "hum";
+  return "other";
+}
+
+function summaryTeacherComparator(rankData?: TeacherRankData) {
+  const departmentRanks = new Map(
+    rankData?.departments.map((department) => [
+      department.id,
+      new Map(department.teachers.map((teacher, index) => [teacherKey(teacher.name), index])),
+    ]) ?? [],
+  );
+  return (left: SummaryTeacher, right: SummaryTeacher): number => {
+    const leftExternal = isOtherUniversity(left.department);
+    const rightExternal = isOtherUniversity(right.department);
+    if (leftExternal !== rightExternal) return leftExternal ? 1 : -1;
+    const leftKey = departmentKey(left.department);
+    const rightKey = departmentKey(right.department);
+    const leftIndex = departmentOrder.indexOf(leftKey as typeof departmentOrder[number]);
+    const rightIndex = departmentOrder.indexOf(rightKey as typeof departmentOrder[number]);
+    const leftDepartmentRank = leftIndex < 0 ? departmentOrder.length : leftIndex;
+    const rightDepartmentRank = rightIndex < 0 ? departmentOrder.length : rightIndex;
+    if (leftDepartmentRank !== rightDepartmentRank) return leftDepartmentRank - rightDepartmentRank;
+    const rankSection = leftExternal && rightExternal ? "other-university" : leftKey === rightKey ? leftKey : "";
+    const ranks = departmentRanks.get(rankSection);
+    if (ranks) {
+      const leftTeacherRank = ranks.get(left.key) ?? Number.MAX_SAFE_INTEGER;
+      const rightTeacherRank = ranks.get(right.key) ?? Number.MAX_SAFE_INTEGER;
+      if (leftTeacherRank !== rightTeacherRank) return leftTeacherRank - rightTeacherRank;
+    }
+    return left.name.localeCompare(right.name);
+  };
+}
+
 export function normalizeImportedBill(
   data: Partial<ExaminationBillData>
 ): ExaminationBillData {
@@ -60,7 +118,7 @@ export function normalizeImportedBill(
     },
     pageBreakAfter: data.pageBreakAfter ?? {},
     tableSpacing: data.tableSpacing ?? {},
-    sectionOrder: data.sectionOrder ?? emptyBill.sectionOrder,
+    sectionOrder: mergeStaffSectionOrder(data.sectionOrder, emptyBill.sectionOrder),
   };
 }
 
@@ -103,7 +161,7 @@ function teacherSources(bill: ExaminationBillData): TeacherSource[] {
   ];
 }
 
-export function teachersForBill(bill: ExaminationBillData): SummaryTeacher[] {
+export function teachersForBill(bill: ExaminationBillData, rankData?: TeacherRankData): SummaryTeacher[] {
   const sources = teacherSources(bill);
   return collectTeacherNames(bill)
     .filter((name) => deriveTeacherRows(bill, name).length > 0)
@@ -116,23 +174,23 @@ export function teachersForBill(bill: ExaminationBillData): SummaryTeacher[] {
         department: source?.department || "",
         billCount: 1,
       };
-    });
+    })
+    .sort(summaryTeacherComparator(rankData));
 }
 
 export function aggregateTeachers(
-  bills: ImportedSummaryBill[]
+  bills: ImportedSummaryBill[],
+  rankData?: TeacherRankData,
 ): SummaryTeacher[] {
   const teachers = new Map<string, SummaryTeacher>();
   bills.forEach(({ bill }) => {
-    teachersForBill(bill).forEach((teacher) => {
+    teachersForBill(bill, rankData).forEach((teacher) => {
       const existing = teachers.get(teacher.key);
       if (existing) existing.billCount += 1;
       else teachers.set(teacher.key, { ...teacher });
     });
   });
-  return Array.from(teachers.values()).sort((left, right) =>
-    left.name.localeCompare(right.name)
-  );
+  return Array.from(teachers.values()).sort(summaryTeacherComparator(rankData));
 }
 
 export function examinationSummaryTitle(bill: ExaminationBillData): string {

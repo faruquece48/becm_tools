@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   ArrowRight,
   Bell,
@@ -66,8 +66,20 @@ export default function RoleLoginPortal() {
   const [activeRole, setActiveRole] = useState<Role>("teacher");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetStage, setResetStage] = useState<"request" | "verify" | "done">("request");
+  const [resetOtp, setResetOtp] = useState("");
+  const [resetSeconds, setResetSeconds] = useState(0);
   const role = roles[activeRole];
   const RoleIcon = role.icon;
+  useEffect(() => {
+    if (resetStage !== "verify" || resetSeconds <= 0) return;
+    const timer = window.setInterval(() => setResetSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resetStage, resetSeconds]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +88,7 @@ export default function RoleLoginPortal() {
       window.alert("Password and Confirm Password do not match.");
       return;
     }
-    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), role: activeRole, mode: authMode, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined }) }).catch(() => null);
+    const trackingResponse = await fetch("/api/portal-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: String(form.get("identifier") || ""), password: String(form.get("password") || ""), role: activeRole, mode: authMode, name: String(form.get("fullName") || "") || undefined, phone: String(form.get("phone") || "") || undefined }) }).catch(() => null);
     if (!trackingResponse) {
       window.alert("Unable to connect to the account service.");
       return;
@@ -86,6 +98,8 @@ export default function RoleLoginPortal() {
       window.alert(data.error || "Unable to access this account");
       return;
     }
+    const trackingData = await trackingResponse.json().catch(() => ({}));
+    if (trackingData.mustChangePassword) { router.push("/change-password"); return; }
     if (activeRole === "student") {
       let existing: { studentName?: string; phone?: string; roll?: string; series?: string; department?: string } = {};
       try { existing = JSON.parse(window.localStorage.getItem("becm-student-profile") || "{}"); } catch {}
@@ -101,7 +115,19 @@ export default function RoleLoginPortal() {
     router.push(role.destination);
   }
 
+  async function requestPasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setResetSubmitting(true); setResetMessage("");
+    const action = resetStage === "request" ? "request" : "verify";
+    const response = await fetch("/api/portal-accounts/password-reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, email: resetEmail, role: activeRole, ...(action === "verify" ? { otp: resetOtp } : {}) }) }).catch(() => null);
+    setResetSubmitting(false);
+    if (!response) { setResetMessage("Unable to connect to the account service."); return; }
+    const data = await response.json().catch(() => null);
+    if (!response.ok) { setResetMessage(data?.error || "Unable to reset password."); return; }
+    if (action === "request") { setResetStage("verify"); setResetSeconds(300); setResetMessage("A six-digit OTP was sent to your email."); }
+    else { setResetStage("done"); setResetMessage("OTP verified. A temporary password was sent to your email. Use it to sign in, then create a new private password."); }
+  }
   return (
+
     <main className="min-h-screen bg-[#f8fafc] text-slate-900 [zoom:0.98]">
       <div className="mx-auto flex min-h-[calc(100vh-68px)] max-w-[1536px] items-start px-5 pb-7 pt-7 sm:px-8 lg:px-14 xl:px-[84px]">
         <div className="grid w-full grid-cols-1 gap-10 lg:h-[min(790px,calc(100vh-40px))] lg:grid-cols-[1.04fr_1fr] lg:gap-14 xl:gap-[58px]">
@@ -210,7 +236,7 @@ export default function RoleLoginPortal() {
                     <div><label htmlFor="confirm-password" className="mb-2 block text-sm font-semibold text-slate-800">Confirm Password</label><div className="relative"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" /><input id="confirm-password" name="confirmPassword" required type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Re-enter your password" className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /></div></div>
                   </div>}
 
-                  {authMode === "signin" && <div className="mt-4 flex items-center justify-between gap-4"><label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"><input type="checkbox" className="h-4 w-4 rounded border-slate-300" style={{ accentColor: role.accent }} />Remember me</label><button type="button" className="text-sm font-medium text-blue-600 hover:underline">Forgot password?</button></div>}
+                  {authMode === "signin" && <div className="mt-4 flex items-center justify-between gap-4"><label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"><input type="checkbox" className="h-4 w-4 rounded border-slate-300" style={{ accentColor: role.accent }} />Remember me</label><button type="button" onClick={() => { setResetOpen(true); setResetStage("request"); setResetEmail(""); setResetOtp(""); setResetSeconds(0); setResetMessage(""); }} className="text-sm font-medium text-blue-600 hover:underline">Forgot password?</button></div>}
 
                   <button type="submit" className={`${authMode === "signup" ? "mt-4 h-11" : "mt-5 h-12"} flex w-full items-center justify-center gap-3 rounded-[7px] font-semibold text-white shadow-sm transition hover:-translate-y-px hover:shadow-lg`} style={{ background: `linear-gradient(90deg, ${role.accent}, #168fd3)` }}>{authMode === "signin" ? "Sign In" : "Create Account"} <ArrowRight className="h-5 w-5" /></button>
                   {authMode === "signin" && <p className="mt-3 text-center text-[12px] leading-5 text-slate-500">By signing in, you agree to our <button type="button" className="font-medium text-blue-600 hover:underline">Terms of Service</button> and <button type="button" className="font-medium text-blue-600 hover:underline">Privacy Policy</button>.</p>}
@@ -220,12 +246,13 @@ export default function RoleLoginPortal() {
                 {authMode === "signin" ? "New to BECM Tools?" : "Already have an account?"}{" "}
                 <button type="button" onClick={() => setAuthMode((mode) => mode === "signin" ? "signup" : "signin")} className="font-semibold text-blue-600 hover:underline">{authMode === "signin" ? "Sign Up" : "Sign In"}</button>
               </p>
-              <p className="mt-auto pt-5 text-center text-[11px] font-medium leading-5 tracking-wide text-[#405777]">© 2026 BECM, RUET <span className="mx-1.5 text-[#07949a]">•</span> Empowering education, innovation &amp; collaboration.</p>
+              <p className="mt-auto pt-5 text-center text-[11px] font-medium leading-5 tracking-wide text-[#405777]">&copy; 2026 BECM, RUET <span className="mx-1.5 text-[#07949a]">&bull;</span> Empowering education, innovation &amp; collaboration.</p>
             </div>
           </section>
         </div>
       </div>
 
+      {resetOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-bold">Reset {role.label} Password</h2><p className="mt-2 text-sm leading-6 text-slate-600">{resetStage === "request" ? "Enter the Gmail address registered with this account." : resetStage === "verify" ? "Enter the six-digit OTP sent to your Gmail." : "Check Gmail for your temporary password."}</p><form onSubmit={requestPasswordReset} className="mt-5">{resetStage === "request" && <input value={resetEmail} onChange={(e)=>setResetEmail(e.target.value)} required type="email" autoFocus className="h-12 w-full rounded-lg border px-4" placeholder="Registered Gmail address" />}{resetStage === "verify" && <div className="flex items-center gap-3"><input value={resetOtp} onChange={(e)=>setResetOtp(e.target.value.replace(/\D/g,"").slice(0,6))} required inputMode="numeric" pattern="\d{6}" autoFocus disabled={resetSeconds === 0} className="h-12 min-w-0 flex-1 rounded-lg border px-4 text-center text-xl tracking-[0.4em] disabled:bg-slate-100" placeholder="" /><span className={`min-w-16 rounded-lg px-3 py-3 text-center font-mono text-sm font-bold ${resetSeconds > 60 ? "bg-blue-50 text-blue-700" : "bg-red-50 text-red-700"}`}>{String(Math.floor(resetSeconds / 60)).padStart(2,"0")}:{String(resetSeconds % 60).padStart(2,"0")}</span></div>}{resetMessage&&<p className={`mt-3 rounded-lg p-3 text-sm ${resetStage === "done" || resetMessage.includes("sent") ? "bg-emerald-50 text-emerald-700":"bg-red-50 text-red-700"}`}>{resetMessage}</p>}<div className="mt-5 flex justify-end gap-3"><button type="button" onClick={()=>setResetOpen(false)} className="rounded-lg border px-4 py-2.5 font-semibold">Close</button>{resetStage!=="done"&&<button disabled={resetSubmitting || (resetStage === "verify" && resetSeconds === 0)} className="rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white disabled:opacity-60">{resetSubmitting?"Sending...":resetStage === "request"?"Send OTP":"Verify OTP"}</button>}</div></form></div></div>}
     </main>
   );
 }

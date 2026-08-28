@@ -5,6 +5,10 @@ import { pdf } from "@react-pdf/renderer";
 import { ArrowDown, ArrowUp, FilePlus2, Trash2 } from "lucide-react";
 import CombinedBillPdfPreview from "../combined/CombinedBillPdfPreview";
 import type { ExaminationBillData } from "../create/components/types";
+import type { StaffRemunerationData } from "@/lib/storage/staffRemuneration";
+import type { TeacherRankData } from "@/lib/storage/teacherRank";
+import { applySummaryBillLayout, buildSummaryCustomization, type SummaryCustomization, type TeacherCustomizations } from "@/lib/storage/teacherCustomizations";
+import { withStaffRemunerationData } from "@/lib/staffRemunerationMatching";
 import type { TableLayoutSettings } from "../create/components/types";
 import ColumnWidthEditor from "../preview/components/ColumnWidthEditor";
 import SectionPanel from "../preview/components/SectionPanel";
@@ -117,6 +121,8 @@ function ImportedBillCustomization({
 
 export default function SummaryPage() {
   const [bills, setBills] = useState<ImportedSummaryBill[]>([]);
+  const [staffData, setStaffData] = useState<StaffRemunerationData | null>(null);
+  const [rankData, setRankData] = useState<TeacherRankData | null>(null);
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
@@ -126,6 +132,8 @@ export default function SummaryPage() {
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [hydrated, setHydrated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const neonCustomizationReady = useRef(false);
+  const summaryCustomizationRef = useRef<SummaryCustomization | null>(null);
 
   useEffect(() => {
     const saved = loadSummarySession();
@@ -146,13 +154,66 @@ export default function SummaryPage() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/staff/remuneration", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json() as { data?: StaffRemunerationData };
+        if (response.ok && body.data) setStaffData(body.data);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/teacher-rank", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json() as { data?: TeacherRankData };
+        if (response.ok && body.data) setRankData(body.data);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/teacher-customizations", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const body = await response.json() as { customization?: TeacherCustomizations };
+        const saved = body.customization?.summary;
+        if (saved) {
+          summaryCustomizationRef.current = saved;
+          setTableGap(saved.tableGap);
+          setRemunerationListYear(saved.remunerationListYear);
+          setIndexTableWidth(saved.indexTableWidth);
+          setSidebarWidth(saved.sidebarWidth);
+          setBills((current) => current.map((item) => ({ ...item, bill: applySummaryBillLayout(item.bill, saved) })));
+        }
+        neonCustomizationReady.current = true;
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!hydrated) return;
     saveSummarySession({ bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth });
   }, [bills, hydrated, indexTableWidth, remunerationListYear, sidebarWidth, tableGap]);
 
+  useEffect(() => {
+    if (!hydrated || !neonCustomizationReady.current) return;
+    const summary = buildSummaryCustomization(bills, { tableGap, remunerationListYear, indexTableWidth, sidebarWidth }, summaryCustomizationRef.current);
+    summaryCustomizationRef.current = summary;
+    const timer = window.setTimeout(() => {
+      void fetch("/api/teacher-customizations", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ summary }) });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [bills, hydrated, indexTableWidth, remunerationListYear, sidebarWidth, tableGap]);
+
+  const billsWithStaff = useMemo(() => bills.map((item) => ({ ...item, bill: withStaffRemunerationData(item.bill, staffData) })), [bills, staffData]);
   const document = useMemo(
-    () => <SummaryPdfDocument bills={bills} tableGap={tableGap} remunerationListYear={remunerationListYear} indexTableWidth={indexTableWidth} />,
-    [bills, tableGap, remunerationListYear, indexTableWidth]
+    () => <SummaryPdfDocument bills={billsWithStaff} tableGap={tableGap} remunerationListYear={remunerationListYear} indexTableWidth={indexTableWidth} rankData={rankData ?? undefined} />,
+    [billsWithStaff, tableGap, remunerationListYear, indexTableWidth, rankData]
   );
 
   const importFiles = async (files: FileList | null) => {
@@ -169,7 +230,7 @@ export default function SummaryPage() {
         imported[index] = {
           id: `${Date.now()}-${index}-${file.name}`,
           fileName: file.name,
-          bill: normalizeImportedBill(parsed),
+          bill: applySummaryBillLayout(normalizeImportedBill(parsed), summaryCustomizationRef.current),
         };
       } catch {
         rejected.push(file.name);
@@ -239,9 +300,10 @@ export default function SummaryPage() {
     try {
       const { generateEditableSummaryWordDocument } = await import("./generateEditableSummaryWordDocument");
       const wordBlob = await generateEditableSummaryWordDocument(
-        bills,
+        billsWithStaff,
         remunerationListYear,
         indexTableWidth,
+        rankData ?? undefined,
       );
       const url = URL.createObjectURL(wordBlob);
       const link = window.document.createElement("a");

@@ -110,6 +110,13 @@ model PortalAccount {
   role         String
   name         String?
   phone        String?
+  passwordHash             String?
+  passwordResetRequestedAt DateTime?
+  passwordResetOtpHash      String?
+  passwordResetOtpExpiresAt DateTime?
+  passwordResetOtpAttempts  Int       @default(0)
+  passwordResetLastSentAt   DateTime?
+  mustChangePassword        Boolean   @default(false)
   active       Boolean  @default(true)
   registeredAt DateTime @default(now())
   lastLoginAt  DateTime @default(now())
@@ -166,4 +173,22 @@ model TeacherRentalItem {
   @@unique([recordId, bookId])
   @@index([bookId])
   @@index([returnedAt])
+}
+model StaffRemunerationStore {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model TeacherRankStore {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+model TeacherCustomizationStore {
+  id        String   @id
+  teacherId String   @unique
+  preview   Json?
+  summary   Json?
+  updatedAt DateTime @updatedAt
 }

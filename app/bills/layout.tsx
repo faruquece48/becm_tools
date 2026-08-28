@@ -12,6 +12,8 @@ const tabs = [
   { href: "/bills/combined", label: "Combined Teacher Bill" },
   { href: "/bills/summary", label: "Summary" },
   { href: "/bills/teachers", label: "Teacher Information" },
+  { href: "/bills/staff", label: "Staff" },
+  { href: "/bills/rank", label: "Rank" },
 ];
 
 function NavLink({ href, label }: { href: string; label: string }) {

@@ -5,7 +5,8 @@ import ws from "ws";
 
 neonConfig.webSocketConstructor = ws;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const PRISMA_SCHEMA_VERSION = 3;
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; prismaSchemaVersion?: number };
 
 function getConnectionString() {
   const connectionString = process.env.DATABASE_URL;
@@ -30,9 +31,13 @@ export function getPrisma() {
     && existingClient?.teacherRentalItem
     && existingClient?.portalAccount
     && existingClient?.studentProfile
+    && existingClient?.staffRemunerationStore
+    && existingClient?.teacherRankStore
+    && existingClient?.teacherCustomizationStore
   );
-  if (!globalForPrisma.prisma || !hasRequiredDelegates) {
+  if (!globalForPrisma.prisma || !hasRequiredDelegates || globalForPrisma.prismaSchemaVersion !== PRISMA_SCHEMA_VERSION) {
     globalForPrisma.prisma = createPrismaClient(connectionString);
+    globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
   }
 
   return globalForPrisma.prisma;

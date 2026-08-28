@@ -8,6 +8,9 @@ import type {
 import { defaultLayoutSettings } from "../create/components/types";
 import { emptyBill } from "../create/components/emptyBill";
 import { saveCurrentWork, loadCurrentWork } from "@/lib/storage/draft";
+import { applyBillLayout, extractBillLayout, type TeacherCustomizations } from "@/lib/storage/teacherCustomizations";
+import type { StaffRemunerationData } from "@/lib/storage/staffRemuneration";
+import { mergeStaffSectionOrder, practicalSurveyingStaffGroups, staffSessionalGroups, withStaffRemunerationData } from "@/lib/staffRemunerationMatching";
 import { pdf } from "@react-pdf/renderer";
 import BillPdfDocument from "../create/components/pdf/BillPdfDocument";
 import SectionPanel from "./components/SectionPanel";
@@ -75,6 +78,12 @@ const sessionalLabels = {
   courseLine: "Course No. & Title",
   credit: "Credit",
   teacherLine: "Name of Teachers & Designation",
+  students: "No. of Students",
+};
+
+const staffSessionalLabels = {
+  courseLine: "Course No. & Title",
+  staffMember: "Name of Officer & Staff",
   students: "No. of Students",
 };
 
@@ -179,9 +188,14 @@ function mergeLayoutSettings(
 
 export default function PreviewPage() {
   const [billData, setBillData] = useState<ExaminationBillData>(emptyBill);
+  const [staffData, setStaffData] = useState<StaffRemunerationData | null>(null);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   const hydrated = useRef(false);
+  const neonCustomizationReady = useRef(false);
+  const billWithStaff = withStaffRemunerationData(billData, staffData);
+  const staffSessional = staffSessionalGroups(billWithStaff);
+  const practicalStaff = practicalSurveyingStaffGroups(billWithStaff);
   const isBacklog = billData.billInfo.examType === "backlog";
   const isShortSemester = billData.billInfo.examType === "short";
   const isMixedEvaluation = billData.billInfo.evaluationSystem === "mixed";
@@ -224,6 +238,9 @@ export default function PreviewPage() {
     billData.billInfo.year === "4th Year" &&
     (billData.billInfo.semester === "Odd" || billData.billInfo.semester === "Even");
   const isFirstYearEven = billData.billInfo.year === "1st Year" && billData.billInfo.semester === "Even";
+  const hasPracticalTeachers = isFirstYearEven && !isBacklog && billData.practicalSurveyingTeachers.some((teacher) => teacher.name.trim() !== "");
+  const hasStaffSessional = !isBacklog && sessionalRows.length > 0 && staffSessional.length > 0;
+  const hasPracticalStaff = hasPracticalTeachers && practicalStaff.length > 0;
   const visibleSectionKeys = [
     ["committee", billData.committees.some((member) => member.name.trim() !== "")],
     ["paperSetter", paperSetterRows.length > 0],
@@ -233,6 +250,7 @@ export default function PreviewPage() {
     ["questionWork", billData.questionWorks.some((teacher) => teacher.name.trim() !== "")],
     ["scrutiny", hasScrutiny],
     ["sessional", !isBacklog && sessionalRows.length > 0],
+    ["staffSessional", hasStaffSessional],
     ["boardViva", boardVivaRows.length > 0],
     ["tabulation", tabulationRows.length > 0],
     ["gradePreparation", gradeSheetRows.length > 0],
@@ -241,7 +259,8 @@ export default function PreviewPage() {
     ["courseCoordinator", isCourseCoordinatorApplicable && billData.courseCoordinatorTeachers.length > 0],
     ["thesis", isThesisApplicable && billData.thesisTeachers.length > 0],
     ["verification", billData.billInfo.hasGraduatingStudents === "yes" && billData.verificationTeachers.length > 0],
-    ["practical", isFirstYearEven && !isBacklog && billData.practicalSurveyingTeachers.some((teacher) => teacher.name.trim() !== "")],
+    ["practical", hasPracticalTeachers],
+    ["staffPractical", hasPracticalStaff],
   ] as const;
   const pdfNumber = (key: (typeof visibleSectionKeys)[number][0]) =>
     visibleSectionKeys.filter(([, visible]) => visible).findIndex(([sectionKey]) => sectionKey === key) + 1;
@@ -255,6 +274,7 @@ export default function PreviewPage() {
     questionWork: billData.questionWorks.some((teacher) => teacher.name.trim() !== ""),
     scrutinyObe: hasScrutiny,
     sessionalDuty: !isBacklog && sessionalRows.length > 0,
+    staffSessional: hasStaffSessional,
     boardViva: boardVivaRows.length > 0,
     tabulation: tabulationRows.length > 0,
     gradeSheetPreparation: gradeSheetRows.length > 0,
@@ -263,7 +283,8 @@ export default function PreviewPage() {
     courseCoordinator: isCourseCoordinatorApplicable && billData.courseCoordinatorTeachers.length > 0,
     thesis: isThesisApplicable && billData.thesisTeachers.length > 0,
     verification: billData.billInfo.hasGraduatingStudents === "yes" && billData.verificationTeachers.length > 0,
-    practicalSurveying: isFirstYearEven && !isBacklog && billData.practicalSurveyingTeachers.some((teacher) => teacher.name.trim() !== ""),
+    practicalSurveying: hasPracticalTeachers,
+    staffPracticalSurveying: hasPracticalStaff,
   };
   const dragSectionLabels: Record<string, string> = {
     committee: "Examination Committee",
@@ -274,6 +295,7 @@ export default function PreviewPage() {
     questionWork: "Question Typing / Sketching / Printing",
     scrutinyObe: "Scrutiny (OBE/Non-OBE)",
     sessionalDuty: "Sessional",
+    staffSessional: "Officer & Staff — Sessional",
     boardViva: "Board Viva",
     tabulation: "Tabulation",
     gradeSheetPreparation: "Grade Sheet Preparation",
@@ -283,6 +305,7 @@ export default function PreviewPage() {
     thesis: "Thesis/Project Examination",
     verification: "Verification of Final Result",
     practicalSurveying: "Practical Surveying (CE 1226)",
+    staffPracticalSurveying: "Officer & Staff — Practical Surveying (CE 1226)",
   };
 
   const moveSection = (from: string, to: string) => {
@@ -317,11 +340,47 @@ export default function PreviewPage() {
       setBillData({
         ...emptyBill,
         ...saved,
-        sectionOrder: saved.sectionOrder ?? emptyBill.sectionOrder,
+        sectionOrder: mergeStaffSectionOrder(saved.sectionOrder, emptyBill.sectionOrder),
         layoutSettings: mergeLayoutSettings(saved.layoutSettings),
       });
     }
     hydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/teacher-customizations", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const body = await response.json() as { customization?: TeacherCustomizations };
+        if (body.customization?.preview) setBillData((current) => applyBillLayout(current, body.customization?.preview));
+        neonCustomizationReady.current = true;
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current || !neonCustomizationReady.current) return;
+    const timer = window.setTimeout(() => {
+      void fetch("/api/teacher-customizations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preview: extractBillLayout(billData) }),
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [billData]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/staff/remuneration", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json() as { data?: StaffRemunerationData };
+        if (response.ok && body.data) setStaffData(body.data);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -356,7 +415,7 @@ export default function PreviewPage() {
 
   const handleGeneratePdf = async () => {
     try {
-      const blob = await pdf(<BillPdfDocument bill={billData} />).toBlob();
+      const blob = await pdf(<BillPdfDocument bill={billWithStaff} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -374,7 +433,7 @@ export default function PreviewPage() {
     setIsGeneratingWord(true);
     try {
       const { generateWordDocument } = await import("./generateWordDocument");
-      const wordBlob = await generateWordDocument(<BillPdfDocument bill={billData} />);
+      const wordBlob = await generateWordDocument(<BillPdfDocument bill={billWithStaff} />);
       const url = URL.createObjectURL(wordBlob);
       const link = window.document.createElement("a");
       link.href = url;
@@ -554,6 +613,9 @@ export default function PreviewPage() {
                 labels={sessionalLabels}
               />
             </SectionPanel>
+            <SectionPanel visible={hasStaffSessional} title={`${pdfNumber("staffSessional")}. List of Officer & Staff Associated with Sessional`} {...pageBreakControl("staffSessional")}>
+              <ColumnWidthEditor widths={billData.layoutSettings.staffSessional} setWidths={(v) => updateLayout("staffSessional", v)} labels={staffSessionalLabels} />
+            </SectionPanel>
 
             <SectionPanel visible={boardVivaRows.length > 0} title={`${pdfNumber("boardViva")}. List of Teachers Associated with Board Viva`} {...pageBreakControl("boardViva")}>
               <ColumnWidthEditor widths={billData.layoutSettings.boardViva} setWidths={(v) => updateLayout("boardViva", v)} labels={studentDutyLabels} />
@@ -629,13 +691,16 @@ export default function PreviewPage() {
                   />
                 </SectionPanel>
               )}
+            <SectionPanel visible={hasPracticalStaff} title={`${pdfNumber("staffPractical")}. List of Officer & Staff Associated with practical Surveying (CE 1226)`} {...pageBreakControl("staffPracticalSurveying")}>
+              <ColumnWidthEditor widths={billData.layoutSettings.staffPracticalSurveying} setWidths={(v) => updateLayout("staffPracticalSurveying", v)} labels={staffSessionalLabels} />
+            </SectionPanel>
           </div>
 
           {/* RIGHT: paginated preview rendered by the same PDF document */}
           <div className="lg:sticky lg:top-20">
             <div className="h-[calc(100vh-7rem)] min-h-[720px] overflow-hidden rounded-xl border bg-slate-200 shadow-sm">
               <PdfPreviewViewer
-                bill={billData}
+                bill={billWithStaff}
               />
             </div>
           </div>

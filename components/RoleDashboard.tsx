@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { ArrowRight, Bell, BookOpenText, CalendarDays, FileText, Grid2X2, LogOut, Menu, ReceiptText, Settings, Users, X, type LucideIcon } from "lucide-react";
+import { ArrowRight, Bell, BookOpenText, CalendarDays, Download, FileText, Grid2X2, LogOut, Menu, ReceiptText, Settings, Users, X, type LucideIcon } from "lucide-react";
 import logoImage from "@/app/images/image_03.png";
 
 type DashboardItem = { title: string; description: string; icon: LucideIcon };
@@ -29,12 +29,14 @@ export default function RoleDashboard({ role, subtitle, welcome, items, accent, 
         { label: "Learning Resources", icon: BookOpenText },
         { label: "Rental Library", icon: BookOpenText, href: "/student/rental-library" },
         { label: "Bill Payment", icon: ReceiptText, href: "/student/bill-payment" },
+        { label: "Video Downloader", icon: Download, href: "/download" },
         { label: "My Profile", icon: Users, href: "/student/profile" },
       ]
     : [
         { label: "Dashboard", icon: Grid2X2, href: "/staff/dashboard" },
         { label: "Office Notices", icon: Bell },
         { label: "Document Records", icon: FileText },
+        { label: "Remuneration Bill", icon: ReceiptText, href: "/staff/remuneration-bill" },
         { label: "Book Record", icon: BookOpenText, href: "/staff/book-lending" },
         { label: "Department Calendar", icon: CalendarDays },
         { label: "Settings", icon: Settings },

@@ -1,0 +1,1 @@
+ALTER TABLE "PortalAccount" ADD COLUMN "passwordResetRequestedAt" TIMESTAMP(3);

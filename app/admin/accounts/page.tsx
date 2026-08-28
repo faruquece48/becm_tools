@@ -1,5 +1,3 @@
-import RegisteredAccountsAdmin from "@/components/RegisteredAccountsAdmin";
+import { redirect } from "next/navigation";
 
-export default function AdminAccountsPage() {
-  return <RegisteredAccountsAdmin />;
-}
+export default function AdminAccountsPage() { redirect("/admin/students"); }
