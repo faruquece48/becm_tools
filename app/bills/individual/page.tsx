@@ -33,12 +33,26 @@ function toSutonnyText(value: string | number) {
 function convertBillText(node: ReactNode): ReactNode {
   if (typeof node === "string" || typeof node === "number") return toSutonnyText(node);
   if (!isValidElement<{ children?: ReactNode; className?: string }>(node)) return node;
-  if (node.props.className?.includes("individual-course-code")) return node;
+  if (
+    node.props.className?.includes("individual-course-code") ||
+    node.props.className?.includes("individual-formula")
+  ) return node;
   return cloneElement(node, undefined, Children.map(node.props.children, convertBillText));
 }
 
 function SutonnyBillText({ children }: { children: ReactNode }) {
   return Children.map(children, convertBillText);
+}
+
+function SutonnyFormula({ value }: { value: string }) {
+  const [left, right = ""] = value.split(/[x×*]/i);
+  return (
+    <span className="individual-formula">
+      <span className="individual-formula-bijoy">{toSutonnyText(left)}</span>
+      <span className="individual-formula-operator">×</span>
+      <span className="individual-formula-bijoy">{toSutonnyText(right)}</span>
+    </span>
+  );
 }
 
 export default function IndividualTeacherBillPage() {
@@ -243,7 +257,13 @@ export default function IndividualTeacherBillPage() {
                             <td rowSpan={workDescriptionRowSpan}>{chartRow.description}</td>
                           )}
                           <td className="individual-course-code individual-table-value text-center">{duty?.course || ""}</td>
-                          <td className="individual-table-value text-center">{duty?.quantity ? toBengaliDigits(String(duty.quantity)) : ""}</td>
+                          <td className={`individual-table-value text-center ${duty?.quantity && /[x×*]/i.test(String(duty.quantity)) ? "individual-formula" : ""}`}>
+                            {duty?.quantity
+                              ? /[x×*]/i.test(String(duty.quantity))
+                                ? <SutonnyFormula value={String(duty.quantity)} />
+                                : toBengaliDigits(String(duty.quantity))
+                              : ""}
+                          </td>
                           <td className="individual-table-value text-center">{duty?.courseCount ? toBengaliDigits(String(duty.courseCount)) : ""}</td>
                           <td className="individual-table-value text-center">{duty?.classTestCount ? toBengaliDigits(String(duty.classTestCount)) : ""}</td>
                           <td className="individual-table-value text-center">
@@ -318,6 +338,12 @@ export default function IndividualTeacherBillPage() {
         .bill-sheet * { color: inherit; }
         .bill-sheet .individual-course-code,
         .bill-sheet .individual-course-code * {
+          font-family: "Times New Roman", Times, serif !important;
+        }
+        .bill-sheet .individual-formula-bijoy {
+          font-family: "SutonnyMJ", serif !important;
+        }
+        .bill-sheet .individual-formula-operator {
           font-family: "Times New Roman", Times, serif !important;
         }
         .bill-header { font-size: var(--header-font-size); }

@@ -22,10 +22,16 @@ const isThesisApplicable = (bill: ExaminationBillData) =>
   bill.billInfo.examType === "semester" &&
   bill.billInfo.year === "4th Year" &&
   bill.billInfo.semester === "Even";
+const normalizedSemester = (semester: string) =>
+  semester.trim().toLocaleLowerCase().replace(/\s+semester$/, "");
+const isSemesterExamination = (examType: string) =>
+  ["semester", "semester examination"].includes(
+    examType.trim().toLocaleLowerCase()
+  );
 const isCourseCoordinatorApplicable = (bill: ExaminationBillData) =>
-  bill.billInfo.examType === "semester" &&
+  isSemesterExamination(bill.billInfo.examType) &&
   bill.billInfo.year === "4th Year" &&
-  (bill.billInfo.semester === "Odd" || bill.billInfo.semester === "Even");
+  ["odd", "even"].includes(normalizedSemester(bill.billInfo.semester));
 const isPracticalSurveyingApplicable = (bill: ExaminationBillData) =>
   bill.billInfo.examType === "semester" &&
   bill.billInfo.year === "1st Year" &&
@@ -133,13 +139,13 @@ export function collectTeacherNameWarnings(bill: ExaminationBillData): TeacherNa
   checkList("Non-OBE scrutiny", bill.scrutinies.nonObe);
   checkList("Student duties", bill.studentDuties);
   checkList("Course advisers", bill.courseAdvisers);
-  if (isCourseCoordinatorApplicable(bill)) {
+  if (isThesisApplicable(bill)) {
     checkList("Thesis/project examination", bill.thesisTeachers);
   }
   if (isVerificationApplicable(bill)) {
     checkList("Final-result verification", bill.verificationTeachers);
   }
-  if (isThesisApplicable(bill)) {
+  if (isCourseCoordinatorApplicable(bill)) {
     checkList("Course coordinators", bill.courseCoordinatorTeachers);
   }
   if (isPracticalSurveyingApplicable(bill)) {
@@ -420,7 +426,7 @@ export function deriveTeacherRows(
         rate: "225",
       })
     );
-  if (isThesisApplicable(bill)) {
+  if (isCourseCoordinatorApplicable(bill)) {
     bill.courseCoordinatorTeachers
       .filter((coordinator) => sameTeacher(coordinator.name, teacherName))
       .forEach(() => add({ description: "কোর্স কো-অর্ডিনেটর", course: "", quantity: "", courseCount: "1", classTestCount: "", rate: "2500" }));

@@ -640,7 +640,7 @@ export function buildThesisVivaFormula(
   teachersAttendingViva: number
 ): string {
   if (totalVivaStudents === "" || teachersAttendingViva <= 0) return "";
-  return `(${totalVivaStudents} x 5)/${teachersAttendingViva}`;
+  return `(${totalVivaStudents} × 5)/${teachersAttendingViva}`;
 }
 
 // ------------------------------
@@ -694,5 +694,5 @@ export function computeThesisVivaFormula(
   const totalStudents = boardVivaRows.length > 0 ? boardVivaRows[0].students : "";
   const attendingCount = thesisTeachers.filter((t) => t.attendsViva).length;
   if (totalStudents === "" || attendingCount === 0) return "";
-  return `(${totalStudents} x 5)/${attendingCount}`;
+  return `(${totalStudents} × 5)/${attendingCount}`;
 }
