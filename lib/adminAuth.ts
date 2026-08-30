@@ -21,6 +21,11 @@ export function adminCredentialsConfigured() {
   return Boolean(id && password);
 }
 
+export function validateAdminPassword(password: string) {
+  const expected = credentials().password;
+  if (!password || !expected || password.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(password), Buffer.from(expected));
+}
 export function validateAdminCredentials(id: string, password: string) {
   const expected = credentials();
   return Boolean(expected.id && expected.password && id.trim().toLowerCase() === expected.id.toLowerCase() && password === expected.password);

@@ -1,0 +1,9 @@
+export type VivaStudent = { id: string; name: string; registrationNo: string; rollNo: string; registrationType: string; marks: string; present: boolean };
+export type VivaSelection = { department: string; examYear: string; academicYear: string; semester: string };
+export type VivaCohort = VivaSelection & { students: VivaStudent[]; finalized?: boolean; submitted?: boolean; submittedAt?: string; submittedBy?: string; published?: boolean; updatedAt?: string; publishedAt?: string; publishedBy?: string };
+
+const sample2025Students: Array<[string, string, string]> = [
+  ["Mst. Jannatun Ferdus Jui","1144","2412001"],["Irfan Hossain","1146","2412003"],["Md. Mahbubur Rahman","1148","2412005"],["Md Nazmul Haque","1149","2412006"],["A. K. M. Arfan Ashfia","1150","2412007"],["Asma Azom Nisat","1151","2412008"],["Md. Milon Mia","1152","2412009"],["Md. Imteyaz Sheikh Emaz","1153","2412010"],["Md. Safiul Islam","1154","2412011"],["Tanzim Hasan Talukder","1155","2412012"],["Esraf Anjir","1156","2412013"],["Md. Rafiqul Hoque","1157","2412014"],["MD. Sajeeb Hosen","1158","2412015"],["MD. Imran Hasan Imon","1159","2412016"],["Tribani Paul Roshmi","1160","2412017"],["MD. Riyad Sarkar","1162","2412019"],["MD. Tanzid Alam","1163","2412020"],["Mahmudur Rahman Ador","1164","2412021"],["Ummy Akiba Barno","1165","2412022"],["Ashikur Rahman","1166","2412023"],["Parthiv Paul Apurba","1167","2412024"],["Md. Abu Rasel","1168","2412025"],["Toufiku Rahman Efaz","1169","2412026"],["Jobayer Ahmed","1170","2412027"],["Mazba Ul Haque Madhurio","1171","2412028"],["S. M. Mahi Reza","1172","2412029"],["Fatima Rahman Sadia","1173","2412030"]
+];
+
+export const defaultVivaStudents: VivaStudent[] = sample2025Students.map(([name, registrationNo, rollNo]) => ({ id: rollNo, name, registrationNo, rollNo, registrationType: "Regular", marks: "", present: true }));

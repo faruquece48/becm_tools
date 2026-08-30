@@ -1,0 +1,16 @@
+export const resultNavigation = [
+  { label: "Tabulators", href: "/result/tabulators" },
+  { label: "Exam Committee", href: "/result/exam-committee" },
+  { label: "Add Viva Marks", href: "/result/add-viva-marks" },
+  { label: "Publish Result", href: "/result/publish" },
+  { label: "Prepare Result", href: "/result/prepare-result" },
+  { label: "Prepare Result (Backlog)", href: "/result/prepare-result-backlog" },
+  { label: "Marks Sheet", href: "/result/marks-sheet" },
+  { label: "Marks Sheet (Backlog)", href: "/result/marks-sheet-backlog" },
+  { label: "Grade Sheet", href: "/result/grade-sheet" },
+  { label: "Result Sheet", href: "/result/result-sheet" },
+  { label: "Exam Result Report", href: "/result/exam-result-report" },
+  { label: "Result Sheet (Backlog)", href: "/result/result-sheet-backlog" },
+  { label: "Tabulation Sheet", href: "/result/tabulation-sheet" },
+  { label: "Tabulation Sheet (Backlog)", href: "/result/tabulation-sheet-backlog" },
+] as const;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpenText, BriefcaseBusiness, GraduationCap, Grid2X2, LogOut, ShieldCheck, UsersRound } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, ClipboardCheck, GraduationCap, Grid2X2, LogOut, ShieldCheck, Trash2, UsersRound } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Overview", icon: Grid2X2 },
@@ -10,6 +10,8 @@ const links = [
   { href: "/admin/teachers", label: "Teacher Accounts", icon: GraduationCap },
   { href: "/admin/staff", label: "Staff Accounts", icon: BriefcaseBusiness },
   { href: "/admin/rental-library", label: "Rental Library", icon: BookOpenText },
+  { href: "/admin/results", label: "Result Approval", icon: ClipboardCheck },
+  { href: "/admin/permanent-delete", label: "Permanent Delete", icon: Trash2 },
 ];
 
 export default function AdminSidebar() {

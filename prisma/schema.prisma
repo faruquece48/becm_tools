@@ -210,3 +210,19 @@ model StudentServiceVerification {
   @@unique([paymentId, service])
   @@index([service, verifiedAt])
 }
+model TabulatorStore {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model ExamCommitteeStore {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+model ResultSectionStore {
+  section   String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,15 @@
+import { cookies } from "next/headers";
+import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getPrisma } from "@/lib/prisma";
+import { defaultSyllabuses } from "@/lib/storage/syllabuses";
+
+const SECTION = "syllabuses";
+const courseSchema = z.object({ id: z.string().min(1).max(100), title: z.string().trim().min(1).max(250), code: z.string().trim().min(1).max(50), credit: z.string().regex(/^\d+(?:\.\d{1,2})?$/), type: z.enum(["Theory","Sessional","Thesis"]), department: z.string().trim().min(1).max(50), year: z.enum(["1st","2nd","3rd","4th"]), semester: z.enum(["Odd","Even","Short Semester"]) });
+const segmentSchema = z.object({ id: z.string().min(1).max(100), name: z.string().trim().min(1).max(150), fromSeries: z.string().regex(/^\d{4}$/), toSeries: z.string().regex(/^\d{4}$/), courses: z.array(courseSchema).max(500) }).refine((value) => Number(value.fromSeries) <= Number(value.toSeries), "Starting series cannot exceed ending series");
+const payloadSchema = z.object({ syllabuses: z.array(segmentSchema).min(1).max(50) });
+async function teacherPrisma() { const id=(await cookies()).get("becm-portal-account")?.value; const prisma=getPrisma(); if(!id||!prisma)return null; const teacher=await prisma.portalAccount.findFirst({where:{id,role:"teacher",active:true},select:{id:true}}); return teacher?prisma:null; }
+async function load(prisma: NonNullable<ReturnType<typeof getPrisma>>) { const seed=JSON.stringify(defaultSyllabuses); await prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES (${SECTION},CAST(${seed} AS jsonb),NOW()) ON CONFLICT ("section") DO NOTHING`); const rows=await prisma.$queryRaw<Array<{data:Prisma.JsonValue}>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section"=${SECTION} LIMIT 1`); return payloadSchema.shape.syllabuses.parse(rows[0]?.data ?? defaultSyllabuses); }
+export async function GET(){ const prisma=await teacherPrisma(); if(!prisma)return NextResponse.json({error:"Teacher login required"},{status:401}); try{return NextResponse.json({syllabuses:await load(prisma)},{headers:{"Cache-Control":"no-store"}});}catch(error){console.error("Unable to load syllabuses",error);return NextResponse.json({error:"Unable to load syllabuses"},{status:503});}}
+export async function PUT(request:Request){ const prisma=await teacherPrisma(); if(!prisma)return NextResponse.json({error:"Teacher login required"},{status:401}); const parsed=payloadSchema.safeParse(await request.json().catch(()=>null)); if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Invalid syllabus"},{status:400}); try{await load(prisma); const serialized=JSON.stringify(parsed.data.syllabuses); await prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data"=CAST(${serialized} AS jsonb),"updatedAt"=NOW() WHERE "section"=${SECTION}`); return NextResponse.json(parsed.data);}catch(error){console.error("Unable to save syllabuses",error);return NextResponse.json({error:"Unable to save syllabuses"},{status:503});}}

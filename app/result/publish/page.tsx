@@ -1,0 +1,23 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { CheckCircle2, Send } from "lucide-react";
+import type { VivaCohort } from "@/lib/storage/vivaMarks";
+
+export default function PublishResultPage() {
+  const [results, setResults] = useState<VivaCohort[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  useEffect(() => { const timer = window.setTimeout(() => { fetch("/api/result-publications", { cache: "no-store" }).then(async (response) => { const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Unable to load results"); setResults(payload.results || []); }).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load results")).finally(() => setLoading(false)); }, 0); return () => window.clearTimeout(timer); }, []);
+  const publish = async (result: VivaCohort) => {
+    if (!window.confirm(`Submit ${result.examYear} ${result.academicYear} ${result.semester} Board Viva result for administrator approval?`)) return;
+    setMessage("");
+    const response = await fetch("/api/result-publications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ department: result.department, examYear: result.examYear, academicYear: result.academicYear, semester: result.semester }) }).catch(() => null);
+    if (!response) { setMessage("Unable to connect to the publication service."); return; }
+    const payload = await response.json().catch(() => null) as { result?: VivaCohort; error?: string } | null;
+    if (!response.ok || !payload?.result) { setMessage(payload?.error || "Unable to publish result."); return; }
+    setResults((current) => current.map((item) => item.examYear === result.examYear && item.academicYear === result.academicYear && item.semester === result.semester ? payload.result! : item));
+    setMessage("Result submitted successfully for administrator approval.");
+  };
+  return <div className="min-h-screen bg-slate-50 p-4 sm:p-7"><section className="overflow-hidden rounded-2xl border bg-white shadow-sm"><header className="border-b border-[#12396d] px-6 py-5"><h1 className="text-2xl font-extrabold text-[#102555]">Submit Result for Approval</h1><p className="mt-1 text-sm text-slate-500">Submit finalized results for administrator approval. Marks lock after the administrator accepts the result.</p></header>{message&&<p role="status" className={`m-5 rounded-lg px-4 py-3 text-sm font-semibold ${message.includes("successfully")?"bg-emerald-100 text-emerald-800":"bg-red-100 text-red-700"}`}>{message}</p>}<div className="overflow-x-auto"><table className="w-full min-w-[850px] border-collapse text-sm"><thead className="bg-[#082f57] text-white"><tr>{["Result Type","Department","Exam Year","Academic Year","Semester","Students","Status","Action"].map((heading)=><th key={heading} className="px-3 py-3 text-left">{heading}</th>)}</tr></thead><tbody>{results.map((result)=><tr key={`${result.examYear}-${result.academicYear}-${result.semester}`} className="border-b odd:bg-white even:bg-slate-50"><td className="px-3 py-4 font-semibold">Board Viva Result</td><td className="px-3 py-4">{result.department}</td><td className="px-3 py-4">{result.examYear}</td><td className="px-3 py-4">{result.academicYear}</td><td className="px-3 py-4">{result.semester}</td><td className="px-3 py-4">{result.students.length}</td><td className="px-3 py-4">{result.published?<span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700"><CheckCircle2 className="h-4 w-4"/>Published</span>:result.submitted?<span className="rounded-full bg-blue-100 px-3 py-1 font-semibold text-blue-700">Pending Approval</span>:<span className="rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-700">Finalized</span>}</td><td className="px-3 py-4"><button type="button" disabled={result.published || result.submitted} onClick={()=>publish(result)} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"><Send className="h-4 w-4"/>{result.published?"Published":result.submitted?"Submitted":"Submit"}</button></td></tr>)}{!loading&&!results.length&&<tr><td colSpan={8} className="p-12 text-center text-slate-500">No finalized results are available to publish.</td></tr>}{loading&&<tr><td colSpan={8} className="p-12 text-center text-slate-500">Loading finalized results...</td></tr>}</tbody></table></div></section></div>;
+}
