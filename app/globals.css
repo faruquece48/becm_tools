@@ -278,3 +278,52 @@ main aside:first-of-type > .p-3 a > span:first-child {
     -webkit-print-color-adjust: exact;
   }
 }
+
+@media print {
+  body:has(.result-print-sheet) *:not(:has(.result-print-sheet)):not(.result-print-sheet):not(.result-print-sheet *) {
+    display: none !important;
+  }
+
+  body:has(.result-print-sheet) *:has(.result-print-sheet) {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .result-print-sheet {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .result-print-heading {
+    display: block !important;
+  }
+
+  .result-screen-toolbar {
+    display: none !important;
+  }
+
+  .result-print-sheet table {
+    min-width: 0 !important;
+    font-size: 10pt;
+  }
+
+  .result-print-sheet th,
+  .result-print-sheet td {
+    border: 1px solid #000 !important;
+    padding: 5px !important;
+  }
+
+  .result-print-sheet input {
+    border: 0 !important;
+    padding: 0 !important;
+    text-align: inherit;
+    box-shadow: none !important;
+  }
+}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Menu, RefreshCw, ShieldCheck } from "lucide-react";
 import AppSidebar from "@/components/AppSidebar";
 
-const DEFAULT_FOLDER = "C:\\Users\\HP\\Downloads";
+const DEFAULT_FOLDER_PLACEHOLDER = "Leave blank to use your Windows Downloads folder";
 const SETUP_PERMISSION_KEY = "ruet-downloader-setup-complete";
 
 type FormState = {
@@ -18,7 +18,7 @@ type FormState = {
 const defaultForm: FormState = {
   url: "",
   quality: "best",
-  folder: DEFAULT_FOLDER,
+  folder: "",
   filename: "",
   cookies: "",
 };
@@ -207,7 +207,7 @@ export default function DownloadPage() {
                     </ol>
                   </>}
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <a href="/download/setup.ps1" download="setup.ps1" className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"><Download className="h-4 w-4" /> Download setup.ps1</a>
+                    <a href="/api/downloader-setup" download="setup.ps1" className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"><Download className="h-4 w-4" /> Download setup.ps1</a>
                     {!setupApproved && <button type="button" onClick={approveSetupAndRefresh} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"><RefreshCw className="h-4 w-4" /> Installed — Refresh & Enable Downloader</button>}
                   </div>
                 </div>
@@ -243,7 +243,7 @@ export default function DownloadPage() {
             <label className="mt-4 block text-xs font-semibold text-slate-600">Save to folder</label>
             <input
               type="text"
-              placeholder={DEFAULT_FOLDER}
+              placeholder={DEFAULT_FOLDER_PLACEHOLDER}
               value={form.folder}
               onChange={(e) => updateField("folder", e.target.value)}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm focus:border-indigo-500 focus:outline-none"
@@ -265,7 +265,7 @@ export default function DownloadPage() {
             </label>
             <input
               type="text"
-              placeholder="C:\Users\HP\Downloads\cookies.txt"
+              placeholder="C:\Users\YourName\Downloads\cookies.txt"
               value={form.cookies}
               onChange={(e) => updateField("cookies", e.target.value)}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-3 text-sm focus:border-indigo-500 focus:outline-none"

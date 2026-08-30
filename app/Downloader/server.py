@@ -3,9 +3,10 @@ import json
 import subprocess
 import os
 import sys
+from pathlib import Path
 
 # ---- Used only if the HTML page doesn't send a folder ----
-DEFAULT_DOWNLOAD_FOLDER = r"C:\Users\HP\Downloads"
+DEFAULT_DOWNLOAD_FOLDER = str(Path.home() / "Downloads")
 
 
 def find_m3u8_with_browser(page_url, timeout_ms=25000):
@@ -89,17 +90,43 @@ def find_m3u8_with_browser(page_url, timeout_ms=25000):
 
 class Handler(BaseHTTPRequestHandler):
 
+    def _origin_allowed(self):
+        origin = self.headers.get("Origin", "")
+        if not origin:
+            return True
+
+        allowed_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "allowed-origin.txt")
+        try:
+            with open(allowed_file, "r", encoding="utf-8") as handle:
+                installed_origin = handle.read().strip().rstrip("/")
+        except OSError:
+            installed_origin = ""
+
+        local_origins = ("http://localhost:", "http://127.0.0.1:")
+        return origin.rstrip("/") == installed_origin or origin.startswith(local_origins)
+
     def _cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        if origin and self._origin_allowed():
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
 
     def do_OPTIONS(self):
+        if not self._origin_allowed():
+            self.send_response(403)
+            self.end_headers()
+            return
         self.send_response(200)
         self._cors()
         self.end_headers()
 
     def do_POST(self):
+        if not self._origin_allowed():
+            self.send_response(403)
+            self.end_headers()
+            return
         if self.path != "/download":
             self.send_response(404)
             self._cors()
