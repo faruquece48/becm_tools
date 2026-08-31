@@ -84,5 +84,5 @@ export const emptyBill: ExaminationBillData = {
   verificationStudentCount: "30",
   courseCoordinatorTeachers: [],
   layoutSettings: defaultLayoutSettings,
-  layoutSpacing: { sectionGap: 6, footerArea: 68 },
+  layoutSpacing: { sectionGap: 6, footerArea: 24 },
 };

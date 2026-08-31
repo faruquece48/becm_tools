@@ -40,10 +40,12 @@ const columnLabel = (value: string) =>
 function ImportedBillCustomization({
   item,
   staffData,
+  onBottomMinimize,
   onChange,
 }: {
   item: ImportedSummaryBill;
   staffData: StaffRemunerationData | null;
+  onBottomMinimize?: () => void;
   onChange: (bill: ExaminationBillData) => void;
 }) {
   const customizationBill = withStaffRemunerationData(item.bill, staffData);
@@ -65,19 +67,19 @@ function ImportedBillCustomization({
 
   return (
     <div className="mt-3">
-      <SectionPanel title="Customize imported bill preview">
+      <SectionPanel title="Customize imported bill preview" showMinimizeControls onBottomMinimize={onBottomMinimize}>
         <label className="block space-y-1 text-xs text-slate-600">
-          <span>Reserved footer area (pt)</span>
+          <span>Space before Chairman signature (pt)</span>
           <input
             type="number"
-            min="45"
+            min="0"
             max="200"
-            value={item.bill.layoutSpacing.footerArea ?? 68}
+            value={item.bill.layoutSpacing.footerArea ?? 24}
             onChange={(event) => onChange({
               ...item.bill,
               layoutSpacing: {
                 ...item.bill.layoutSpacing,
-                footerArea: Number(event.target.value) || 68,
+                footerArea: Math.max(0, Number(event.target.value) || 0),
               },
             })}
             className="w-full rounded-md border bg-white px-3 py-2 text-sm"
@@ -130,12 +132,14 @@ export default function SummaryPage() {
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const [previewPdfBlob, setPreviewPdfBlob] = useState<Blob | null>(null);
   const [tableGap, setTableGap] = useState(10);
   const [remunerationListYear, setRemunerationListYear] = useState("2025-II");
   const [indexTableWidth, setIndexTableWidth] = useState(75);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [hydrated, setHydrated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const billCardRefs = useRef(new Map<string, HTMLDivElement>());
   const neonCustomizationReady = useRef(false);
   const summaryCustomizationRef = useRef<SummaryCustomization | null>(null);
 
@@ -289,7 +293,7 @@ export default function SummaryPage() {
     if (!bills.length) return;
     setDownloading(true);
     try {
-      const blob = await pdf(document).toBlob();
+      const blob = previewPdfBlob ?? await pdf(document).toBlob();
       const url = URL.createObjectURL(blob);
       const link = window.document.createElement("a");
       link.href = url;
@@ -354,7 +358,7 @@ export default function SummaryPage() {
         <button
           type="button"
           onClick={() => void download()}
-          disabled={!bills.length || downloading}
+          disabled={!bills.length || downloading || !previewPdfBlob}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400"
         >
           {downloading ? "Generating…" : "Download Summary PDF"}
@@ -404,7 +408,14 @@ export default function SummaryPage() {
         </label>
 
         <div className="space-y-2 pr-1">
-          {bills.map((item, index) => <div key={item.id} className="rounded-lg border bg-slate-50 p-3">
+          {bills.map((item, index) => <div
+            key={item.id}
+            ref={(element) => {
+              if (element) billCardRefs.current.set(item.id, element);
+              else billCardRefs.current.delete(item.id);
+            }}
+            className="scroll-mt-4 rounded-lg border bg-slate-50 p-3"
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">
@@ -446,6 +457,13 @@ export default function SummaryPage() {
             <ImportedBillCustomization
               item={item}
               staffData={staffData}
+              onBottomMinimize={() => {
+                const nextBill = bills[index + 1];
+                if (!nextBill) return;
+                window.setTimeout(() => {
+                  billCardRefs.current.get(nextBill.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 0);
+              }}
               onChange={(bill) => updateBill(item.id, bill)}
             />
           </div>)}
@@ -494,7 +512,7 @@ export default function SummaryPage() {
 
       <section className="min-w-0 rounded-xl bg-slate-300 p-5">
         {bills.length
-          ? <CombinedBillPdfPreview document={document} />
+          ? <CombinedBillPdfPreview document={document} deletable onPdfChange={setPreviewPdfBlob} />
           : <div className="rounded-xl bg-white p-12 text-center text-slate-500">
               Add one or more exported bill JSON files to generate the summary preview.
             </div>}

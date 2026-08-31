@@ -501,18 +501,18 @@ export default function PreviewPage() {
             <SectionPanel title="Footer Area">
               <div>
                 <label className="space-y-1 text-sm font-medium">
-                  <span>Reserved footer area (pt)</span>
+                  <span>Space before Chairman signature (pt)</span>
                   <input
                     type="number"
-                    min="45"
+                    min="0"
                     max="200"
-                    value={billData.layoutSpacing.footerArea ?? 68}
+                    value={billData.layoutSpacing.footerArea ?? 24}
                     onChange={(event) =>
                       setBillData((prev) => ({
                         ...prev,
                         layoutSpacing: {
                           ...prev.layoutSpacing,
-                          footerArea: Number(event.target.value) || 68,
+                          footerArea: Math.max(0, Number(event.target.value) || 0),
                         },
                       }))
                     }

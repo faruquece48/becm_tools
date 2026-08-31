@@ -46,7 +46,7 @@ const s = StyleSheet.create({
   header: { fontSize: 9, fontWeight: 700, textAlign: "center", color: "#000000" },
   body: { fontSize: 9, color: "#000000" },
   struck: { textDecoration: "line-through" },
-  footerLabel: { marginTop: 8, width: "50%", paddingLeft: 35, textAlign: "left", fontSize: 8 },
+  footerLabel: { marginTop: 24, width: "50%", paddingLeft: 35, textAlign: "left", fontSize: 8 },
   signatures: { flexDirection: "row", justifyContent: "space-between", marginTop: 82, paddingHorizontal: 35, fontSize: 8 },
   signatureLeft: { width: "50%" },
   signatureRight: { width: "42%", textAlign: "center" },

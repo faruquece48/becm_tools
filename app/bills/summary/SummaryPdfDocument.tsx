@@ -49,15 +49,6 @@ const styles = StyleSheet.create({
   name: { width: "31%" },
   designation: { width: "48%" },
   count: { width: "12%", textAlign: "center" },
-  footer: {
-    position: "absolute",
-    bottom: 12,
-    left: 28,
-    right: 28,
-    textAlign: "center",
-    fontSize: 7,
-    color: "#555",
-  },
   indexPage: {
     paddingTop: 48,
     paddingBottom: 28,
@@ -115,14 +106,6 @@ function PersonTable({ people }: { people: SummaryTeacher[] }) {
   </View>;
 }
 
-function Footer() {
-  return <Text
-    fixed
-    style={styles.footer}
-    render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
-  />;
-}
-
 export default function SummaryPdfDocument({
   bills,
   tableGap = 10,
@@ -152,7 +135,6 @@ export default function SummaryPdfDocument({
           <View style={[styles.cell, styles.indexSeries]}><Text>{bill.billInfo.series}</Text></View>
         </View>)}
       </View>
-      <Footer />
     </Page>
     {bills.map(({ id, bill }) => <BillPdfPages key={`preview-${id}`} bill={bill} />)}
     {bills.map(({ id, bill }) => <Page key={id} size="LEGAL" style={styles.page}>
@@ -163,7 +145,6 @@ export default function SummaryPdfDocument({
         <Text style={styles.sectionTitle}>Officer &amp; Staff Information</Text>
         <PersonTable people={staffForBill(bill)} />
       </>}
-      <Footer />
     </Page>)}
     <Page size="LEGAL" style={styles.page}>
       <Header title="Consolidated Remuneration List of Dept. of BECM for All Imported Examination Bills" tableGap={tableGap} />
@@ -173,7 +154,6 @@ export default function SummaryPdfDocument({
         <Text style={styles.sectionTitle}>Officer &amp; Staff Information</Text>
         <PersonTable people={aggregateStaff(bills)} />
       </>}
-      <Footer />
     </Page>
   </Document>;
 }

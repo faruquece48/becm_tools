@@ -11,6 +11,8 @@ interface Props {
   visible?: boolean;
   tableSpacing?: number;
   onTableSpacingChange?: (value: number) => void;
+  showMinimizeControls?: boolean;
+  onBottomMinimize?: () => void;
 }
 
 export default function SectionPanel({
@@ -22,6 +24,8 @@ export default function SectionPanel({
   visible = true,
   tableSpacing,
   onTableSpacingChange,
+  showMinimizeControls = false,
+  onBottomMinimize,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   if (!visible) return null;
@@ -35,7 +39,10 @@ export default function SectionPanel({
       >
         <span className="text-sm font-semibold text-gray-800">{title}</span>
         {open ? (
-          <ChevronUp className="h-4 w-4 text-gray-500" />
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700">
+            {showMinimizeControls && "Minimize"}
+            <ChevronUp className="h-4 w-4" />
+          </span>
         ) : (
           <ChevronDown className="h-4 w-4 text-gray-500" />
         )}
@@ -70,6 +77,19 @@ export default function SectionPanel({
                 Start this table on a new PDF page
               </span>
             </label>
+          )}
+          {showMinimizeControls && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onBottomMinimize?.();
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+            >
+              <ChevronUp className="h-4 w-4" />
+              Minimize this card
+            </button>
           )}
         </div>
       )}

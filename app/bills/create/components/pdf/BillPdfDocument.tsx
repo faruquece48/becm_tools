@@ -88,10 +88,8 @@ const styles = StyleSheet.create({
   groupedEntryRow: { flexDirection: "row", alignItems: "stretch", flexGrow: 1 },
   cellBottomEdge: { borderBottomWidth: BW },
   center: { textAlign: "center" },
-  // Right-corner footer block: fixed width, anchored to the bottom-right,
-  // text centered within that block. The page's reserved footer area is
-  // controlled from Preview & Layout Customization.
-  footer: { position: "absolute", bottom: 24, right: 36, width: 190, textAlign: "center", fontSize: 10 },
+  fixedFooter: { position: "absolute", bottom: 10, right: 36, width: 190, textAlign: "center", fontSize: 10 },
+  finalFooter: { alignSelf: "flex-end", width: 190, marginBottom: 10, textAlign: "center", fontSize: 10 },
 });
 interface Col {
   key: string;
@@ -331,9 +329,28 @@ function MergedColumnTable({
     </View>
   );
 }
-function Footer({ bill }: { bill: ExaminationBillData["billInfo"] }) {
+function BillPageFooter({ bill }: { bill: ExaminationBillData["billInfo"] }) {
+  const continuationPageText = (text: string) => ({
+    subPageNumber,
+    subPageTotalPages,
+  }: {
+    subPageNumber: number;
+    subPageTotalPages: number;
+  }) => subPageNumber < subPageTotalPages ? text : "";
+
   return (
-    <View style={styles.footer} fixed>
+    <View style={styles.fixedFooter} fixed>
+      <Text render={continuationPageText("Chairman")} />
+      <Text render={continuationPageText("Examination Committee")} />
+      <Text render={continuationPageText(buildExamLine(bill))} />
+      <Text render={continuationPageText("RUET, Rajshahi")} />
+    </View>
+  );
+}
+
+function FinalBillFooter({ bill, gap }: { bill: ExaminationBillData["billInfo"]; gap: number }) {
+  return (
+    <View style={[styles.finalFooter, { marginTop: gap }]} wrap={false}>
       <Text>Chairman</Text>
       <Text>Examination Committee</Text>
       <Text>{buildExamLine(bill)}</Text>
@@ -342,6 +359,7 @@ function Footer({ bill }: { bill: ExaminationBillData["billInfo"] }) {
   );
 }
 export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
+  const signatureGap = Math.max(0, bill.layoutSpacing?.footerArea ?? 24);
   const isBacklog = bill.billInfo.examType === "backlog";
   const isThesisApplicable =
     bill.billInfo.examType === "semester" &&
@@ -878,10 +896,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
   return (
       <Page
         size="LEGAL"
-        style={[
-          styles.page,
-          { paddingBottom: Math.max(45, bill.layoutSpacing?.footerArea ?? 68) },
-        ]}
+        style={[styles.page, { paddingBottom: 68 + signatureGap }]}
         wrap
       >
         <View style={styles.billNo}>
@@ -897,7 +912,9 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
             {bill.billInfo.examYear} (Series {bill.billInfo.series})
           </Text>
         </View>
-        {visible.map((section, i) => (
+        <BillPageFooter bill={bill.billInfo} />
+        {visible.map((section, i) => {
+          const sectionView = (
           <View
             key={section.title}
             style={{ marginBottom: 0 }}
@@ -918,8 +935,11 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
               }}
             />
           </View>
-        ))}
-        <Footer bill={bill.billInfo} />
+          );
+
+          return sectionView;
+        })}
+        <FinalBillFooter bill={bill.billInfo} gap={signatureGap} />
       </Page>
   );
 }
