@@ -6,9 +6,11 @@ import type { TeacherRankData } from "@/lib/storage/teacherRank";
 import { BillPdfPages } from "../create/components/pdf/BillPdfDocument";
 import {
   aggregateTeachers,
+  aggregateStaff,
   examinationIndexName,
   examinationSummaryTitle,
   teachersForBill,
+  staffForBill,
 } from "./summaryData";
 
 const styles = StyleSheet.create({
@@ -29,6 +31,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   title: { textAlign: "center", fontSize: 10, marginTop: 2, marginBottom: 8 },
+  sectionTitle: { fontFamily: "Times-Bold", fontSize: 10, marginTop: 10, marginBottom: 4 },
   row: { flexDirection: "row" },
   cell: {
     borderRightWidth: 0.6,
@@ -90,7 +93,7 @@ function Header({ title, tableGap }: { title: string; tableGap: number }) {
   </>;
 }
 
-function TeacherTable({ teachers }: { teachers: SummaryTeacher[] }) {
+function PersonTable({ people }: { people: SummaryTeacher[] }) {
   return <View>
     <View style={styles.row} fixed>
       <View style={[styles.cell, styles.left, styles.top, styles.serial]}><Text style={styles.header}>SL No.</Text></View>
@@ -98,15 +101,15 @@ function TeacherTable({ teachers }: { teachers: SummaryTeacher[] }) {
       <View style={[styles.cell, styles.top, styles.designation]}><Text style={styles.header}>Designation</Text></View>
       <View style={[styles.cell, styles.top, styles.count]}><Text style={styles.header}>Number of Bill</Text></View>
     </View>
-    {teachers.map((teacher, index) => {
-      const designation = [teacher.designation, teacher.department]
+    {people.map((person, index) => {
+      const designation = [person.designation, person.department]
         .filter(Boolean)
         .join(", ");
-      return <View key={teacher.key} style={styles.row} wrap={false}>
+      return <View key={person.key} style={styles.row} wrap={false}>
         <View style={[styles.cell, styles.left, styles.serial]}><Text>{index + 1}</Text></View>
-        <View style={[styles.cell, styles.name]}><Text>{teacher.name}</Text></View>
+        <View style={[styles.cell, styles.name]}><Text>{person.name}</Text></View>
         <View style={[styles.cell, styles.designation]}><Text>{designation}</Text></View>
-        <View style={[styles.cell, styles.count]}><Text>{teacher.billCount}</Text></View>
+        <View style={[styles.cell, styles.count]}><Text>{person.billCount}</Text></View>
       </View>;
     })}
   </View>;
@@ -154,12 +157,22 @@ export default function SummaryPdfDocument({
     {bills.map(({ id, bill }) => <BillPdfPages key={`preview-${id}`} bill={bill} />)}
     {bills.map(({ id, bill }) => <Page key={id} size="LEGAL" style={styles.page}>
       <Header title={examinationSummaryTitle(bill)} tableGap={tableGap} />
-      <TeacherTable teachers={teachersForBill(bill, rankData)} />
+      <Text style={styles.sectionTitle}>Teacher Information</Text>
+      <PersonTable people={teachersForBill(bill, rankData)} />
+      {staffForBill(bill).length > 0 && <>
+        <Text style={styles.sectionTitle}>Officer &amp; Staff Information</Text>
+        <PersonTable people={staffForBill(bill)} />
+      </>}
       <Footer />
     </Page>)}
     <Page size="LEGAL" style={styles.page}>
       <Header title="Consolidated Remuneration List of Dept. of BECM for All Imported Examination Bills" tableGap={tableGap} />
-      <TeacherTable teachers={aggregateTeachers(bills, rankData)} />
+      <Text style={styles.sectionTitle}>Teacher Information</Text>
+      <PersonTable people={aggregateTeachers(bills, rankData)} />
+      {aggregateStaff(bills).length > 0 && <>
+        <Text style={styles.sectionTitle}>Officer &amp; Staff Information</Text>
+        <PersonTable people={aggregateStaff(bills)} />
+      </>}
       <Footer />
     </Page>
   </Document>;

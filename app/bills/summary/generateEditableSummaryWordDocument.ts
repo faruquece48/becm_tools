@@ -2,9 +2,11 @@ import type { ImportedSummaryBill, SummaryTeacher } from "./summaryData";
 import type { TeacherRankData } from "@/lib/storage/teacherRank";
 import {
   aggregateTeachers,
+  aggregateStaff,
   examinationIndexName,
   examinationSummaryTitle,
   teachersForBill,
+  staffForBill,
 } from "./summaryData";
 import type { ExaminationBillData, TableLayoutSettings } from "../create/components/types";
 import { practicalSurveyingStaffGroups, staffSessionalGroups } from "@/lib/staffRemunerationMatching";
@@ -278,6 +280,18 @@ function summaryTable(docx: DocxModule, teachers: SummaryTeacher[]) {
   }, { sl: 9, name: 31, designation: 48, count: 12 });
 }
 
+function summaryPeopleChildren(docx: DocxModule, teachers: SummaryTeacher[], staff: SummaryTeacher[]) {
+  const children: Array<InstanceType<DocxModule["Paragraph"]> | InstanceType<DocxModule["Table"]>> = [
+    paragraph(docx, "Teacher Information", { bold: true }),
+    summaryTable(docx, teachers),
+  ];
+  if (staff.length) {
+    children.push(paragraph(docx, "Officer & Staff Information", { bold: true, spacing: { before: 180, after: 80, line: 240 } }));
+    children.push(summaryTable(docx, staff));
+  }
+  return children;
+}
+
 function billChildren(docx: DocxModule, item: ImportedSummaryBill) {
   const children: Array<InstanceType<DocxModule["Paragraph"]> | InstanceType<DocxModule["Table"]>> = [
     paragraph(docx, `Bill No.: ${item.bill.billInfo.billNo || "-"}`, { alignment: docx.AlignmentType.RIGHT }),
@@ -321,7 +335,7 @@ export async function generateEditableSummaryWordDocument(
       properties: { page: { ...LEGAL_PAGE, margin: PAGE_MARGINS } },
       children: [
         paragraph(docx, examinationSummaryTitle(item.bill), { alignment: docx.AlignmentType.CENTER, bold: true }),
-        summaryTable(docx, teachersForBill(item.bill, rankData)),
+        ...summaryPeopleChildren(docx, teachersForBill(item.bill, rankData), staffForBill(item.bill)),
       ],
     });
   });
@@ -329,7 +343,7 @@ export async function generateEditableSummaryWordDocument(
     properties: { page: { ...LEGAL_PAGE, margin: PAGE_MARGINS } },
     children: [
       paragraph(docx, "Consolidated Remuneration List of Dept. of BECM for All Imported Examination Bills", { alignment: docx.AlignmentType.CENTER, bold: true }),
-      summaryTable(docx, aggregateTeachers(bills, rankData)),
+      ...summaryPeopleChildren(docx, aggregateTeachers(bills, rankData), aggregateStaff(bills)),
     ],
   });
   const document = new docx.Document({ sections: sections as never });

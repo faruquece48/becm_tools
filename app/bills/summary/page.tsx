@@ -13,6 +13,7 @@ import type { TableLayoutSettings } from "../create/components/types";
 import ColumnWidthEditor from "../preview/components/ColumnWidthEditor";
 import SectionPanel from "../preview/components/SectionPanel";
 import SummaryPdfDocument from "./SummaryPdfDocument";
+import { summaryCustomizationSections } from "./customizationSections";
 import {
   clearSummarySession,
   loadSummarySession,
@@ -36,25 +37,28 @@ const words = (value: string) =>
 const columnLabel = (value: string) =>
   value === "sl" || value === "serial" ? "Sl. No." : words(value);
 
-const breakKeyForLayout = (key: keyof TableLayoutSettings) =>
-  key === "paperSetter" ? "paperSetterObe" : key;
-
 function ImportedBillCustomization({
   item,
+  staffData,
   onChange,
 }: {
   item: ImportedSummaryBill;
+  staffData: StaffRemunerationData | null;
   onChange: (bill: ExaminationBillData) => void;
 }) {
+  const customizationBill = withStaffRemunerationData(item.bill, staffData);
+  const customizationSections = summaryCustomizationSections(customizationBill);
   const updateLayout = (key: keyof TableLayoutSettings, widths: TableLayoutSettings[keyof TableLayoutSettings]) =>
     onChange({
       ...item.bill,
       layoutSettings: { ...item.bill.layoutSettings, [key]: widths },
     });
-  const moveSection = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= item.bill.sectionOrder.length) return;
+  const moveSection = (key: string, targetKey: string | undefined) => {
+    if (!targetKey || key === "committee" || targetKey === "committee") return;
     const sectionOrder = [...item.bill.sectionOrder];
+    const index = sectionOrder.indexOf(key);
+    const target = sectionOrder.indexOf(targetKey);
+    if (index < 0 || target < 0) return;
     [sectionOrder[index], sectionOrder[target]] = [sectionOrder[target], sectionOrder[index]];
     onChange({ ...item.bill, sectionOrder });
   };
@@ -81,35 +85,35 @@ function ImportedBillCustomization({
         </label>
         <SectionPanel title="PDF table order">
           <div className="space-y-1">
-            {item.bill.sectionOrder.map((key, index) => (
-              <div key={key} className="flex items-center gap-2 rounded border bg-white px-2 py-1.5 text-xs">
-                <span className="min-w-0 flex-1 truncate">{words(key)}</span>
-                <button type="button" onClick={() => moveSection(index, -1)} disabled={index === 0} className="rounded border p-1 disabled:opacity-30" aria-label={`Move ${words(key)} up`}><ArrowUp className="h-3 w-3" /></button>
-                <button type="button" onClick={() => moveSection(index, 1)} disabled={index === item.bill.sectionOrder.length - 1} className="rounded border p-1 disabled:opacity-30" aria-label={`Move ${words(key)} down`}><ArrowDown className="h-3 w-3" /></button>
+            {customizationSections.filter((section) => !section.suffix || section.suffix === ".1").map((section, index, sections) => (
+              <div key={section.orderKey} className="flex items-center gap-2 rounded border bg-white px-2 py-1.5 text-xs">
+                <span className="min-w-0 flex-1 truncate">{section.title.replace(/\.1 /, ". ")}</span>
+                <button type="button" onClick={() => moveSection(section.orderKey, sections[index - 1]?.orderKey)} disabled={index === 0 || sections[index - 1]?.orderKey === "committee"} className="rounded border p-1 disabled:opacity-30" aria-label={`Move ${section.title} up`}><ArrowUp className="h-3 w-3" /></button>
+                <button type="button" onClick={() => moveSection(section.orderKey, sections[index + 1]?.orderKey)} disabled={section.orderKey === "committee" || index === sections.length - 1} className="rounded border p-1 disabled:opacity-30" aria-label={`Move ${section.title} down`}><ArrowDown className="h-3 w-3" /></button>
               </div>
             ))}
           </div>
         </SectionPanel>
-        {(Object.keys(item.bill.layoutSettings) as Array<keyof TableLayoutSettings>).map((key) => (
+        {customizationSections.map((section) => (
           <SectionPanel
-            key={key}
-            title={words(key)}
-            pageBreakAfter={Boolean(item.bill.pageBreakAfter[breakKeyForLayout(key)])}
+            key={section.layoutKey}
+            title={section.title}
+            pageBreakAfter={Boolean(item.bill.pageBreakAfter[section.breakKey])}
             onPageBreakAfterChange={(checked) => onChange({
               ...item.bill,
-              pageBreakAfter: { ...item.bill.pageBreakAfter, [breakKeyForLayout(key)]: checked },
+              pageBreakAfter: { ...item.bill.pageBreakAfter, [section.breakKey]: checked },
             })}
-            tableSpacing={item.bill.tableSpacing[breakKeyForLayout(key)] ?? item.bill.layoutSpacing.sectionGap}
+            tableSpacing={item.bill.tableSpacing[section.breakKey] ?? item.bill.layoutSpacing.sectionGap}
             onTableSpacingChange={(value) => onChange({
               ...item.bill,
-              tableSpacing: { ...item.bill.tableSpacing, [breakKeyForLayout(key)]: value },
+              tableSpacing: { ...item.bill.tableSpacing, [section.breakKey]: value },
             })}
           >
             <ColumnWidthEditor
-              widths={item.bill.layoutSettings[key]}
-              setWidths={(widths) => updateLayout(key, widths)}
+              widths={item.bill.layoutSettings[section.layoutKey]}
+              setWidths={(widths) => updateLayout(section.layoutKey, widths)}
               labels={Object.fromEntries(
-                Object.keys(item.bill.layoutSettings[key]).map((column) => [column, columnLabel(column)])
+                Object.keys(item.bill.layoutSettings[section.layoutKey]).map((column) => [column, columnLabel(column)])
               )}
             />
           </SectionPanel>
@@ -230,7 +234,10 @@ export default function SummaryPage() {
         imported[index] = {
           id: `${Date.now()}-${index}-${file.name}`,
           fileName: file.name,
-          bill: applySummaryBillLayout(normalizeImportedBill(parsed), summaryCustomizationRef.current),
+          bill: applySummaryBillLayout(
+            { ...normalizeImportedBill(parsed), pageBreakAfter: {} },
+            summaryCustomizationRef.current,
+          ),
         };
       } catch {
         rejected.push(file.name);
@@ -438,6 +445,7 @@ export default function SummaryPage() {
             </div>
             <ImportedBillCustomization
               item={item}
+              staffData={staffData}
               onChange={(bill) => updateBill(item.id, bill)}
             />
           </div>)}

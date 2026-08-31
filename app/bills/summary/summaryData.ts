@@ -1,5 +1,9 @@
 import { emptyBill } from "../create/components/emptyBill";
-import { mergeStaffSectionOrder } from "@/lib/staffRemunerationMatching";
+import {
+  mergeStaffSectionOrder,
+  practicalSurveyingStaffGroups,
+  staffSessionalGroups,
+} from "@/lib/staffRemunerationMatching";
 import type { TeacherRankData } from "@/lib/storage/teacherRank";
 import type {
   Designation,
@@ -23,6 +27,8 @@ export interface SummaryTeacher {
   department: string;
   billCount: number;
 }
+
+export type SummaryStaff = SummaryTeacher;
 
 interface TeacherSource {
   name: string;
@@ -191,6 +197,72 @@ export function aggregateTeachers(
     });
   });
   return Array.from(teachers.values()).sort(summaryTeacherComparator(rankData));
+}
+
+function parseStaffMember(value: string): Omit<SummaryStaff, "key" | "billCount"> {
+  const parts = value.split(",").map((part) => part.trim()).filter(Boolean);
+  const departmentIndex = parts.findIndex((part) => /^(?:dept\.?|department)\b/i.test(part));
+  const designationEnd = departmentIndex < 0 ? parts.length : departmentIndex;
+  return {
+    name: parts[0] || value.trim(),
+    designation: parts.slice(1, designationEnd).join(", "),
+    department: departmentIndex < 0 ? "" : parts.slice(departmentIndex).join(", "),
+  };
+}
+
+function configuredStaffRanks(bill: ExaminationBillData): Map<string, number> {
+  const ranks = new Map<string, number>();
+  bill.staffRemunerationData?.semesters.forEach((semester) => {
+    semester.courses.forEach((course) => {
+      course.staff.forEach((member) => {
+        const key = teacherKey(parseStaffMember(member.name).name);
+        if (key && !ranks.has(key)) ranks.set(key, ranks.size);
+      });
+    });
+  });
+  return ranks;
+}
+
+function summaryStaffComparator(ranks: Map<string, number>) {
+  return (left: SummaryStaff, right: SummaryStaff): number => {
+    const leftKey = departmentKey(left.department || left.designation);
+    const rightKey = departmentKey(right.department || right.designation);
+    const leftIndex = departmentOrder.indexOf(leftKey as typeof departmentOrder[number]);
+    const rightIndex = departmentOrder.indexOf(rightKey as typeof departmentOrder[number]);
+    const leftDepartmentRank = leftIndex < 0 ? departmentOrder.length : leftIndex;
+    const rightDepartmentRank = rightIndex < 0 ? departmentOrder.length : rightIndex;
+    if (leftDepartmentRank !== rightDepartmentRank) return leftDepartmentRank - rightDepartmentRank;
+    const configuredDifference = (ranks.get(left.key) ?? Number.MAX_SAFE_INTEGER)
+      - (ranks.get(right.key) ?? Number.MAX_SAFE_INTEGER);
+    return configuredDifference || left.name.localeCompare(right.name);
+  };
+}
+
+export function staffForBill(bill: ExaminationBillData): SummaryStaff[] {
+  const staff = new Map<string, SummaryStaff>();
+  const groups = [...staffSessionalGroups(bill), ...practicalSurveyingStaffGroups(bill)];
+  groups.forEach((group) => group.entries.forEach(({ staffMember }) => {
+    const parsed = parseStaffMember(staffMember);
+    const key = teacherKey(parsed.name);
+    if (key && !staff.has(key)) staff.set(key, { key, ...parsed, billCount: 1 });
+  }));
+  return Array.from(staff.values()).sort(summaryStaffComparator(configuredStaffRanks(bill)));
+}
+
+export function aggregateStaff(bills: ImportedSummaryBill[]): SummaryStaff[] {
+  const staff = new Map<string, SummaryStaff>();
+  const ranks = new Map<string, number>();
+  bills.forEach(({ bill }) => {
+    configuredStaffRanks(bill).forEach((_rank, key) => {
+      if (!ranks.has(key)) ranks.set(key, ranks.size);
+    });
+    staffForBill(bill).forEach((member) => {
+      const existing = staff.get(member.key);
+      if (existing) existing.billCount += 1;
+      else staff.set(member.key, { ...member });
+    });
+  });
+  return Array.from(staff.values()).sort(summaryStaffComparator(ranks));
 }
 
 export function examinationSummaryTitle(bill: ExaminationBillData): string {
