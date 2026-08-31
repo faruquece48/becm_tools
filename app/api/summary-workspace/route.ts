@@ -10,6 +10,7 @@ const workspaceSchema = z.object({
   remunerationListYear: z.string().max(100),
   indexTableWidth: z.number().min(40).max(100),
   sidebarWidth: z.number().min(260).max(520),
+  deletedPageIndexes: z.array(z.number().int().nonnegative()).max(1000).optional().default([]),
 });
 
 async function teacherAccount() {

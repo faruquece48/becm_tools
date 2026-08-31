@@ -8,6 +8,7 @@ export interface SummarySession {
   remunerationListYear: string;
   indexTableWidth: number;
   sidebarWidth: number;
+  deletedPageIndexes: number[];
 }
 
 export function saveSummarySession(session: SummarySession): void {
@@ -36,6 +37,9 @@ export function loadSummarySession(): SummarySession | null {
       sidebarWidth: typeof parsed.sidebarWidth === "number"
         ? parsed.sidebarWidth
         : 500,
+      deletedPageIndexes: Array.isArray(parsed.deletedPageIndexes)
+        ? parsed.deletedPageIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
+        : [],
     };
   } catch {
     return null;

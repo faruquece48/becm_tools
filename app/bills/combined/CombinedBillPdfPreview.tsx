@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
 import type { DocumentProps } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
@@ -12,15 +12,28 @@ type PreviewPage = { page: PDFPageProxy; sourceIndex: number };
 export default function CombinedBillPdfPreview({
   document,
   deletable = false,
+  deletedPageIndexes,
+  onDeletedPagesChange,
   onPdfChange,
 }: {
   document: ReactElement<DocumentProps>;
   deletable?: boolean;
+  deletedPageIndexes?: number[];
+  onDeletedPagesChange?: (indexes: number[]) => void;
   onPdfChange?: (blob: Blob | null) => void;
 }) {
   const generation = useRef(0);
   const [pages, setPages] = useState<PreviewPage[]>([]);
-  const [deletedPages, setDeletedPages] = useState<Set<number>>(() => new Set());
+  const [internalDeletedPages, setInternalDeletedPages] = useState<number[]>([]);
+  const deletedPages = useMemo(
+    () => new Set(deletedPageIndexes ?? internalDeletedPages),
+    [deletedPageIndexes, internalDeletedPages],
+  );
+  const updateDeletedPages = (next: Set<number>) => {
+    const indexes = Array.from(next).sort((left, right) => left - right);
+    if (onDeletedPagesChange) onDeletedPagesChange(indexes);
+    else setInternalDeletedPages(indexes);
+  };
 
   useEffect(() => {
     onPdfChange?.(null);
@@ -61,12 +74,12 @@ export default function CombinedBillPdfPreview({
 
   const deletePage = (sourceIndex: number, displayedPage: number) => {
     if (pages.length <= 1 || !window.confirm(`Delete page ${displayedPage} from this PDF?`)) return;
-    setDeletedPages((current) => new Set(current).add(sourceIndex));
+    updateDeletedPages(new Set(deletedPages).add(sourceIndex));
   };
 
   return <div className="space-y-6">
     {deletable && deletedPages.size > 0 && <div className="sticky top-3 z-20 flex justify-end">
-      <button type="button" onClick={() => setDeletedPages(new Set())} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-indigo-700 shadow-lg ring-1 ring-indigo-200 hover:bg-indigo-50">
+      <button type="button" onClick={() => updateDeletedPages(new Set())} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-indigo-700 shadow-lg ring-1 ring-indigo-200 hover:bg-indigo-50">
         <Undo2 className="h-4 w-4" /> Restore {deletedPages.size} deleted page{deletedPages.size === 1 ? "" : "s"}
       </button>
     </div>}

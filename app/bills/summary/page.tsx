@@ -138,6 +138,7 @@ export default function SummaryPage() {
   const [remunerationListYear, setRemunerationListYear] = useState("2025-II");
   const [indexTableWidth, setIndexTableWidth] = useState(75);
   const [sidebarWidth, setSidebarWidth] = useState(500);
+  const [deletedPageIndexes, setDeletedPageIndexes] = useState<number[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const billCardRefs = useRef(new Map<string, HTMLDivElement>());
@@ -155,6 +156,7 @@ export default function SummaryPage() {
         setRemunerationListYear(saved.remunerationListYear);
         setIndexTableWidth(saved.indexTableWidth);
         setSidebarWidth(saved.sidebarWidth);
+        setDeletedPageIndexes(Array.isArray(saved.deletedPageIndexes) ? saved.deletedPageIndexes : []);
     };
     const restore = async () => {
       const localSession = loadSummarySession();
@@ -220,8 +222,8 @@ export default function SummaryPage() {
 
   useEffect(() => {
     if (!hydrated) return;
-    saveSummarySession({ bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth });
-  }, [bills, hydrated, indexTableWidth, remunerationListYear, sidebarWidth, tableGap]);
+    saveSummarySession({ bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth, deletedPageIndexes });
+  }, [bills, deletedPageIndexes, hydrated, indexTableWidth, remunerationListYear, sidebarWidth, tableGap]);
 
   useEffect(() => {
     if (!hydrated || !neonCustomizationReady.current) return;
@@ -286,6 +288,7 @@ export default function SummaryPage() {
   const clearFiles = () => {
     if (!bills.length || !window.confirm("Clear all loaded bill files from this page?")) return;
     setBills([]);
+    setDeletedPageIndexes([]);
     clearSummarySession();
     setMessage("Loaded files cleared from this browser view. Refresh to restore the last workspace saved to Neon.");
   };
@@ -308,7 +311,7 @@ export default function SummaryPage() {
     if (!bills.length) return;
     setDownloading(true);
     try {
-      const workspace: SummarySession = { bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth };
+      const workspace: SummarySession = { bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth, deletedPageIndexes };
       const saveResponse = await fetch("/api/summary-workspace", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -538,7 +541,13 @@ export default function SummaryPage() {
 
       <section className="min-w-0 rounded-xl bg-slate-300 p-5">
         {bills.length
-          ? <CombinedBillPdfPreview document={document} deletable onPdfChange={setPreviewPdfBlob} />
+          ? <CombinedBillPdfPreview
+              document={document}
+              deletable
+              deletedPageIndexes={deletedPageIndexes}
+              onDeletedPagesChange={setDeletedPageIndexes}
+              onPdfChange={setPreviewPdfBlob}
+            />
           : <div className="rounded-xl bg-white p-12 text-center text-slate-500">
               Add one or more exported bill JSON files to generate the summary preview.
             </div>}
