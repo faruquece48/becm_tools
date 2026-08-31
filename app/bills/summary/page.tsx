@@ -18,6 +18,7 @@ import {
   clearSummarySession,
   loadSummarySession,
   saveSummarySession,
+  type SummarySession,
 } from "@/lib/storage/summary";
 import {
   examinationSummaryTitle,
@@ -144,9 +145,8 @@ export default function SummaryPage() {
   const summaryCustomizationRef = useRef<SummaryCustomization | null>(null);
 
   useEffect(() => {
-    const saved = loadSummarySession();
-    const restore = window.setTimeout(() => {
-      if (saved) {
+    const controller = new AbortController();
+    const applySession = (saved: SummarySession) => {
         setBills(saved.bills.map((item) => ({
           ...item,
           bill: normalizeImportedBill(item.bill),
@@ -155,10 +155,25 @@ export default function SummaryPage() {
         setRemunerationListYear(saved.remunerationListYear);
         setIndexTableWidth(saved.indexTableWidth);
         setSidebarWidth(saved.sidebarWidth);
+    };
+    const restore = async () => {
+      const localSession = loadSummarySession();
+      if (localSession) applySession(localSession);
+      try {
+        const response = await fetch("/api/summary-workspace", { cache: "no-store", signal: controller.signal });
+        const body = await response.json() as { workspace?: SummarySession | null };
+        if (response.ok && body.workspace) {
+          applySession(body.workspace);
+          setMessage("Saved Summary workspace restored from Neon.");
+        }
+      } catch {
+        // Local storage remains the fallback when the database is unavailable.
+      } finally {
+        if (!controller.signal.aborted) setHydrated(true);
       }
-      setHydrated(true);
-    }, 0);
-    return () => window.clearTimeout(restore);
+    };
+    void restore();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -272,7 +287,7 @@ export default function SummaryPage() {
     if (!bills.length || !window.confirm("Clear all loaded bill files from this page?")) return;
     setBills([]);
     clearSummarySession();
-    setMessage("Loaded bill files cleared.");
+    setMessage("Loaded files cleared from this browser view. Refresh to restore the last workspace saved to Neon.");
   };
 
   const updateBill = (id: string, bill: ExaminationBillData) => {
@@ -293,6 +308,14 @@ export default function SummaryPage() {
     if (!bills.length) return;
     setDownloading(true);
     try {
+      const workspace: SummarySession = { bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth };
+      const saveResponse = await fetch("/api/summary-workspace", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(workspace),
+      });
+      const saveBody = await saveResponse.json().catch(() => null) as { error?: string } | null;
+      if (!saveResponse.ok) throw new Error(saveBody?.error || "Could not save the Summary workspace to Neon");
       const blob = previewPdfBlob ?? await pdf(document).toBlob();
       const url = URL.createObjectURL(blob);
       const link = window.document.createElement("a");
@@ -300,6 +323,9 @@ export default function SummaryPage() {
       link.download = "Examination_Bill_Summary.pdf";
       link.click();
       URL.revokeObjectURL(url);
+      setMessage("PDF downloaded and the complete Summary workspace was saved to Neon.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save the Summary workspace.");
     } finally {
       setDownloading(false);
     }

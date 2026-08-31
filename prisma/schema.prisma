@@ -25,24 +25,24 @@ model VisitEvent {
 }
 
 model StudentBillPayment {
-  id                    String       @id @default(cuid())
-  transactionId         String       @unique
+  id                    String                       @id @default(cuid())
+  transactionId         String                       @unique
   studentName           String
   email                 String
   phone                 String
-  rentalBookCount       Int          @default(0)
-  labReportOption       String       @default("none")
-  associationYear       Int          @default(0)
-  letterOfAttestation   Boolean      @default(false)
-  equivalentCertificate Boolean      @default(false)
+  rentalBookCount       Int                          @default(0)
+  labReportOption       String                       @default("none")
+  associationYear       Int                          @default(0)
+  letterOfAttestation   Boolean                      @default(false)
+  equivalentCertificate Boolean                      @default(false)
   amount                Int
-  currency              String       @default("BDT")
-  status                String       @default("PENDING")
+  currency              String                       @default("BDT")
+  status                String                       @default("PENDING")
   validationId          String?
   bankTransactionId     String?
-  createdAt             DateTime     @default(now())
+  createdAt             DateTime                     @default(now())
   paidAt                DateTime?
-  updatedAt             DateTime     @updatedAt
+  updatedAt             DateTime                     @updatedAt
   rentalOrder           RentalOrder?
   serviceVerifications  StudentServiceVerification[]
 
@@ -52,18 +52,18 @@ model StudentBillPayment {
 }
 
 model RentalBook {
-  id          String            @id @default(cuid())
-  title       String
-  author      String
-  edition     String?
-  publication String?
-  imageUrl    String
-  quantity    Int               @default(0)
-  price       Int               @default(20)
-  active      Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  items       RentalOrderItem[]
+  id           String              @id @default(cuid())
+  title        String
+  author       String
+  edition      String?
+  publication  String?
+  imageUrl     String
+  quantity     Int                 @default(0)
+  price        Int                 @default(20)
+  active       Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  items        RentalOrderItem[]
   teacherItems TeacherRentalItem[]
 
   @@index([active])
@@ -71,22 +71,22 @@ model RentalBook {
 }
 
 model RentalOrder {
-  id           String             @id @default(cuid())
-  paymentId    String             @unique
-  payment      StudentBillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  studentName  String
-  studentEmail String
-  studentPhone String
-  status       String             @default("PENDING_PAYMENT")
-  rentedAt     DateTime?
-  dueAt        DateTime?
-  returnedAt   DateTime?
-  activationCodeHash   String?   @unique
+  id                   String             @id @default(cuid())
+  paymentId            String             @unique
+  payment              StudentBillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  studentName          String
+  studentEmail         String
+  studentPhone         String
+  status               String             @default("PENDING_PAYMENT")
+  rentedAt             DateTime?
+  dueAt                DateTime?
+  returnedAt           DateTime?
+  activationCodeHash   String?            @unique
   activationCodeSentAt DateTime?
   activatedAt          DateTime?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  items        RentalOrderItem[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  items                RentalOrderItem[]
 
   @@index([studentEmail])
   @@index([status])
@@ -94,13 +94,13 @@ model RentalOrder {
 }
 
 model RentalOrderItem {
-  id        String      @id @default(cuid())
-  orderId   String
-  order     RentalOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  bookId    String
-  book      RentalBook  @relation(fields: [bookId], references: [id])
-  quantity  Int         @default(1)
-  unitPrice Int
+  id         String      @id @default(cuid())
+  orderId    String
+  order      RentalOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bookId     String
+  book       RentalBook  @relation(fields: [bookId], references: [id])
+  quantity   Int         @default(1)
+  unitPrice  Int
   returnedAt DateTime?
 
   @@unique([orderId, bookId])
@@ -109,23 +109,23 @@ model RentalOrderItem {
 }
 
 model PortalAccount {
-  id           String   @id @default(cuid())
-  email        String
-  role         String
-  name         String?
-  phone        String?
-  passwordHash             String?
-  passwordResetRequestedAt DateTime?
+  id                        String    @id @default(cuid())
+  email                     String
+  role                      String
+  name                      String?
+  phone                     String?
+  passwordHash              String?
+  passwordResetRequestedAt  DateTime?
   passwordResetOtpHash      String?
   passwordResetOtpExpiresAt DateTime?
   passwordResetOtpAttempts  Int       @default(0)
   passwordResetLastSentAt   DateTime?
   mustChangePassword        Boolean   @default(false)
-  active       Boolean  @default(true)
-  registeredAt DateTime @default(now())
-  lastLoginAt  DateTime @default(now())
-  loginCount   Int      @default(1)
-  updatedAt    DateTime @updatedAt
+  active                    Boolean   @default(true)
+  registeredAt              DateTime  @default(now())
+  lastLoginAt               DateTime  @default(now())
+  loginCount                Int       @default(1)
+  updatedAt                 DateTime  @updatedAt
 
   @@unique([email, role])
   @@index([role])
@@ -178,6 +178,7 @@ model TeacherRentalItem {
   @@index([bookId])
   @@index([returnedAt])
 }
+
 model StaffRemunerationStore {
   id        String   @id
   data      Json
@@ -189,6 +190,7 @@ model TeacherRankStore {
   data      Json
   updatedAt DateTime @updatedAt
 }
+
 model TeacherCustomizationStore {
   id        String   @id
   teacherId String   @unique
@@ -196,20 +198,22 @@ model TeacherCustomizationStore {
   summary   Json?
   updatedAt DateTime @updatedAt
 }
+
 model StudentServiceVerification {
-  id          String             @id @default(cuid())
-  paymentId   String
-  payment     StudentBillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  service     String
-  codeHash    String             @unique
-  sentAt      DateTime           @default(now())
-  verifiedAt  DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id         String             @id @default(cuid())
+  paymentId  String
+  payment    StudentBillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  service    String
+  codeHash   String             @unique
+  sentAt     DateTime           @default(now())
+  verifiedAt DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
   @@unique([paymentId, service])
   @@index([service, verifiedAt])
 }
+
 model TabulatorStore {
   id        String   @id
   data      Json
@@ -221,8 +225,16 @@ model ExamCommitteeStore {
   data      Json
   updatedAt DateTime @updatedAt
 }
+
 model ResultSectionStore {
   section   String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model SummaryWorkspaceStore {
+  id        String   @id
+  teacherId String   @unique
   data      Json
   updatedAt DateTime @updatedAt
 }
