@@ -7,11 +7,13 @@ import type { VivaCohort } from "@/lib/storage/vivaMarks";
 
 const SECTION = "add-viva-marks";
 const PREPARED_SECTION = "prepare-result";
+const BACKLOG_PREPARED_SECTION = "prepare-result-backlog";
 const requestSchema = z.object({
   department: z.string().min(1).max(150),
+  examType: z.enum(["Regular", "Backlog"]).default("Regular"),
   examYear: z.string().regex(/^\d{4}$/),
   academicYear: z.enum(["1st", "2nd", "3rd", "4th"]),
-  semester: z.enum(["Odd", "Even"]),
+  semester: z.enum(["Odd", "Even", ""]),
   action: z.enum(["accept", "send-back"]).default("accept"),
   password: z.string().min(1),
 });
@@ -29,8 +31,9 @@ const same = (
   selection: RequestData,
 ) =>
   result.examYear === selection.examYear &&
+  (("examType" in result && result.examType) || "Regular") === selection.examType &&
   result.academicYear === selection.academicYear &&
-  result.semester === selection.semester &&
+  (selection.examType === "Backlog" || result.semester === selection.semester) &&
   (!("department" in result) || !result.department || result.department === selection.department);
 
 export async function GET() {
@@ -71,7 +74,15 @@ export async function PUT(request: Request) {
 
   try {
     const results = await cohorts(prisma);
-    const index = results.findIndex((result) => same(result, parsed.data));
+    let index = results.findIndex((result) => same(result, parsed.data));
+    if (index < 0 && parsed.data.examType === "Backlog") {
+      index = results.findIndex((result) =>
+        result.examYear === parsed.data.examYear &&
+        result.academicYear === parsed.data.academicYear &&
+        (result.examType === "Backlog" || result.semester === "") &&
+        Boolean(result.submitted || result.published || result.returnedForCorrection),
+      );
+    }
     if (index < 0) {
       return NextResponse.json({ error: "Matching submitted result was not found" }, { status: 404 });
     }
@@ -115,16 +126,20 @@ export async function PUT(request: Request) {
         WHERE "section" = ${SECTION}`,
     );
 
+    const preparedSection = parsed.data.examType === "Backlog" ? BACKLOG_PREPARED_SECTION : PREPARED_SECTION;
     const preparedRows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(
       Prisma.sql`SELECT "data" FROM "ResultSectionStore"
-        WHERE "section" = ${PREPARED_SECTION} LIMIT 1`,
+        WHERE "section" = ${preparedSection} LIMIT 1`,
     );
     const prepared = Array.isArray(preparedRows[0]?.data)
       ? preparedRows[0].data as Array<Record<string, unknown>>
       : [];
     let preparedChanged = false;
     const updatedPrepared = prepared.map((record) => {
-      if (!same(record, parsed.data) || record.published === !sendBack) return record;
+      const matchesPrepared = parsed.data.examType === "Backlog"
+        ? record.examYear === parsed.data.examYear && record.academicYear === parsed.data.academicYear
+        : same(record, parsed.data);
+      if (!matchesPrepared || record.published === !sendBack) return record;
       preparedChanged = true;
       return { ...record, published: !sendBack };
     });
@@ -134,7 +149,7 @@ export async function PUT(request: Request) {
       await prisma.$executeRaw(
         Prisma.sql`UPDATE "ResultSectionStore"
           SET "data" = CAST(${preparedJson} AS jsonb), "updatedAt" = NOW()
-          WHERE "section" = ${PREPARED_SECTION}`,
+          WHERE "section" = ${preparedSection}`,
       );
     }
 

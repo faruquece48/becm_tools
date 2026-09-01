@@ -1,5 +1,5 @@
 export type VivaStudent = { id: string; name: string; registrationNo: string; rollNo: string; registrationType: string; marks: string; present: boolean };
-export type VivaSelection = { department: string; examYear: string; academicYear: string; semester: string };
+export type VivaSelection = { department: string; examType?: "Regular" | "Backlog"; examYear: string; academicYear: string; semester: string };
 export type VivaCohort = VivaSelection & { students: VivaStudent[]; finalized?: boolean; submitted?: boolean; submittedAt?: string; submittedBy?: string; published?: boolean; updatedAt?: string; publishedAt?: string; publishedBy?: string; returnedForCorrection?: boolean; returnedAt?: string; returnedBy?: string };
 
 const sample2025Students: Array<[string, string, string]> = [

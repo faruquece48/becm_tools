@@ -1,4 +1,5 @@
 export type BacklogEligibility = { examYear: string; academicYear: string; semester: "Odd" | "Even"; createdAt: string };
+export type PromotionSource = { examYear: string; academicYear: string; semester: "Even"; promotedAt: string };
 
 export type StudentDirectoryRecord = {
   id: string;
@@ -16,6 +17,7 @@ export type StudentDirectoryRecord = {
   gender: string;
   birthDate: string;
   backlogEligibility?: BacklogEligibility[];
+  promotionSource?: PromotionSource;
 };
 
 export const departmentName = "Building Engineering & Construction Management";

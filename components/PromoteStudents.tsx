@@ -5,6 +5,7 @@ import { Search, UsersRound } from "lucide-react";
 import { academicYears, departmentName, semesters, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import type { CourseEligibility } from "@/lib/storage/studentEligibility";
 import { loadResultSection } from "@/lib/storage/resultSections";
+import type { VivaCohort } from "@/lib/storage/vivaMarks";
 
 const yearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const currentExamYear = new Date().getFullYear();
@@ -26,6 +27,7 @@ export default function PromoteStudents() {
   const [records, setRecords] = useState<StudentDirectoryRecord[]>([]);
   const [resultCohorts, setResultCohorts] = useState<ResultCohort[]>([]);
   const [eligibility, setEligibility] = useState<CourseEligibility[]>([]);
+  const [publications, setPublications] = useState<VivaCohort[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState({ examYear: String(currentExamYear), year: "1st", semester: "Odd" });
   const [target, setTarget] = useState({ examYear: String(currentExamYear), year: "1st", semester: "Odd" });
@@ -44,13 +46,14 @@ export default function PromoteStudents() {
       }),
       loadResultSection<ResultCohort[]>("marks-sheet"),
       loadResultSection<ResultCohort[]>("prepare-result"),
+      loadResultSection<VivaCohort[]>("add-viva-marks"),
       fetch("/api/student-eligibility", { cache: "no-store" }).then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error);
         return body.records || [];
       }),
     ])
-      .then(([directory, marksSheets, preparedResults, eligibilityRecords]) => {
+      .then(([directory, marksSheets, preparedResults, publicationRecords, eligibilityRecords]) => {
         setRecords(directory.map((student: StudentDirectoryRecord) => ({
           ...student,
           section: student.section || "A",
@@ -59,6 +62,7 @@ export default function PromoteStudents() {
           ...(Array.isArray(marksSheets) ? marksSheets : []),
           ...(Array.isArray(preparedResults) ? preparedResults : []),
         ]);
+        setPublications(Array.isArray(publicationRecords) ? publicationRecords : []);
         setEligibility(Array.isArray(eligibilityRecords) ? eligibilityRecords : []);
       })
       .catch((error) => setMessage(error.message || "Unable to load students and results"))
@@ -68,6 +72,28 @@ export default function PromoteStudents() {
   const availableExamYears = useMemo(() => [...new Set([...examYears, ...records.map(examYearOf)])].sort().reverse(), [records]);
 
   function showStudents() {
+    const published = (examType: "Regular" | "Backlog", semester = "") => publications.some((result) =>
+      (result.examType || "Regular") === examType &&
+      result.examYear === source.examYear &&
+      result.academicYear === source.year &&
+      (examType === "Backlog" || result.semester === semester) &&
+      result.published === true,
+    );
+    if (source.semester === "Odd" && !published("Regular", "Odd")) {
+      setStudents([]);
+      setSelected(new Set());
+      setMessage("Promotion to the Even semester is locked until the Odd semester result is approved by the administrator.");
+      return;
+    }
+    if (source.semester === "Even") {
+      const missing = [!published("Regular", "Odd") && "Odd", !published("Regular", "Even") && "Even", !published("Backlog") && "Backlog"].filter(Boolean);
+      if (missing.length) {
+        setStudents([]);
+        setSelected(new Set());
+        setMessage(`Promotion to ${source.year === "4th" ? "4th Year Short Semester" : "the next year Odd semester"} is locked. Administrator approval is required for: ${missing.join(", ")} result${missing.length === 1 ? "" : "s"}.`);
+        return;
+      }
+    }
     const completedStudentIds = new Set(
       resultCohorts
         .filter((result) =>
@@ -129,12 +155,13 @@ export default function PromoteStudents() {
       );
       return;
     }    setSaving(true); setMessage("");
-    const qualifiesForBacklog = source.semester === "Even" && target.semester === "Odd" && yearNumber[target.year] === yearNumber[source.year] + 1 && Number(target.examYear) === Number(source.examYear) + 1;
+    const completedYearCycle = source.semester === "Even" && (target.semester === "Odd" || source.year === "4th" && target.semester === "Short Semester");
     const promotedAt = new Date().toISOString();
     const promoted = chosen.map((student) => {
       const existingEligibility = student.backlogEligibility || [];
-      const addedEligibility = qualifiesForBacklog ? (["Odd", "Even"] as const).filter((semester) => !existingEligibility.some((item) => item.examYear === source.examYear && item.academicYear === source.year && item.semester === semester)).map((semester) => ({ examYear: source.examYear, academicYear: source.year, semester, createdAt: promotedAt })) : [];
-      return { ...student, year: target.year, semester: target.semester, section: sections[student.id] || "A", backlogEligibility: [...existingEligibility, ...addedEligibility] };
+      const addedEligibility = completedYearCycle ? (["Odd", "Even"] as const).filter((semester) => !existingEligibility.some((item) => item.examYear === source.examYear && item.academicYear === source.year && item.semester === semester)).map((semester) => ({ examYear: source.examYear, academicYear: source.year, semester, createdAt: promotedAt })) : [];
+      const promotionSource = completedYearCycle && source.year !== "4th" ? { examYear: source.examYear, academicYear: source.year, semester: "Even" as const, promotedAt } : student.promotionSource;
+      return { ...student, year: target.year, semester: target.semester, section: sections[student.id] || "A", backlogEligibility: [...existingEligibility, ...addedEligibility], promotionSource };
     });
     try {
       const response = await fetch("/api/students/directory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ records: promoted }), signal: AbortSignal.timeout(30000) });

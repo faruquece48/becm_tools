@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
-import { defaultVivaStudents, type VivaCohort, type VivaStudent } from "@/lib/storage/vivaMarks";
+import type { VivaCohort, VivaStudent } from "@/lib/storage/vivaMarks";
 import type { StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import type { CourseEligibility } from "@/lib/storage/studentEligibility";
 
@@ -40,10 +40,7 @@ async function initialStudents(prisma: NonNullable<ReturnType<typeof getPrisma>>
   const excluded = await excludedStudents(prisma, value);
   const directory = await storedJson<StudentDirectoryRecord>(prisma, "student-directory");
   const matching = directory.filter((student) => Number(student.series) <= Number(series) && student.year === value.academicYear && student.semester === value.semester && !excluded.has(student.id)).sort((first, second) => { const firstGroup = first.series === series ? 0 : 1; const secondGroup = second.series === series ? 0 : 1; return firstGroup - secondGroup || first.rollNo.localeCompare(second.rollNo, undefined, { numeric: true }); });
-  if (matching.length) return matching.map((student) => ({ id: student.id, name: student.name, registrationNo: student.registrationNo, rollNo: student.rollNo, registrationType: "Regular", marks: "", present: true }));
-  const profiles = await prisma.studentProfile.findMany({ where: { series, department: "BECM" }, orderBy: { roll: "asc" }, select: { id: true, name: true, roll: true } });
-  if (profiles.length) return profiles.filter((profile) => !excluded.has(profile.id)).map((profile) => ({ id: profile.id, name: profile.name, registrationNo: "", rollNo: profile.roll, registrationType: "Regular", marks: "", present: true }));
-  return value.examYear === "2025" && value.academicYear === "1st" && value.semester === "Odd" ? defaultVivaStudents.filter((student) => !excluded.has(student.id)) : [];
+  return matching.map((student) => ({ id: student.id, name: student.name, registrationNo: student.registrationNo, rollNo: student.rollNo, registrationType: "Regular", marks: "", present: true }));
 }
 
 export async function GET(request: Request) {
@@ -56,7 +53,9 @@ export async function GET(request: Request) {
     const cohorts = await loadCohorts(prisma);
     const saved = cohorts.find((cohort) => sameSelection(cohort, selection.data));
     const excluded = await excludedStudents(prisma, selection.data);
-    const students = saved?.students ? saved.students.filter((student) => !excluded.has(student.id)) : await initialStudents(prisma, selection.data);
+    const directoryStudents = await initialStudents(prisma, selection.data);
+    const allowed = new Set(directoryStudents.map((student) => student.id));
+    const students = saved?.students ? saved.students.filter((student) => allowed.has(student.id) && !excluded.has(student.id)) : directoryStudents;
     return NextResponse.json({ students, published: Boolean(saved?.published) });
   } catch (error) { console.error("Unable to load viva marks", error); return NextResponse.json({ error: "Unable to load viva marks" }, { status: 503 }); }
 }
@@ -71,7 +70,8 @@ export async function PUT(request: Request) {
     const existing = cohorts.find((cohort) => sameSelection(cohort, parsed.data));
     if (existing?.published) return NextResponse.json({ error: "Result Already Published. No Change Allowed." }, { status: 409 });
     const excluded = await excludedStudents(prisma, parsed.data);
-    const next: VivaCohort = { ...parsed.data, students: parsed.data.students.filter((student) => !excluded.has(student.id)), finalized: true, published: false, updatedAt: new Date().toISOString() };
+    const allowed = new Set((await initialStudents(prisma, parsed.data)).map((student) => student.id));
+    const next: VivaCohort = { ...parsed.data, students: parsed.data.students.filter((student) => allowed.has(student.id) && !excluded.has(student.id)), finalized: true, published: false, updatedAt: new Date().toISOString() };
     const index = cohorts.findIndex((cohort) => sameSelection(cohort, parsed.data));
     if (index < 0) cohorts.push(next); else cohorts[index] = next;
     const serialized = JSON.stringify(cohorts);

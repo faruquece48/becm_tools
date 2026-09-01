@@ -37,11 +37,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ sect
   try { serialized = JSON.stringify(body.data); } catch { return NextResponse.json({ error: "Result data must be valid JSON" }, { status: 400 }); }
   if (serialized.length > 5_000_000) return NextResponse.json({ error: "Result data is too large" }, { status: 413 });
   try {
-    if (section.data === "prepare-result") {
+    if (section.data === "prepare-result" || section.data === "prepare-result-backlog") {
       const stored = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = ${section.data} LIMIT 1`);
       const existing = Array.isArray(stored[0]?.data) ? stored[0].data as Array<Record<string, unknown>> : [];
       const incoming = Array.isArray(body.data) ? body.data as Array<Record<string, unknown>> : [];
-      const key = (record: Record<string, unknown>) => `${record.examYear}|${record.academicYear}|${record.semester}|${record.courseId}`;
+      const backlogSection = section.data === "prepare-result-backlog";
+      const key = (record: Record<string, unknown>) => `${record.examYear}|${record.academicYear}|${record.semester}|${backlogSection ? record.courseCode : record.courseId}|${backlogSection ? record.studentId : ""}`;
       const publicationRows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(
         Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = 'add-viva-marks' LIMIT 1`,
       );
@@ -50,9 +51,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ sect
         : [];
       const publishedExams = publications.filter((record) => record?.published === true);
       const belongsToPublishedExam = (record: Record<string, unknown>) => publishedExams.some(
-        (published) => published.examYear === record.examYear &&
+        (published) => (published.examType || "Regular") === (backlogSection ? "Backlog" : "Regular") &&
+          published.examYear === record.examYear &&
           published.academicYear === record.academicYear &&
-          published.semester === record.semester,
+          (backlogSection || published.semester === record.semester),
       );
       for (const locked of existing.filter((record) => record && belongsToPublishedExam(record))) {
         const replacement = incoming.find((record) => record && key(record) === key(locked));

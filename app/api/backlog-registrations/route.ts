@@ -8,6 +8,7 @@ import type { StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 type Course = { courseCode:string; courseTitle:string; semester:"Odd"|"Even" };
 type Registration = { studentId:string; studentName:string; rollNo:string; registrationNo:string; examYear:string; academicYear:string; courses:Course[]; confirmedAt:string };
 type Archive = { examYear:string; academicYear:string; semester:string; students:Array<{studentId:string;failedSubjects:string[];registerAgain:string[]}> };
+type Publication = { examType?:"Regular"|"Backlog"; examYear:string; academicYear:string; semester:string; published?:boolean };
 type Syllabus = { courses:Array<{code:string;title:string}> };
 type Candidate = Omit<Registration,"courses"|"confirmedAt"> & { courses:Course[] };
 const SECTION="backlog-registrations";
@@ -17,11 +18,13 @@ const normalized=(value:string)=>value.replace(/\s/g,"").toLowerCase();
 async function stored<T>(prisma:NonNullable<ReturnType<typeof getPrisma>>,section:string):Promise<T[]>{const rows=await prisma.$queryRaw<Array<{data:Prisma.JsonValue}>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section"=${section} LIMIT 1`);return Array.isArray(rows[0]?.data)?rows[0].data as unknown as T[]:[]}
 async function teacher(){const prisma=getPrisma(),id=(await cookies()).get("becm-portal-account")?.value;if(!prisma||!id)return null;const account=await prisma.portalAccount.findFirst({where:{id,role:"teacher",active:true},select:{id:true}});return account?prisma:null}
 async function candidates(prisma:NonNullable<ReturnType<typeof getPrisma>>):Promise<Candidate[]>{
- const[directory,archives,syllabuses]=await Promise.all([stored<StudentDirectoryRecord>(prisma,"student-directory"),stored<Archive>(prisma,"marks-sheet"),stored<Syllabus>(prisma,"syllabuses")]);
+ const[directory,archives,syllabuses,publications]=await Promise.all([stored<StudentDirectoryRecord>(prisma,"student-directory"),stored<Archive>(prisma,"marks-sheet"),stored<Syllabus>(prisma,"syllabuses"),stored<Publication>(prisma,"add-viva-marks")]);
  const titles=new Map(syllabuses.flatMap(item=>item.courses).map(course=>[normalized(course.code),course.title]));const output:Candidate[]=[];
- for(const student of directory){if(student.semester!=="Odd"||yearNumber[student.year]<=1)continue;const groups=new Map<string,Course[]>();
-  for(const item of student.backlogEligibility||[]){if(yearNumber[item.academicYear]!==yearNumber[student.year]-1)continue;const archive=archives.find(row=>row.examYear===item.examYear&&row.academicYear===item.academicYear&&row.semester===item.semester),result=archive?.students.find(row=>row.studentId===student.id);const courses=[...new Set(result?.failedSubjects||[])].map(courseCode=>({courseCode,courseTitle:titles.get(normalized(courseCode))||courseCode,semester:item.semester}));const key=`${item.examYear}|${item.academicYear}`;groups.set(key,[...(groups.get(key)||[]),...courses]);}
-  for(const[key,courses]of groups){const[examYear,academicYear]=key.split("|");const unique=[...new Map(courses.map(course=>[`${course.semester}|${normalized(course.courseCode)}`,course])).values()];if(unique.length)output.push({studentId:student.id,studentName:student.name,rollNo:student.rollNo,registrationNo:student.registrationNo,examYear,academicYear,courses:unique});}
+ for(const student of directory){if(student.semester!=="Even")continue;const examYear=String(Number(student.series)+(yearNumber[student.year]||1)),academicYear=student.year;
+  const published=(semester:"Odd"|"Even")=>publications.some(result=>(result.examType||"Regular")==="Regular"&&result.examYear===examYear&&result.academicYear===academicYear&&result.semester===semester&&result.published===true);
+  if(!published("Odd")||!published("Even"))continue;
+  const courses=(['Odd','Even']as const).flatMap(semester=>{const archive=archives.find(row=>row.examYear===examYear&&row.academicYear===academicYear&&row.semester===semester),result=archive?.students.find(row=>row.studentId===student.id);return[...new Set([...(result?.failedSubjects||[]),...(result?.registerAgain||[])])].map(courseCode=>({courseCode,courseTitle:titles.get(normalized(courseCode))||courseCode,semester}))});
+  const unique=[...new Map(courses.map(course=>[`${course.semester}|${normalized(course.courseCode)}`,course])).values()];if(unique.length)output.push({studentId:student.id,studentName:student.name,rollNo:student.rollNo,registrationNo:student.registrationNo,examYear,academicYear,courses:unique});
  }
  const seriesByStudent=new Map(directory.map(student=>[student.id,student.series]));return output.sort((a,b)=>{const expectedA=String(Number(a.examYear)-(yearNumber[a.academicYear]||1)),expectedB=String(Number(b.examYear)-(yearNumber[b.academicYear]||1)),groupA=seriesByStudent.get(a.studentId)===expectedA?0:1,groupB=seriesByStudent.get(b.studentId)===expectedB?0:1;return groupA-groupB||a.rollNo.localeCompare(b.rollNo,undefined,{numeric:true})});
 }

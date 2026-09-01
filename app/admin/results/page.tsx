@@ -5,6 +5,7 @@ import { CheckCircle2, ClipboardCheck, RotateCcw } from "lucide-react";
 import type { VivaCohort } from "@/lib/storage/vivaMarks";
 
 const same = (left: VivaCohort, right: VivaCohort) =>
+  (left.examType || "Regular") === (right.examType || "Regular") &&
   left.examYear === right.examYear &&
   left.academicYear === right.academicYear &&
   left.semester === right.semester;
@@ -32,8 +33,9 @@ export default function AdminResultApprovalPage() {
   }, []);
 
   const updateResult = async (result: VivaCohort, action: "accept" | "send-back") => {
+    const examType = result.examType || "Regular";
     const description = result.examYear + " " + result.academicYear + " Year " +
-      result.semester + " Semester result";
+      (examType === "Backlog" ? "Backlog result" : result.semester + " Semester result");
     const confirmation = action === "accept"
       ? "Accept and publish the " + description + "? All marks will be locked."
       : "Send the " + description + " back to the tabulator for correction? Its marks will be unlocked until it is resubmitted.";
@@ -42,7 +44,7 @@ export default function AdminResultApprovalPage() {
     const password = window.prompt("Enter admin password to continue:");
     if (password === null) return;
 
-    const key = result.examYear + "|" + result.academicYear + "|" + result.semester;
+    const key = examType + "|" + result.examYear + "|" + result.academicYear + "|" + result.semester;
     setBusyKey(key);
     setMessage("");
     try {
@@ -51,6 +53,7 @@ export default function AdminResultApprovalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           department: result.department,
+          examType,
           examYear: result.examYear,
           academicYear: result.academicYear,
           semester: result.semester,
@@ -122,14 +125,15 @@ export default function AdminResultApprovalPage() {
             </thead>
             <tbody>
               {results.map((result) => {
-                const key = result.examYear + "|" + result.academicYear + "|" + result.semester;
+                const examType = result.examType || "Regular";
+                const key = examType + "|" + result.examYear + "|" + result.academicYear + "|" + result.semester;
                 const busy = busyKey === key;
                 return (
                   <tr key={key} className="border-b odd:bg-white even:bg-slate-50">
-                    <td className="px-4 py-4 font-semibold">Final Result</td>
+                    <td className="px-4 py-4 font-semibold">{examType} Final Result</td>
                     <td className="px-4 py-4">{result.examYear}</td>
                     <td className="px-4 py-4">{result.academicYear}</td>
-                    <td className="px-4 py-4">{result.semester}</td>
+                    <td className="px-4 py-4">{examType === "Backlog" ? "Backlog" : result.semester}</td>
                     <td className="px-4 py-4">{result.students.length}</td>
                     <td className="px-4 py-4">{result.submittedBy || "Teacher"}</td>
                     <td className="px-4 py-4">

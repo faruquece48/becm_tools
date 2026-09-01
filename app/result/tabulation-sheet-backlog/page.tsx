@@ -1,3 +1,5 @@
+import BacklogCumulativeSheet from "@/components/BacklogCumulativeSheet";
+
 export default function ResultSubpage() {
-  return null;
+  return <BacklogCumulativeSheet mode="tabulation" />;
 }

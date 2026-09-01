@@ -1,2 +1,5 @@
-import GradeSheet from "@/components/GradeSheet";
-export default function BacklogMarksSheetPage(){return <GradeSheet initialExamType="Backlog"/>}
+import BacklogMarksSheet from "@/components/BacklogMarksSheet";
+
+export default function BacklogMarksSheetPage() {
+  return <BacklogMarksSheet />;
+}

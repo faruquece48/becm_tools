@@ -7,8 +7,9 @@ import type { VivaCohort } from "@/lib/storage/vivaMarks";
 
 const sameResult = (
   result: VivaCohort,
-  selection: { examYear: string; academicYear: string; semester: string },
+  selection: { examType?: "Regular" | "Backlog"; examYear: string; academicYear: string; semester: string },
 ) =>
+  (result.examType || "Regular") === (selection.examType || "Regular") &&
   result.examYear === selection.examYear &&
   result.academicYear === selection.academicYear &&
   result.semester === selection.semester;
@@ -21,6 +22,7 @@ export default function PublishResultPage() {
   );
   const [results, setResults] = useState<VivaCohort[]>([]);
   const [selection, setSelection] = useState({
+    examType: "Regular" as "Regular" | "Backlog",
     examYear: "2021",
     academicYear: "1st",
     semester: "Odd",
@@ -54,7 +56,7 @@ export default function PublishResultPage() {
     if (locked || submitting) return;
     if (!window.confirm(
       "Request publication of the " + selection.academicYear + " Year " +
-      selection.semester + " Semester Examination, " + selection.examYear + "?",
+      (selection.examType === "Backlog" ? "Backlog Examination, " : selection.semester + " Semester Examination, ") + selection.examYear + "?",
     )) return;
 
     setSubmitting(true);
@@ -123,6 +125,18 @@ export default function PublishResultPage() {
           </label>
 
           <label className="grid items-center gap-2 sm:grid-cols-[150px_1fr]">
+            <span className="font-semibold text-slate-700">Exam Type</span>
+            <select
+              value={selection.examType}
+              onChange={(event) => setSelection({ ...selection, examType: event.target.value as "Regular" | "Backlog", semester: event.target.value === "Backlog" ? "" : "Odd" })}
+              className={fieldClass}
+            >
+              <option>Regular</option>
+              <option>Backlog</option>
+            </select>
+          </label>
+
+          <label className="grid items-center gap-2 sm:grid-cols-[150px_1fr]">
             <span className="font-semibold text-slate-700">Academic Year</span>
             <select
               value={selection.academicYear}
@@ -133,7 +147,7 @@ export default function PublishResultPage() {
             </select>
           </label>
 
-          <label className="grid items-center gap-2 sm:grid-cols-[150px_1fr]">
+          {selection.examType === "Regular" && <label className="grid items-center gap-2 sm:grid-cols-[150px_1fr]">
             <span className="font-semibold text-slate-700">Semester</span>
             <select
               value={selection.semester}
@@ -144,7 +158,7 @@ export default function PublishResultPage() {
                 <option key={semester}>{semester}</option>
               ))}
             </select>
-          </label>
+          </label>}
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2 md:col-span-2">
             <span className={"rounded-full px-4 py-2 text-sm font-semibold " +

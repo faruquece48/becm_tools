@@ -7,11 +7,16 @@ import type { VivaCohort, VivaStudent } from "@/lib/storage/vivaMarks";
 
 const VIVA_SECTION = "add-viva-marks";
 const RESULT_SECTION = "result-sheet";
+const BACKLOG_RESULT_SECTION = "result-sheet-backlog";
 const selectionSchema = z.object({
   department: z.string().min(1).max(150),
+  examType: z.enum(["Regular", "Backlog"]).default("Regular"),
   examYear: z.string().regex(/^\d{4}$/),
   academicYear: z.enum(["1st", "2nd", "3rd", "4th"]),
-  semester: z.enum(["Odd", "Even"]),
+  semester: z.enum(["Odd", "Even", ""]),
+}).superRefine((value, context) => {
+  if (value.examType === "Regular" && !value.semester) context.addIssue({ code: "custom", path: ["semester"], message: "Semester is required" });
+  if (value.examType === "Backlog" && value.semester) context.addIssue({ code: "custom", path: ["semester"], message: "Backlog results do not use a semester" });
 });
 type Selection = z.infer<typeof selectionSchema>;
 type ResultHistory = {
@@ -43,10 +48,11 @@ async function sectionData<T>(
 }
 
 const same = (
-  result: { examYear: string; academicYear: string; semester: string; department?: string },
+  result: { examType?: "Regular" | "Backlog"; examYear: string; academicYear: string; semester: string; department?: string },
   selection: Selection,
 ) =>
   (!result.department || result.department === selection.department) &&
+  (("examType" in result && result.examType) || "Regular") === selection.examType &&
   result.examYear === selection.examYear &&
   result.academicYear === selection.academicYear &&
   result.semester === selection.semester;
@@ -66,21 +72,28 @@ export async function GET() {
   const context = await teacherContext();
   if (!context) return NextResponse.json({ error: "Teacher login required" }, { status: 401 });
   try {
-    const [vivas, histories] = await Promise.all([
+    const [vivas, histories, backlogHistories] = await Promise.all([
       sectionData<VivaCohort>(context.prisma, VIVA_SECTION),
       sectionData<ResultHistory>(context.prisma, RESULT_SECTION),
+      sectionData<ResultHistory>(context.prisma, BACKLOG_RESULT_SECTION),
     ]);
     const results = [...vivas.filter((cohort) => cohort.finalized)];
     for (const history of histories) {
-      if (results.some((result) => same(result, { department: result.department, examYear: history.examYear, academicYear: history.academicYear as Selection["academicYear"], semester: history.semester as Selection["semester"] }))) continue;
+      if (results.some((result) => same(result, { department: result.department, examType: "Regular", examYear: history.examYear, academicYear: history.academicYear as Selection["academicYear"], semester: history.semester as Selection["semester"] }))) continue;
       results.push({
         department: "Building Engineering & Construction Management",
+        examType: "Regular",
         examYear: history.examYear,
         academicYear: history.academicYear,
         semester: history.semester,
         students: placeholderStudents(history),
         finalized: true,
       } as VivaCohort);
+    }
+    for (const history of backlogHistories) {
+      const selection: Selection = { department: "Building Engineering & Construction Management", examType: "Backlog", examYear: history.examYear, academicYear: history.academicYear as Selection["academicYear"], semester: "" };
+      if (results.some((result) => same(result, selection))) continue;
+      results.push({ ...selection, students: placeholderStudents(history).map((student) => ({ ...student, registrationType: "Backlog" })), finalized: true } as VivaCohort);
     }
     return NextResponse.json({ results });
   } catch (error) {
@@ -96,11 +109,12 @@ export async function PUT(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid result selection" }, { status: 400 });
 
   try {
-    const [results, histories] = await Promise.all([
+    const [results, histories, backlogHistories] = await Promise.all([
       sectionData<VivaCohort>(context.prisma, VIVA_SECTION),
       sectionData<ResultHistory>(context.prisma, RESULT_SECTION),
+      sectionData<ResultHistory>(context.prisma, BACKLOG_RESULT_SECTION),
     ]);
-    const history = histories.find((item) => same(item, parsed.data));
+    const history = (parsed.data.examType === "Backlog" ? backlogHistories : histories).find((item) => same({ ...item, examType: parsed.data.examType }, parsed.data));
     let index = results.findIndex((cohort) => same(cohort, parsed.data));
 
     if (index < 0 && !history) {
@@ -112,7 +126,7 @@ export async function PUT(request: Request) {
     if (index < 0 && history) {
       results.push({
         ...parsed.data,
-        students: placeholderStudents(history),
+        students: placeholderStudents(history).map((student) => ({ ...student, registrationType: parsed.data.examType })),
         finalized: true,
       });
       index = results.length - 1;
