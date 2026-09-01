@@ -9,7 +9,7 @@ type Course = { courseCode:string; courseTitle:string; semester:"Odd"|"Even" };
 type Registration = { studentId:string; studentName:string; rollNo:string; registrationNo:string; examYear:string; academicYear:string; courses:Course[]; confirmedAt:string };
 type Archive = { examYear:string; academicYear:string; semester:string; students:Array<{studentId:string;failedSubjects:string[];registerAgain:string[]}> };
 type Publication = { examType?:"Regular"|"Backlog"; examYear:string; academicYear:string; semester:string; published?:boolean };
-type Syllabus = { courses:Array<{code:string;title:string}> };
+type Syllabus = { active?:boolean; courses:Array<{code:string;title:string}> };
 type Candidate = Omit<Registration,"courses"|"confirmedAt"> & { courses:Course[] };
 const SECTION="backlog-registrations";
 const requestSchema=z.object({examYear:z.string().regex(/^\d{4}$/),academicYear:z.enum(["1st","2nd","3rd","4th"]),selections:z.array(z.object({studentId:z.string().min(1),courses:z.array(z.object({courseCode:z.string().min(1),semester:z.enum(["Odd","Even"])})).max(30)})).max(1000)});
@@ -19,7 +19,7 @@ async function stored<T>(prisma:NonNullable<ReturnType<typeof getPrisma>>,sectio
 async function teacher(){const prisma=getPrisma(),id=(await cookies()).get("becm-portal-account")?.value;if(!prisma||!id)return null;const account=await prisma.portalAccount.findFirst({where:{id,role:"teacher",active:true},select:{id:true}});return account?prisma:null}
 async function candidates(prisma:NonNullable<ReturnType<typeof getPrisma>>):Promise<Candidate[]>{
  const[directory,archives,syllabuses,publications]=await Promise.all([stored<StudentDirectoryRecord>(prisma,"student-directory"),stored<Archive>(prisma,"marks-sheet"),stored<Syllabus>(prisma,"syllabuses"),stored<Publication>(prisma,"add-viva-marks")]);
- const titles=new Map(syllabuses.flatMap(item=>item.courses).map(course=>[normalized(course.code),course.title]));const output:Candidate[]=[];
+ const titles=new Map(syllabuses.filter(item=>item.active!==false).flatMap(item=>item.courses).map(course=>[normalized(course.code),course.title]));const output:Candidate[]=[];
  for(const student of directory){if(student.semester!=="Even")continue;const examYear=String(Number(student.series)+(yearNumber[student.year]||1)),academicYear=student.year;
   const published=(semester:"Odd"|"Even")=>publications.some(result=>(result.examType||"Regular")==="Regular"&&result.examYear===examYear&&result.academicYear===academicYear&&result.semester===semester&&result.published===true);
   if(!published("Odd")||!published("Even"))continue;

@@ -46,7 +46,7 @@ export default function BacklogMarksSheet() {
 
   const currentMarks = useMemo(() => marks.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear), [marks, selection]);
   const courses = useMemo(() => [...new Map(currentMarks.map((item) => {
-    const syllabus = syllabuses.flatMap((segment) => segment.courses || []).find((course) => normalize(course.code) === normalize(item.courseCode));
+    const syllabus = syllabuses.filter((segment) => segment.active !== false).flatMap((segment) => segment.courses || []).find((course) => normalize(course.code) === normalize(item.courseCode));
     const course: SyllabusCourse = syllabus || { id: `${item.semester}-${item.courseCode}`, code: item.courseCode, title: item.courseTitle, credit: "0", type: "Theory", department: "BECM", year: selection.academicYear as SyllabusCourse["year"], semester: item.semester };
     return [`${item.semester}|${normalize(item.courseCode)}`, course] as const;
   })).values()].sort((left, right) => left.semester.localeCompare(right.semester) || left.code.localeCompare(right.code, undefined, { numeric: true })), [currentMarks, syllabuses, selection.academicYear]);

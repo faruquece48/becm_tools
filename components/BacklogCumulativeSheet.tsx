@@ -48,7 +48,7 @@ export default function BacklogCumulativeSheet({ mode }: { mode: "tabulation" | 
   const current = useMemo(() => marks.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear), [marks, selection]);
   const courses = useMemo(() => {
     const series = Number(selection.examYear) - (order[selection.academicYear] || 1);
-    const matchingSegments = syllabuses.filter((segment) => series >= Number(segment.fromSeries) && series <= Number(segment.toSeries)).sort((left, right) => (Number(left.toSeries) - Number(left.fromSeries)) - (Number(right.toSeries) - Number(right.fromSeries)));
+    const matchingSegments = syllabuses.filter((segment) => segment.active !== false && series >= Number(segment.fromSeries) && series <= Number(segment.toSeries)).sort((left, right) => (Number(left.toSeries) - Number(left.fromSeries)) - (Number(right.toSeries) - Number(right.fromSeries)));
     const syllabusCourses = matchingSegments.flatMap((segment) => segment.courses || []).filter((course) => course.year === selection.academicYear);
     const rank = new Map<string, number>();
     syllabusCourses.forEach((course, index) => { const key = `${course.semester}|${norm(course.code)}`; if (!rank.has(key)) rank.set(key, index); });
