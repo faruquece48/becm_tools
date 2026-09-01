@@ -17,7 +17,7 @@ const row = z.object({
   updatedAt: z.string().datetime(),
 });
 const rows = z.array(row).max(5000);
-const payload = z.union([row, z.object({ records: z.array(row).min(1).max(500) })]);
+const payload = z.union([row, z.object({ records: z.array(row).min(1).max(500), registerForBacklog: z.boolean().optional() })]);
 
 async function db() {
   const id = (await cookies()).get("becm-portal-account")?.value;
@@ -77,7 +77,22 @@ export async function PUT(request: Request) {
       if (index < 0) current.push(update); else current[index] = update;
     }
     const serialized = JSON.stringify(current);
-    await prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data"=CAST(${serialized} AS jsonb),"updatedAt"=NOW() WHERE "section"=${SECTION}`);
+    const writes = [prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data"=CAST(${serialized} AS jsonb),"updatedAt"=NOW() WHERE "section"=${SECTION}`)];
+    if ("registerForBacklog" in parsed.data && parsed.data.registerForBacklog) {
+      const studentIds = new Set(updates[0].students.filter((student) => !student.eligible && updates.every((update) => update.students.find((candidate) => candidate.studentId === student.studentId)?.eligible === false)).map((student) => student.studentId));
+      const directoryRows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section"='student-directory' LIMIT 1`);
+      const directory = Array.isArray(directoryRows[0]?.data) ? directoryRows[0].data as Array<Record<string, unknown>> : [];
+      const createdAt = new Date().toISOString();
+      const registration = { examYear: updates[0].examYear, academicYear: updates[0].academicYear, semester: updates[0].semester, createdAt };
+      for (const student of directory) {
+        if (!studentIds.has(String(student.id))) continue;
+        const existing = Array.isArray(student.backlogEligibility) ? student.backlogEligibility as Array<Record<string, unknown>> : [];
+        if (!existing.some((item) => item.examYear === registration.examYear && item.academicYear === registration.academicYear && item.semester === registration.semester)) student.backlogEligibility = [...existing, registration];
+      }
+      const directoryJson = JSON.stringify(directory);
+      writes.push(prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data"=CAST(${directoryJson} AS jsonb),"updatedAt"=NOW() WHERE "section"='student-directory'`));
+    }
+    await prisma.$transaction(writes);
     return NextResponse.json({ records: current });
   } catch (error) {
     console.error(error);

@@ -19,6 +19,8 @@ type SummaryRow = { student: StudentDirectoryRecord; semesterPoints: number; sem
 const order: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const ordinal: Record<string, string> = { "1st": "1st", "2nd": "2nd", "3rd": "3rd", "4th": "4th" };
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))];
+const cumulativeFailed = (row: SummaryRow) => unique([...row.historicalFailed, ...row.failed]);
+const cumulativeRegister = (row: SummaryRow) => unique([...row.historicalRegister, ...row.register]);
 
 export default function AcademicResultSheet({ title }: Props) {
   const currentYear = String(new Date().getFullYear());
@@ -49,8 +51,11 @@ export default function AcademicResultSheet({ title }: Props) {
 
   const currentArchive = marksheets.find((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
   const committee = committees.find((item) => item.examType === "Regular" && item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
-  const cohort = useMemo(() => students.filter((student) => Number(student.series) <= Number(series) && student.year === selection.academicYear && student.semester === selection.semester)
-    .sort((left, right) => (left.series === series ? 0 : 1) - (right.series === series ? 0 : 1) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true })), [students, series, selection.academicYear, selection.semester]);
+  const cohort = useMemo(() => {
+    const appeared = new Set(currentArchive?.students.map((student) => student.studentId) || []);
+    return students.filter((student) => appeared.has(student.id) && Number(student.series) <= Number(series) && student.year === selection.academicYear && student.semester === selection.semester)
+      .sort((left, right) => (left.series === series ? 0 : 1) - (right.series === series ? 0 : 1) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true }));
+  }, [students, series, selection.academicYear, selection.semester, currentArchive]);
 
   const summaryRows = useMemo<SummaryRow[]>(() => {
     if (!currentArchive) return [];
@@ -92,15 +97,13 @@ export default function AcademicResultSheet({ title }: Props) {
     setBusy(true); setMessage("");
     const legacyFormat = usesLegacyResultFormat(committee.resultPublishDate);
     try {
-      const firstSemester = selection.academicYear === "1st" && selection.semester === "Odd";
-      const appeared = summaryRows.length;
+            const appeared = summaryRows.length;
       const cleared = summaryRows.filter((row) => !row.failed.length && !row.register.length).length;
-      const backlogged = appeared - cleared;
+      const backlogged = summaryRows.filter((row) => row.failed.length > 0 || row.register.length > 0).length;
       const completed = summaryRows.filter((row) => row.totalCredit >= GRADUATION_CREDIT).length;
-      const historyApplicable = (row: SummaryRow) => !firstSemester || Number(row.student.series) < Number(series);
-      const needRegister = summaryRows.filter((row) => historyApplicable(row) && unique([...row.historicalRegister, ...(!firstSemester ? row.register : [])]).length > 0).length;
-      const totalHistoricalBacklog = summaryRows.filter((row) => historyApplicable(row) && unique([...row.historicalFailed, ...row.historicalRegister, ...(!firstSemester ? row.failed : []), ...(!firstSemester ? row.register : [])]).length > 0).length;
-      const record: ResultHistory = { ...selection, series, committeeId: committee.id, examDate: committee.examDate, memoNo: committee.memoNo, memoDate: committee.memoDate, resultPublishDate: committee.resultPublishDate, students: summaryRows.map((row) => ({ studentId: row.student.id, failedSubjects: row.failed, registerAgain: row.register, totalEarnedCredit: row.totalCredit, totalGradePoints: row.totalPoints, cgpa: row.cgpa.toFixed(2) })), updatedAt: new Date().toISOString() };
+      const needRegister = summaryRows.filter((row) => cumulativeRegister(row).length > 0).length;
+      const totalHistoricalBacklog = summaryRows.filter((row) => cumulativeFailed(row).length > 0 || cumulativeRegister(row).length > 0).length;
+      const record: ResultHistory = { ...selection, series, committeeId: committee.id, examDate: committee.examDate, memoNo: committee.memoNo, memoDate: committee.memoDate, resultPublishDate: committee.resultPublishDate, students: summaryRows.map((row) => ({ studentId: row.student.id, failedSubjects: cumulativeFailed(row), registerAgain: cumulativeRegister(row), totalEarnedCredit: row.totalCredit, totalGradePoints: row.totalPoints, cgpa: row.cgpa.toFixed(2) })), updatedAt: new Date().toISOString() };
       const next = [...history.filter((item) => !(item.examYear === record.examYear && item.academicYear === record.academicYear && item.semester === record.semester)), record];
       setHistory(await saveResultSection("result-sheet", next));
 
@@ -114,7 +117,7 @@ export default function AcademicResultSheet({ title }: Props) {
       function cell(x: number, y: number, w: number, h: number, text: string, isBold = false, size = 7.3, align: "left" | "center" | "right" = "center", horizontalPadding = .7) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", isBold ? "bold" : "normal"); doc.setFontSize(size); const lines: string[] = doc.splitTextToSize(text, Math.max(1, w - horizontalPadding * 2)); const lineHeight = size * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + horizontalPadding : align === "right" ? x + w - horizontalPadding : x + w / 2, start + index * lineHeight, { align })); }
       function footer(page: number, total: number) { doc.line(L, H - 12, R, H - 12); doc.setFont("FreeSerif", "bolditalic"); doc.setFontSize(7.3); doc.text(`Page ${page} of ${total}`, R, H - 8, { align: "right" }); }
       function headingCell(x: number, y: number, w: number, h: number, text: string) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", "bold"); const lines = text.split("\n"), baseSize = 9.9; doc.setFontSize(baseSize); const widest = Math.max(...lines.map((line) => doc.getTextWidth(line))), fittedSize = widest > w - 1.4 ? Math.max(7.3, baseSize * (w - 1.4) / widest) : baseSize, lineHeight = fittedSize * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; doc.setFontSize(fittedSize); lines.forEach((line, index) => doc.text(line, x + w / 2, start + index * lineHeight, { align: "center" })); } function tableHeader(y: number) { let x = L; const labels = ["Roll No.", "Student Name", "SGP", "Semester\nEarned\nCredit", "Total\nEarned\nCredit", "SGPA", "CGPA"]; labels.forEach((label, index) => { headingCell(x, y, widths[index], 16, label); x += widths[index]; }); headingCell(x, y, widths[7] + widths[8], 7, "Remarks"); headingCell(x, y + 7, widths[7], 9, legacyFormat ? "Failed Subjects" : "Status"); headingCell(x + widths[7], y + 7, widths[8], 9, "Need to Register\nAgain"); return y + 16; }
-      function graduated(value: SummaryRow) { return value.totalCredit >= GRADUATION_CREDIT; } function rowValues(value: SummaryRow) { const status = graduated(value) ? completionStatus(value.cgpa, legacyFormat) : value.failed.join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), value.sgpa.toFixed(2), value.cgpa.toFixed(2), status, graduated(value) ? "" : value.register.join(", ")]; } function rowHeight(value: SummaryRow) {
+      function graduated(value: SummaryRow) { return value.totalCredit >= GRADUATION_CREDIT; } function rowValues(value: SummaryRow) { const status = graduated(value) ? completionStatus(value.cgpa, legacyFormat) : cumulativeFailed(value).join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), value.sgpa.toFixed(2), value.cgpa.toFixed(2), status, graduated(value) ? "" : cumulativeRegister(value).join(", ")]; } function rowHeight(value: SummaryRow) {
         doc.setFont("FreeSerif", "normal");
         doc.setFontSize(9.9);
         const values = rowValues(value);

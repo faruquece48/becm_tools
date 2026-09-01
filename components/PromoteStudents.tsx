@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, UsersRound } from "lucide-react";
 import { academicYears, departmentName, semesters, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import type { CourseEligibility } from "@/lib/storage/studentEligibility";
 import { loadResultSection } from "@/lib/storage/resultSections";
 
 const yearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
@@ -24,6 +25,7 @@ const nextPromotion = (source: { examYear: string; year: string; semester: strin
 export default function PromoteStudents() {
   const [records, setRecords] = useState<StudentDirectoryRecord[]>([]);
   const [resultCohorts, setResultCohorts] = useState<ResultCohort[]>([]);
+  const [eligibility, setEligibility] = useState<CourseEligibility[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState({ examYear: String(currentExamYear), year: "1st", semester: "Odd" });
   const [target, setTarget] = useState({ examYear: String(currentExamYear), year: "1st", semester: "Odd" });
@@ -42,8 +44,13 @@ export default function PromoteStudents() {
       }),
       loadResultSection<ResultCohort[]>("marks-sheet"),
       loadResultSection<ResultCohort[]>("prepare-result"),
+      fetch("/api/student-eligibility", { cache: "no-store" }).then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error);
+        return body.records || [];
+      }),
     ])
-      .then(([directory, marksSheets, preparedResults]) => {
+      .then(([directory, marksSheets, preparedResults, eligibilityRecords]) => {
         setRecords(directory.map((student: StudentDirectoryRecord) => ({
           ...student,
           section: student.section || "A",
@@ -52,6 +59,7 @@ export default function PromoteStudents() {
           ...(Array.isArray(marksSheets) ? marksSheets : []),
           ...(Array.isArray(preparedResults) ? preparedResults : []),
         ]);
+        setEligibility(Array.isArray(eligibilityRecords) ? eligibilityRecords : []);
       })
       .catch((error) => setMessage(error.message || "Unable to load students and results"))
       .finally(() => setLoading(false));
@@ -70,12 +78,24 @@ export default function PromoteStudents() {
         .flatMap((result) => result.students || [])
         .map((student) => student.studentId),
     );
+    const selectedEligibility = eligibility.filter((record) =>
+      record.examYear === source.examYear &&
+      record.academicYear === source.year &&
+      record.semester === source.semester,
+    );
+    const fullyIneligibleStudentIds = new Set(
+      (selectedEligibility[0]?.students || [])
+        .filter((student) => student.eligible === false && selectedEligibility.every((record) =>
+          record.students.find((candidate) => candidate.studentId === student.studentId)?.eligible === false,
+        ))
+        .map((student) => student.studentId),
+    );
     const matching = records
       .filter((student) =>
         student.department === departmentName &&
         student.year === source.year &&
         student.semester === source.semester &&
-        (examYearOf(student) === source.examYear || completedStudentIds.has(student.id)),
+        (examYearOf(student) === source.examYear || completedStudentIds.has(student.id) || fullyIneligibleStudentIds.has(student.id)),
       )
       .sort((left, right) => {
         const currentSeries = String(Number(source.examYear) - (yearNumber[source.year] || 1));
@@ -117,13 +137,16 @@ export default function PromoteStudents() {
       return { ...student, year: target.year, semester: target.semester, section: sections[student.id] || "A", backlogEligibility: [...existingEligibility, ...addedEligibility] };
     });
     try {
-      const response = await fetch("/api/students/directory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ records: promoted }) });
+      const response = await fetch("/api/students/directory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ records: promoted }), signal: AbortSignal.timeout(30000) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Unable to promote students");
-      setRecords((body.records || []).map((student: StudentDirectoryRecord) => ({ ...student, section: student.section || "A" })));
+      const savedRecords = (body.records || []).map((student: StudentDirectoryRecord) => ({ ...student, section: student.section || "A" }));
+      const promotionSaved = chosen.every((student) => savedRecords.some((record: StudentDirectoryRecord) => record.id === student.id && record.year === target.year && record.semester === target.semester));
+      if (!promotionSaved) throw new Error("Neon did not confirm every selected promotion. Please try again.");
+      setRecords(savedRecords);
       setStudents([]); setSelected(new Set());
       setMessage(`${chosen.length} student${chosen.length === 1 ? "" : "s"} promoted successfully.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to promote students"); }
+    } catch (error) { setMessage(error instanceof DOMException && error.name === "TimeoutError" ? "Promotion timed out before Neon confirmed the update. Nothing was confirmed; please try again." : error instanceof Error ? error.message : "Unable to promote students"); }
     finally { setSaving(false); }
   }
 

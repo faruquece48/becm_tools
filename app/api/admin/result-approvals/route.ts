@@ -1,8 +1,7 @@
-import { timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { isAdminAuthenticated, validateAdminPassword } from "@/lib/adminAuth";
 import { getPrisma } from "@/lib/prisma";
 import type { VivaCohort } from "@/lib/storage/vivaMarks";
 
@@ -17,11 +16,6 @@ const requestSchema = z.object({
   password: z.string().min(1),
 });
 type RequestData = z.infer<typeof requestSchema>;
-function validResultActionPassword(value: string) {
-  const expected = process.env.RESULT_APPROVAL_PASSWORD || "123456";
-  if (value.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(value), Buffer.from(expected));
-}
 
 async function cohorts(prisma: NonNullable<ReturnType<typeof getPrisma>>) {
   const rows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(
@@ -69,7 +63,7 @@ export async function PUT(request: Request) {
       { status: 400 },
     );
   }
-  if (!validResultActionPassword(parsed.data.password)) {
+  if (!validateAdminPassword(parsed.data.password)) {
     return NextResponse.json({ error: "Incorrect admin password" }, { status: 403 });
   }
   const prisma = getPrisma();
