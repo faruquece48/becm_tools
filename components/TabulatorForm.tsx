@@ -82,7 +82,7 @@ export default function TabulatorForm({ mode, recordId }: TabulatorFormProps) {
       records[index] = { ...records[index], ...form };
     }
     await saveTabulators(records);
-    router.push("/result/tabulators");
+    router.push("/teacher/result/tabulators");
   };
 
   if (!ready) return null;
@@ -122,7 +122,7 @@ export default function TabulatorForm({ mode, recordId }: TabulatorFormProps) {
           <div className="lg:col-span-2 lg:pl-[158px]">
             {error && <p role="alert" className="mb-3 text-sm font-medium text-red-600">{error}</p>}
             <div className="flex gap-3">
-              <button type="button" onClick={() => router.push("/result/tabulators")} className="rounded-lg bg-slate-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">Back</button>
+              <button type="button" onClick={() => router.push("/teacher/result/tabulators")} className="rounded-lg bg-slate-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">Back</button>
               <button type="submit" className={`rounded-lg px-4 py-2.5 text-sm font-semibold text-white ${buttonClass}`}>{buttonText}</button>
             </div>
           </div>

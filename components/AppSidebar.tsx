@@ -47,7 +47,7 @@ const mainNavigation: NavigationItem[] = [
       pathname.startsWith("/bills") && !pathname.startsWith("/bills/summary"),
   },
   { label: "OBE", icon: BookOpenText },
-  { label: "Result", icon: FileChartColumn, href: "/result" },
+  { label: "Result", icon: FileChartColumn, href: "/teacher/result" },
   { label: "Student", icon: UsersRound },
   { label: "Syllabus", icon: LibraryBig, href: "/teacher/syllabus" },
   { label: "File", icon: Megaphone, href: "/files" },
@@ -111,7 +111,7 @@ export default function AppSidebar({ mobileOpen = false, onClose }: AppSidebarPr
             <button
               type="button"
               onClick={() => setResultMenuOpen((open) => !open)}
-              className={`flex w-full items-center gap-4 rounded-xl px-5 py-2.5 text-left text-sm font-medium transition ${pathname.startsWith("/result") ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white shadow-lg shadow-indigo-950/40" : "text-blue-100 hover:bg-white/10"}`}
+              className={`flex w-full items-center gap-4 rounded-xl px-5 py-2.5 text-left text-sm font-medium transition ${pathname.startsWith("/teacher/result") ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white shadow-lg shadow-indigo-950/40" : "text-blue-100 hover:bg-white/10"}`}
               aria-label={resultMenuOpen ? "Minimize Result menu" : "Expand Result menu"}
               aria-expanded={resultMenuOpen}
             >
@@ -143,7 +143,7 @@ export default function AppSidebar({ mobileOpen = false, onClose }: AppSidebarPr
               <UsersRound className="h-5 w-5 shrink-0" /><span>Student</span><ChevronLeft className={`ml-auto h-4 w-4 transition-transform ${studentMenuOpen ? "-rotate-90" : ""}`} />
             </button>
             <div className={`ml-5 border-l border-white/20 py-1 pl-3 ${studentMenuOpen ? "block" : "hidden"}`}>
-              {[{ label: "Student List", href: "/teacher/students" }, { label: "Promote Students", href: "/teacher/students/promote" }, { label: "Eligible", href: "/teacher/students/eligible" }].map((subItem) => { const active = pathname === subItem.href; return <Link key={subItem.href} href={subItem.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`block rounded-lg px-3 py-2 text-sm transition ${active ? "bg-white text-[#102555] shadow-sm" : "text-blue-100 hover:bg-white/10 hover:text-white"}`} suppressHydrationWarning>{subItem.label}</Link>; })}
+              {[{ label: "Student List", href: "/teacher/students" }, { label: "Promote Students", href: "/teacher/students/promote" }, { label: "Eligibility List", href: "/teacher/students/eligible" }].map((subItem) => { const active = pathname === subItem.href; return <Link key={subItem.href} href={subItem.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`block rounded-lg px-3 py-2 text-sm transition ${active ? "bg-white text-[#102555] shadow-sm" : "text-blue-100 hover:bg-white/10 hover:text-white"}`} suppressHydrationWarning>{subItem.label}</Link>; })}
             </div>
           </div>
         ) : <SidebarLink key={item.label} item={item} onNavigate={onClose} />)}

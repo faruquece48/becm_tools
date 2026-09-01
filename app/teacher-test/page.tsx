@@ -31,7 +31,7 @@ const mainNavigation = [
   { label: "Dashboard", icon: Grid2X2, active: true, href: "/teacher/dashboard" },
   { label: "Remuneration Bill", icon: FileText, href: "/bills/create" },
   { label: "OBE", icon: BookOpenText },
-  { label: "Result", icon: FileChartColumn, href: "/result" },
+  { label: "Result", icon: FileChartColumn, href: "/teacher/result" },
   { label: "Student", icon: UsersRound },
   { label: "Syllabus", icon: LibraryBig, href: "/teacher/syllabus" },
   { label: "File", icon: Megaphone, href: "/files" },
@@ -153,7 +153,7 @@ export default function TeacherTestPage() {
                     <div className={`ml-5 border-l border-white/20 py-1 pl-3 ${studentMenuOpen ? "block" : "hidden"}`}>
                       <Link href="/teacher/students" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Student List</Link>
                       <Link href="/teacher/students/promote" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Promote Students</Link>
-                      <Link href="/teacher/students/eligible" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Eligible</Link>
+                      <Link href="/teacher/students/eligible" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Eligibility List</Link>
                     </div>
                   </div>
                 );

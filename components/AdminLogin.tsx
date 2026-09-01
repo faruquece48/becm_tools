@@ -14,9 +14,12 @@ export default function AdminLogin({ configured }: { configured: boolean }) {
     event.preventDefault(); setLoading(true); setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const response = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: form.get("id"), password: form.get("password") }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to sign in");
+      const response = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ id: form.get("id"), password: form.get("password") }) });
+      const raw = await response.text();
+      let data: { authenticated?: boolean; error?: string } | null = null;
+      try { data = raw ? JSON.parse(raw) as { authenticated?: boolean; error?: string } : null; } catch { data = null; }
+      if (!response.ok) throw new Error(data?.error || `Admin login service is unavailable (${response.status}).`);
+      if (!data?.authenticated) throw new Error("Admin login service returned an invalid response.");
       router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to sign in"); setLoading(false); }
   }

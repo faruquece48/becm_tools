@@ -42,6 +42,24 @@ export async function PUT(request: Request, { params }: { params: Promise<{ sect
       const existing = Array.isArray(stored[0]?.data) ? stored[0].data as Array<Record<string, unknown>> : [];
       const incoming = Array.isArray(body.data) ? body.data as Array<Record<string, unknown>> : [];
       const key = (record: Record<string, unknown>) => `${record.examYear}|${record.academicYear}|${record.semester}|${record.courseId}`;
+      const publicationRows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(
+        Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = 'add-viva-marks' LIMIT 1`,
+      );
+      const publications = Array.isArray(publicationRows[0]?.data)
+        ? publicationRows[0].data as Array<Record<string, unknown>>
+        : [];
+      const publishedExams = publications.filter((record) => record?.published === true);
+      const belongsToPublishedExam = (record: Record<string, unknown>) => publishedExams.some(
+        (published) => published.examYear === record.examYear &&
+          published.academicYear === record.academicYear &&
+          published.semester === record.semester,
+      );
+      for (const locked of existing.filter((record) => record && belongsToPublishedExam(record))) {
+        const replacement = incoming.find((record) => record && key(record) === key(locked));
+        if (!replacement || JSON.stringify(replacement) !== JSON.stringify(locked)) {
+          return NextResponse.json({ error: "Result Already Published. No Change Allowed." }, { status: 409 });
+        }
+      }
       for (const locked of existing.filter((record) => record && record.published === true)) {
         const replacement = incoming.find((record) => record && key(record) === key(locked));
         if (!replacement || JSON.stringify(replacement) !== JSON.stringify(locked)) {

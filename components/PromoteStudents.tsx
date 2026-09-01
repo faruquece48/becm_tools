@@ -3,14 +3,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, UsersRound } from "lucide-react";
 import { academicYears, departmentName, semesters, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import { loadResultSection } from "@/lib/storage/resultSections";
 
 const yearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const currentExamYear = new Date().getFullYear();
 const examYears = Array.from({ length: Math.max(1, currentExamYear - 2018 + 1) }, (_, index) => String(currentExamYear - index));
 const examYearOf = (student: StudentDirectoryRecord) => String(Number(student.series) + (yearNumber[student.year] || 1));
+type ResultCohort = { examYear: string; academicYear: string; semester: string; students: Array<{ studentId: string }> };
+const nextPromotion = (source: { examYear: string; year: string; semester: string }) => {
+  if (source.semester === "Odd") {
+    return { examYear: source.examYear, year: source.year, semester: "Even" };
+  }
+  if (source.semester === "Even" && source.year !== "4th") {
+    const nextYear = academicYears[Math.min(academicYears.length - 1, academicYears.indexOf(source.year) + 1)];
+    return { examYear: String(Number(source.examYear) + 1), year: nextYear, semester: "Odd" };
+  }
+  return { examYear: source.examYear, year: source.year, semester: "Short Semester" };
+};
 
 export default function PromoteStudents() {
   const [records, setRecords] = useState<StudentDirectoryRecord[]>([]);
+  const [resultCohorts, setResultCohorts] = useState<ResultCohort[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState({ examYear: String(currentExamYear), year: "1st", semester: "Odd" });
   const [target, setTarget] = useState({ examYear: String(currentExamYear), year: "1st", semester: "Odd" });
@@ -20,16 +33,61 @@ export default function PromoteStudents() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetch("/api/students/directory").then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); setRecords((body.records || []).map((student: StudentDirectoryRecord) => ({ ...student, section: student.section || "A" }))); }).catch((error) => setMessage(error.message || "Unable to load students")).finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/students/directory").then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error);
+        return body.records || [];
+      }),
+      loadResultSection<ResultCohort[]>("marks-sheet"),
+      loadResultSection<ResultCohort[]>("prepare-result"),
+    ])
+      .then(([directory, marksSheets, preparedResults]) => {
+        setRecords(directory.map((student: StudentDirectoryRecord) => ({
+          ...student,
+          section: student.section || "A",
+        })));
+        setResultCohorts([
+          ...(Array.isArray(marksSheets) ? marksSheets : []),
+          ...(Array.isArray(preparedResults) ? preparedResults : []),
+        ]);
+      })
+      .catch((error) => setMessage(error.message || "Unable to load students and results"))
+      .finally(() => setLoading(false));
+  }, []);
   const field = "h-9 w-full rounded-sm border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500";
   const availableExamYears = useMemo(() => [...new Set([...examYears, ...records.map(examYearOf)])].sort().reverse(), [records]);
 
   function showStudents() {
-    const matching = records.filter((student) => student.department === departmentName && examYearOf(student) === source.examYear && student.year === source.year && student.semester === source.semester);
+    const completedStudentIds = new Set(
+      resultCohorts
+        .filter((result) =>
+          result.examYear === source.examYear &&
+          result.academicYear === source.year &&
+          result.semester === source.semester,
+        )
+        .flatMap((result) => result.students || [])
+        .map((student) => student.studentId),
+    );
+    const matching = records
+      .filter((student) =>
+        student.department === departmentName &&
+        student.year === source.year &&
+        student.semester === source.semester &&
+        (examYearOf(student) === source.examYear || completedStudentIds.has(student.id)),
+      )
+      .sort((left, right) => {
+        const currentSeries = String(Number(source.examYear) - (yearNumber[source.year] || 1));
+        const leftGroup = left.series === currentSeries ? 0 : 1;
+        const rightGroup = right.series === currentSeries ? 0 : 1;
+        return leftGroup - rightGroup ||
+          left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true });
+      });
     setStudents(matching);
     setSelected(new Set(matching.map((student) => student.id)));
     setSections(Object.fromEntries(matching.map((student) => [student.id, student.section || "A"])));
-    setTarget(source);
+    setTarget(nextPromotion(source));
     setMessage(matching.length ? "" : "No students found for the selected cohort.");
   }
 
@@ -40,9 +98,17 @@ export default function PromoteStudents() {
   async function promote() {
     const chosen = students.filter((student) => selected.has(student.id));
     if (!chosen.length) { setMessage("Select at least one student to promote."); return; }
-    const invalidExamYear = chosen.some((student) => Number(target.examYear) !== Number(student.series) + (yearNumber[target.year] || 1));
-    if (invalidExamYear) { setMessage(`Destination Exam Year must equal original Series + Academic Year. For series ${chosen[0].series} and ${target.year}, select ${Number(chosen[0].series) + (yearNumber[target.year] || 1)}.`); return; }
-    setSaving(true); setMessage("");
+    const expectedTarget = nextPromotion(source);
+    if (
+      target.examYear !== expectedTarget.examYear ||
+      target.year !== expectedTarget.year ||
+      target.semester !== expectedTarget.semester
+    ) {
+      setMessage(
+        `The next destination for this examination is ${expectedTarget.year} Year ${expectedTarget.semester} Semester (Exam Year ${expectedTarget.examYear}).`,
+      );
+      return;
+    }    setSaving(true); setMessage("");
     const qualifiesForBacklog = source.semester === "Even" && target.semester === "Odd" && yearNumber[target.year] === yearNumber[source.year] + 1 && Number(target.examYear) === Number(source.examYear) + 1;
     const promotedAt = new Date().toISOString();
     const promoted = chosen.map((student) => {
@@ -78,6 +144,11 @@ export default function PromoteStudents() {
           <label className="grid items-center gap-3 text-sm font-semibold sm:grid-cols-[250px_1fr]">Exam Year<select value={target.examYear} onChange={(e) => setTarget({ ...target, examYear: e.target.value })} className={field}>{availableExamYears.map((year) => <option key={year}>{year}</option>)}</select></label>
           <label className="grid items-center gap-3 text-sm font-semibold sm:grid-cols-[250px_1fr]">Academic Year<select value={target.year} onChange={(e) => setTarget({ ...target, year: e.target.value })} className={field}>{academicYears.map((year) => <option key={year}>{year}</option>)}</select></label>
           <label className="grid items-center gap-3 text-sm font-semibold sm:grid-cols-[250px_1fr]">Semester<select value={target.semester} onChange={(e) => setTarget({ ...target, semester: e.target.value })} className={field}>{semesters.map((semester) => <option key={semester}>{semester}</option>)}</select></label>
+        </div>
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <p className="font-bold">Promotion destination: {target.year} Year {target.semester} Semester, Exam Year {target.examYear}</p>
+          <p className="mt-1">Selected students will move to this year and semester. Their original series and session will remain unchanged. Teachers can then prepare results for them under this destination semester.</p>
+          <p className="mt-1">After promotion, they will no longer appear in the previous semester on Student List. Search using their original session together with {target.year} Year and {target.semester} Semester.</p>
         </div>
         <h2 className="mt-3 flex items-center gap-2 text-xl font-bold"><UsersRound className="h-5 w-5" />Student List:</h2>
         <div className="mt-2 overflow-hidden border border-slate-300"><table className="w-full table-fixed border-collapse text-sm"><thead className="bg-[#082f57] text-white"><tr><th className="w-16 border-r p-2"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(students.map((student) => student.id)))} aria-label="Select all students" /></th><th className="w-20 border-r p-2">Sl.</th><th className="border-r p-2">Student Name</th><th className="w-[18%] border-r p-2">Roll No</th><th className="w-[20%] border-r p-2">Registration No</th><th className="w-[20%] p-2">Section</th></tr></thead><tbody>{students.map((student, index) => <tr key={student.id} className="odd:bg-white even:bg-slate-50"><td className="border p-2 text-center"><input type="checkbox" checked={selected.has(student.id)} onChange={() => toggle(student.id)} aria-label={`Select ${student.name}`} /></td><td className="border p-2">{index + 1}.</td><td className="border p-2">{student.name}</td><td className="border p-2">{student.rollNo}</td><td className="border p-2">{student.registrationNo}</td><td className="border p-2"><select disabled={!selected.has(student.id)} value={sections[student.id] || "A"} onChange={(e) => setSections({ ...sections, [student.id]: e.target.value })} className="h-8 w-full rounded-sm border border-slate-300 px-2"><option>A</option><option>B</option></select></td></tr>)}</tbody></table></div>

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: "/result", destination: "/teacher/result", permanent: true },
+      { source: "/result/:path*", destination: "/teacher/result/:path*", permanent: true },
+    ];
+  },
   outputFileTracingIncludes: {
     "/api/downloader-helper/*": ["./app/Downloader/**/*"],
   },

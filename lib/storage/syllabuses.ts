@@ -1,6 +1,23 @@
 export type SyllabusCourse = { id: string; title: string; code: string; credit: string; type: "Theory" | "Sessional" | "Thesis"; department: string; year: "1st" | "2nd" | "3rd" | "4th"; semester: "Odd" | "Even" | "Short Semester" };
 export type SyllabusSegment = { id: string; name: string; fromSeries: string; toSeries: string; courses: SyllabusCourse[] };
 
+export function syllabusCoursesForExam(
+  syllabuses: SyllabusSegment[],
+  series: string,
+  year: SyllabusCourse["year"],
+  semester: SyllabusCourse["semester"],
+) {
+  const matchingSegments = syllabuses
+    .filter((segment) => Number(series) >= Number(segment.fromSeries) && Number(series) <= Number(segment.toSeries))
+    .sort((left, right) => (Number(left.toSeries) - Number(left.fromSeries)) - (Number(right.toSeries) - Number(right.fromSeries)));
+
+  const courses = matchingSegments.flatMap((segment) =>
+    segment.courses.filter((course) => course.year === year && course.semester === semester),
+  );
+
+  return Array.from(new Map(courses.map((course) => [course.id, course])).values());
+}
+
 type SeedRow = [string, string, string, SyllabusCourse["type"], SyllabusCourse["year"], SyllabusCourse["semester"]];
 const rows: SeedRow[] = [
 ["Surveying","CE 1125","3.00","Theory","1st","Odd"],["Chemistry","Chem 1107","3.00","Theory","1st","Odd"],["Physics - I","Phy 1107","3.00","Theory","1st","Odd"],["Mathematics - I","Math 1107","3.00","Theory","1st","Odd"],["Basic Electrical Engineering","EEE 1147","3.00","Theory","1st","Odd"],["Graphics and Basic Engineering Drawing","BECM 1100","1.50","Sessional","1st","Odd"],["Wood and Sheet Metal Shop","BECM 1102","1.50","Sessional","1st","Odd"],["Sessional on Physics","Phy 1108","1.50","Sessional","1st","Odd"],["Sessional on Basic Electrical Engineering","EEE 1148","1.50","Sessional","1st","Odd"],["Engineering Mechanics","BECM 1223","3.00","Theory","1st","Even"],
