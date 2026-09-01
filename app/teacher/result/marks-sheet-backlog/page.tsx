@@ -1,3 +1,2 @@
-export default function ResultSubpage() {
-  return null;
-}
+import GradeSheet from "@/components/GradeSheet";
+export default function BacklogMarksSheetPage(){return <GradeSheet initialExamType="Backlog"/>}
