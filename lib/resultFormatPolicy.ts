@@ -1,5 +1,11 @@
 export const LEGACY_RESULT_FORMAT_CUTOFF = "2026-07-17";
-export const GRADUATION_CREDIT = 163.5;
+export const OBE_GRADUATION_CREDIT = 163.5;
+export const NON_OBE_GRADUATION_CREDIT = 161;
+export const GRADUATION_CREDIT = OBE_GRADUATION_CREDIT;
+
+export function graduationCreditForSeries(series: string | number) {
+  return Number(series) >= 2020 ? OBE_GRADUATION_CREDIT : NON_OBE_GRADUATION_CREDIT;
+}
 
 function comparableDate(value?: string) {
   if (!value) return "";

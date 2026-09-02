@@ -45,6 +45,20 @@ async function load(prisma: NonNullable<ReturnType<typeof getPrisma>>) {
   return Array.isArray(rows[0]?.data) ? rows[0].data as unknown as StudentDirectoryRecord[] : [];
 }
 
+function normalizedIdentity(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function isSameStudent(left: StudentDirectoryRecord, right: StudentDirectoryRecord) {
+  if (left.id === right.id) return true;
+  const leftRoll = normalizedIdentity(left.rollNo);
+  const rightRoll = normalizedIdentity(right.rollNo);
+  if (leftRoll && leftRoll === rightRoll) return true;
+  const leftRegistration = normalizedIdentity(left.registrationNo);
+  const rightRegistration = normalizedIdentity(right.registrationNo);
+  return Boolean(leftRegistration && leftRegistration === rightRegistration);
+}
+
 async function save(prisma: NonNullable<ReturnType<typeof getPrisma>>, records: StudentDirectoryRecord[]) {
   const serialized = JSON.stringify(records);
   await prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${serialized} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${SECTION}`);
@@ -109,13 +123,10 @@ export async function GET(request: Request) {
         });
       }
     }
+    // Active directory data is canonical. Historical copies retain their results but
+    // must not create another visible identity when an inferred series differs.
     const records = [...active, ...archived, ...reconstructed].filter((record, index, all) =>
-      all.findIndex((candidate) =>
-        candidate.id === record.id &&
-        candidate.series === record.series &&
-        candidate.year === record.year &&
-        candidate.semester === record.semester,
-      ) === index,
+      all.findIndex((candidate) => isSameStudent(candidate, record) && candidate.year === record.year && candidate.semester === record.semester) === index,
     );
     return NextResponse.json(
       { records },

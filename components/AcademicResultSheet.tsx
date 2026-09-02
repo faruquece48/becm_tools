@@ -1,31 +1,47 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
-import { academicYears, departmentName, semesters, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import { academicYears, departmentName, oldStudentPromotionForExam, semesters, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import { cohortSeries } from "@/lib/storage/studentEligibility";
+import type { SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
 import { formatTabulatorDate } from "@/lib/storage/tabulators";
 import { loadExamCommittees, type ExamCommitteeRecord } from "@/lib/storage/examCommittees";
-import { completionStatus, GRADUATION_CREDIT, usesLegacyResultFormat } from "@/lib/resultFormatPolicy";
+import { completionStatus, GRADUATION_CREDIT, NON_OBE_GRADUATION_CREDIT, usesLegacyResultFormat } from "@/lib/resultFormatPolicy";
 
 type ArchiveStudent = { studentId: string; rollNo: string; earnedCredit: number; gradePoints: number; sgpa: string; failedSubjects: string[]; registerAgain: string[] };
+type PreparedMark = { studentId: string; present: boolean; withheld: boolean; partA: string; partB: string; classTestAttendance: string; sessional?: string };
+type PreparedCourse = { examYear: string; academicYear: string; semester: string; courseId: string; students: PreparedMark[] };
+type EligibilityRecord = { examYear: string; academicYear: string; semester: string; courseId: string; students: Array<{ studentId: string; eligible: boolean }> };
+type VivaRecord = { examYear: string; academicYear: string; semester: string; students: Array<{ id: string; marks: string; present: boolean }> };
+type BacklogMark = { studentId: string; rollNo?: string; examYear: string; courseCode: string; marks: string };
 type MarkSheetArchive = { examYear: string; academicYear: string; semester: string; series: string; students: ArchiveStudent[]; updatedAt?: string };
 type ResultHistoryStudent = { studentId: string; failedSubjects: string[]; registerAgain: string[]; totalEarnedCredit: number; totalGradePoints: number; cgpa: string };
 type ResultHistory = { examYear: string; academicYear: string; semester: string; series: string; committeeId?: string; examDate?: string; memoNo?: string; memoDate?: string; resultPublishDate?: string; students: ResultHistoryStudent[]; updatedAt: string };
 type Props = { title: string };
-type SummaryRow = { student: StudentDirectoryRecord; semesterPoints: number; semesterCredit: number; totalPoints: number; totalCredit: number; sgpa: number; cgpa: number; failed: string[]; register: string[]; historicalFailed: string[]; historicalRegister: string[] };
+type SummaryRow = { student: StudentDirectoryRecord; degreeCredit: number; semesterPoints: number; semesterCredit: number; totalPoints: number; totalCredit: number; sgpa: number; cgpa: number; failed: string[]; register: string[]; currentFailed: string[]; currentRegister: string[]; historicalFailed: string[]; historicalRegister: string[] };
 
 const order: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const ordinal: Record<string, string> = { "1st": "1st", "2nd": "2nd", "3rd": "3rd", "4th": "4th" };
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))];
 const cumulativeFailed = (row: SummaryRow) => unique([...row.historicalFailed, ...row.failed]);
 const cumulativeRegister = (row: SummaryRow) => unique([...row.historicalRegister, ...row.register]);
+const normalizedRoll = (value: string) => value.replace(/\s/g, "").toLowerCase();
+const rollSeries = (rollNo: string) => rollNo.trim().slice(0, 2);
+const gradePoints: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
+const numeric = (value?: string) => Number(value) || 0;
+const letterGrade = (score: number, mark: PreparedMark | undefined, theory: boolean) => !mark ? "" : mark.withheld ? "W" : !mark.present || (theory && numeric(mark.partA) + numeric(mark.partB) < 15) ? "F" : score >= 80 ? "A+" : score >= 75 ? "A" : score >= 70 ? "A-" : score >= 65 ? "B+" : score >= 60 ? "B" : score >= 55 ? "B-" : score >= 50 ? "C+" : score >= 45 ? "C" : score >= 40 ? "D" : "F";
 
 export default function AcademicResultSheet({ title }: Props) {
   const currentYear = String(new Date().getFullYear());
   const years = Array.from({ length: Math.max(1, Number(currentYear) - 2018 + 1) }, (_, index) => String(Number(currentYear) - index));
   const [students, setStudents] = useState<StudentDirectoryRecord[]>([]);
+  const [oldStudents, setOldStudents] = useState<OldStudentRecord[]>([]);
+  const [syllabuses, setSyllabuses] = useState<SyllabusSegment[]>([]);
+  const [prepared, setPrepared] = useState<PreparedCourse[]>([]);
+  const [eligibility, setEligibility] = useState<EligibilityRecord[]>([]);
+  const [vivas, setVivas] = useState<VivaRecord[]>([]);
+  const [backlogMarks, setBacklogMarks] = useState<BacklogMark[]>([]);
   const [marksheets, setMarksheets] = useState<MarkSheetArchive[]>([]);
   const [history, setHistory] = useState<ResultHistory[]>([]);
   const [committees, setCommittees] = useState<ExamCommitteeRecord[]>([]);
@@ -41,8 +57,20 @@ export default function AcademicResultSheet({ title }: Props) {
       loadResultSection<MarkSheetArchive[]>("marks-sheet"),
       loadResultSection<ResultHistory[]>("result-sheet"),
       loadExamCommittees(),
-    ]).then(([studentBody, markRows, resultRows, committeeRows]) => {
+      fetch("/api/students/old", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
+      fetch("/api/syllabuses", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
+      loadResultSection<PreparedCourse[]>("prepare-result"),
+      fetch("/api/student-eligibility", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
+      loadResultSection<VivaRecord[]>("add-viva-marks"),
+      loadResultSection<BacklogMark[]>("prepare-result-backlog"),
+    ]).then(([studentBody, markRows, resultRows, committeeRows, oldStudentBody, syllabusBody, preparedRows, eligibilityBody, vivaRows, backlogRows]) => {
       setStudents(studentBody.records || []);
+      setOldStudents(oldStudentBody.records || []);
+      setSyllabuses(syllabusBody.syllabuses || []);
+      setPrepared(Array.isArray(preparedRows) ? preparedRows : []);
+      setEligibility(eligibilityBody.records || []);
+      setVivas(Array.isArray(vivaRows) ? vivaRows : []);
+      setBacklogMarks(Array.isArray(backlogRows) ? backlogRows : []);
       setMarksheets(Array.isArray(markRows) ? markRows : []);
       setHistory(Array.isArray(resultRows) ? resultRows : []);
       setCommittees(committeeRows);
@@ -51,11 +79,20 @@ export default function AcademicResultSheet({ title }: Props) {
 
   const currentArchive = marksheets.find((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
   const committee = committees.find((item) => item.examType === "Regular" && item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
+  const promotedOldStudents = useMemo(() => oldStudents
+    .filter((student) => Boolean(oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")))
+    .sort((left, right) => left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true })), [oldStudents, selection]);
   const cohort = useMemo(() => {
     const appeared = new Set(currentArchive?.students.map((student) => student.studentId) || []);
-    return students.filter((student) => appeared.has(student.id) && Number(student.series) <= Number(series) && student.year === selection.academicYear && student.semester === selection.semester)
-      .sort((left, right) => (left.series === series ? 0 : 1) - (right.series === series ? 0 : 1) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true }));
-  }, [students, series, selection.academicYear, selection.semester, currentArchive]);
+    const oldIdentityKeys = new Set(promotedOldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalizedRoll(student.rollNo)}`]));
+    const matching = students.filter((student) => appeared.has(student.id) && Number(student.series) >= 2020 && Number(student.series) <= Number(series) && student.year === selection.academicYear && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`));
+    const byRoll = new Map<string, StudentDirectoryRecord>();
+    matching.forEach((student) => { const key = normalizedRoll(student.rollNo); if (!byRoll.has(key)) byRoll.set(key, student); });
+    const regular = [...byRoll.values()];
+    const seriesCounts = new Map<string, number>();
+    regular.forEach((student) => { const key = rollSeries(student.rollNo); seriesCounts.set(key, (seriesCounts.get(key) || 0) + 1); });
+    return regular.sort((left, right) => (seriesCounts.get(rollSeries(right.rollNo)) || 0) - (seriesCounts.get(rollSeries(left.rollNo)) || 0) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true }));
+  }, [students, series, selection.academicYear, currentArchive, promotedOldStudents]);
 
   const summaryRows = useMemo<SummaryRow[]>(() => {
     if (!currentArchive) return [];
@@ -65,8 +102,10 @@ export default function AcademicResultSheet({ title }: Props) {
       if (order[item.academicYear] !== order[selection.academicYear]) return order[item.academicYear] < order[selection.academicYear];
       return item.semester === "Odd" && selection.semester === "Even";
     };
-    return cohort.map((student) => {
+    const clearedBacklogCodes = (studentId: string, rollNo: string) => new Set(backlogMarks.filter((mark) => Number(mark.examYear) < Number(selection.examYear) && (mark.studentId === studentId || normalizedRoll(mark.rollNo || "") === normalizedRoll(rollNo)) && numeric(mark.marks) >= 40).map((mark) => normalizedRoll(mark.courseCode)));
+    const regularRows = cohort.map((student) => {
       const current = currentArchive.students.find((item) => item.studentId === student.id);
+      const clearedCodes = clearedBacklogCodes(student.id, student.rollNo);
       const previousMarks = marksheets.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
       const previousResults = history.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
       const semesterCredit = current?.earnedCredit || 0;
@@ -77,6 +116,7 @@ export default function AcademicResultSheet({ title }: Props) {
       const totalPoints = previousPoints + semesterPoints;
       return {
         student,
+        degreeCredit: GRADUATION_CREDIT,
         semesterPoints,
         semesterCredit,
         totalPoints,
@@ -85,11 +125,56 @@ export default function AcademicResultSheet({ title }: Props) {
         cgpa: totalCredit ? totalPoints / totalCredit : 0,
         failed: current?.failedSubjects || [],
         register: current?.registerAgain || [],
-        historicalFailed: unique(previousResults.flatMap((item) => item.failedSubjects).concat(previousMarks.flatMap((item) => item.failedSubjects))),
-        historicalRegister: unique(previousResults.flatMap((item) => item.registerAgain).concat(previousMarks.flatMap((item) => item.registerAgain))),
+        currentFailed: current?.failedSubjects || [],
+        currentRegister: current?.registerAgain || [],
+        historicalFailed: unique(previousResults.flatMap((item) => item.failedSubjects).concat(previousMarks.flatMap((item) => item.failedSubjects))).filter((code) => !clearedCodes.has(normalizedRoll(code))),
+        historicalRegister: unique(previousResults.flatMap((item) => item.registerAgain).concat(previousMarks.flatMap((item) => item.registerAgain))).filter((code) => !clearedCodes.has(normalizedRoll(code))),
       };
     });
-  }, [cohort, currentArchive, marksheets, history, selection]);
+    const allCourses = syllabuses.flatMap((syllabus) => syllabus.courses);
+    const courseCodes = new Map(allCourses.map((course) => [course.id, course.code]));
+    const nonObeRows = promotedOldStudents.map((oldStudent): SummaryRow => {
+      const promotion = oldStudentPromotionForExam(oldStudent, selection.examYear, selection.academicYear, selection.semester, "Regular");
+      const clearedCodes = clearedBacklogCodes(oldStudent.id, oldStudent.rollNo);
+      const vivaStudent = vivas.find((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester)?.students.find((student) => student.id === oldStudent.id);
+      const viva = vivaStudent?.present ? numeric(vivaStudent.marks) : 0;
+      const outcomes = (promotion?.courseIds || []).flatMap((courseId) => {
+        const course = allCourses.find((item) => item.id === courseId);
+        if (!course) return [];
+        const nonEligible = eligibility.find((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester && record.courseId === courseId)?.students.find((student) => student.studentId === oldStudent.id)?.eligible === false;
+        const mark = prepared.find((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester && record.courseId === courseId)?.students.find((student) => student.studentId === oldStudent.id);
+        const theory = course.type === "Theory";
+        const total = mark ? Math.round(theory ? (mark.present ? numeric(mark.partA) + numeric(mark.partB) : 0) + numeric(mark.classTestAttendance) : numeric(mark.sessional) + viva) : 0;
+        const letter = nonEligible ? "-" : letterGrade(total, mark, theory);
+        const credit = !nonEligible && letter && letter !== "F" && letter !== "W" ? Number(course.credit) : 0;
+        return [{ course, nonEligible, letter, credit, points: credit * (gradePoints[letter] || 0) }];
+      });
+      const semesterCredit = outcomes.reduce((sum, outcome) => sum + outcome.credit, 0);
+      const semesterPoints = outcomes.reduce((sum, outcome) => sum + outcome.points, 0);
+      const totalCredit = oldStudent.earnedCredit + semesterCredit;
+      const totalPoints = oldStudent.gradePoints + semesterPoints;
+      const graduated = totalCredit >= NON_OBE_GRADUATION_CREDIT;
+      const failedSet = new Set<string>();
+      const registerSet = new Set<string>();
+      oldStudent.outstandingCourses.forEach((item) => {
+        const code = courseCodes.get(item.courseId) || item.courseId;
+        const outcome = outcomes.find((value) => value.course.id === item.courseId);
+        if (outcome?.credit || ((!outcome || !outcome.letter) && clearedCodes.has(normalizedRoll(code)))) return;
+        if (outcome?.nonEligible) registerSet.add(code);
+        else if (outcome?.letter === "F" || outcome?.letter === "W") failedSet.add(code);
+        else if (item.status === "need-register") registerSet.add(code);
+        else failedSet.add(code);
+      });
+      outcomes.forEach((outcome) => { if (outcome.nonEligible) registerSet.add(outcome.course.code); else if (outcome.letter === "F" || outcome.letter === "W") failedSet.add(outcome.course.code); });
+      const currentFailed = outcomes.filter((outcome) => outcome.letter === "F" || outcome.letter === "W").map((outcome) => outcome.course.code);
+      const currentRegister = outcomes.filter((outcome) => outcome.nonEligible).map((outcome) => outcome.course.code);
+      const failed = graduated ? [] : [...failedSet];
+      const register = graduated ? [] : [...registerSet];
+      const student: StudentDirectoryRecord = { ...oldStudent, year: selection.academicYear, semester: selection.semester };
+      return { student, degreeCredit: NON_OBE_GRADUATION_CREDIT, semesterPoints, semesterCredit, totalPoints, totalCredit, sgpa: semesterCredit ? semesterPoints / semesterCredit : 0, cgpa: totalCredit ? totalPoints / totalCredit : 0, failed, register, currentFailed, currentRegister, historicalFailed: [], historicalRegister: [] };
+    });
+    return [...regularRows, ...nonObeRows];
+  }, [cohort, promotedOldStudents, currentArchive, marksheets, history, selection, syllabuses, prepared, eligibility, vivas, backlogMarks]);
 
   async function generate() {
     if (!currentArchive) { setMessage("Generate the marksheet for this examination before generating the result sheet."); return; }
@@ -98,9 +183,9 @@ export default function AcademicResultSheet({ title }: Props) {
     const legacyFormat = usesLegacyResultFormat(committee.resultPublishDate);
     try {
             const appeared = summaryRows.length;
-      const cleared = summaryRows.filter((row) => !row.failed.length && !row.register.length).length;
-      const backlogged = summaryRows.filter((row) => row.failed.length > 0 || row.register.length > 0).length;
-      const completed = summaryRows.filter((row) => row.totalCredit >= GRADUATION_CREDIT).length;
+      const cleared = summaryRows.filter((row) => !row.currentFailed.length && !row.currentRegister.length).length;
+      const backlogged = summaryRows.filter((row) => row.currentFailed.length > 0 || row.currentRegister.length > 0).length;
+      const completed = summaryRows.filter((row) => row.totalCredit >= row.degreeCredit).length;
       const needRegister = summaryRows.filter((row) => cumulativeRegister(row).length > 0).length;
       const totalHistoricalBacklog = summaryRows.filter((row) => cumulativeFailed(row).length > 0 || cumulativeRegister(row).length > 0).length;
       const record: ResultHistory = { ...selection, series, committeeId: committee.id, examDate: committee.examDate, memoNo: committee.memoNo, memoDate: committee.memoDate, resultPublishDate: committee.resultPublishDate, students: summaryRows.map((row) => ({ studentId: row.student.id, failedSubjects: cumulativeFailed(row), registerAgain: cumulativeRegister(row), totalEarnedCredit: row.totalCredit, totalGradePoints: row.totalPoints, cgpa: row.cgpa.toFixed(2) })), updatedAt: new Date().toISOString() };
@@ -117,7 +202,7 @@ export default function AcademicResultSheet({ title }: Props) {
       function cell(x: number, y: number, w: number, h: number, text: string, isBold = false, size = 7.3, align: "left" | "center" | "right" = "center", horizontalPadding = .7) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", isBold ? "bold" : "normal"); doc.setFontSize(size); const lines: string[] = doc.splitTextToSize(text, Math.max(1, w - horizontalPadding * 2)); const lineHeight = size * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + horizontalPadding : align === "right" ? x + w - horizontalPadding : x + w / 2, start + index * lineHeight, { align })); }
       function footer(page: number, total: number) { doc.line(L, H - 12, R, H - 12); doc.setFont("FreeSerif", "bolditalic"); doc.setFontSize(7.3); doc.text(`Page ${page} of ${total}`, R, H - 8, { align: "right" }); }
       function headingCell(x: number, y: number, w: number, h: number, text: string) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", "bold"); const lines = text.split("\n"), baseSize = 9.9; doc.setFontSize(baseSize); const widest = Math.max(...lines.map((line) => doc.getTextWidth(line))), fittedSize = widest > w - 1.4 ? Math.max(7.3, baseSize * (w - 1.4) / widest) : baseSize, lineHeight = fittedSize * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; doc.setFontSize(fittedSize); lines.forEach((line, index) => doc.text(line, x + w / 2, start + index * lineHeight, { align: "center" })); } function tableHeader(y: number) { let x = L; const labels = ["Roll No.", "Student Name", "SGP", "Semester\nEarned\nCredit", "Total\nEarned\nCredit", "SGPA", "CGPA"]; labels.forEach((label, index) => { headingCell(x, y, widths[index], 16, label); x += widths[index]; }); headingCell(x, y, widths[7] + widths[8], 7, "Remarks"); headingCell(x, y + 7, widths[7], 9, legacyFormat ? "Failed Subjects" : "Status"); headingCell(x + widths[7], y + 7, widths[8], 9, "Need to Register\nAgain"); return y + 16; }
-      function graduated(value: SummaryRow) { return value.totalCredit >= GRADUATION_CREDIT; } function rowValues(value: SummaryRow) { const status = graduated(value) ? completionStatus(value.cgpa, legacyFormat) : cumulativeFailed(value).join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), value.sgpa.toFixed(2), value.cgpa.toFixed(2), status, graduated(value) ? "" : cumulativeRegister(value).join(", ")]; } function rowHeight(value: SummaryRow) {
+      function graduated(value: SummaryRow) { return value.totalCredit >= value.degreeCredit; } function rowValues(value: SummaryRow) { const status = graduated(value) ? completionStatus(value.cgpa, legacyFormat) : cumulativeFailed(value).join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), value.sgpa.toFixed(2), value.cgpa.toFixed(2), status, graduated(value) ? "" : cumulativeRegister(value).join(", ")]; } function rowHeight(value: SummaryRow) {
         doc.setFont("FreeSerif", "normal");
         doc.setFontSize(9.9);
         const values = rowValues(value);

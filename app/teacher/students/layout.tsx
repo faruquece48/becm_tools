@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import ResultShell from "@/components/ResultShell";
+import StudentSubnav from "@/components/StudentSubnav";
 import { getPrisma } from "@/lib/prisma";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -12,5 +13,5 @@ export default async function StudentLayout({ children }: { children: React.Reac
     select: { id: true },
   });
   if (!teacher) redirect("/");
-  return <ResultShell>{children}</ResultShell>;
+  return <ResultShell><StudentSubnav />{children}</ResultShell>;
 }

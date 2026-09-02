@@ -4,6 +4,7 @@ import { z } from "zod";
 import { isAdminAuthenticated, validateAdminPassword } from "@/lib/adminAuth";
 import { getPrisma } from "@/lib/prisma";
 import type { VivaCohort } from "@/lib/storage/vivaMarks";
+import { specialStudentPublicationWrites } from "@/lib/server/specialStudentPublication";
 
 const SECTION = "add-viva-marks";
 const PREPARED_SECTION = "prepare-result";
@@ -120,11 +121,10 @@ export async function PUT(request: Request) {
     }
 
     const serialized = JSON.stringify(results);
-    await prisma.$executeRaw(
-      Prisma.sql`UPDATE "ResultSectionStore"
+    const writes = [prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore"
         SET "data" = CAST(${serialized} AS jsonb), "updatedAt" = NOW()
         WHERE "section" = ${SECTION}`,
-    );
+    )];
 
     const preparedSection = parsed.data.examType === "Backlog" ? BACKLOG_PREPARED_SECTION : PREPARED_SECTION;
     const preparedRows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(
@@ -146,14 +146,16 @@ export async function PUT(request: Request) {
 
     if (preparedChanged) {
       const preparedJson = JSON.stringify(updatedPrepared);
-      await prisma.$executeRaw(
-        Prisma.sql`UPDATE "ResultSectionStore"
+      writes.push(prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore"
           SET "data" = CAST(${preparedJson} AS jsonb), "updatedAt" = NOW()
           WHERE "section" = ${preparedSection}`,
-      );
+      ));
     }
 
-    return NextResponse.json({ result: results[index] });
+    writes.push(...await specialStudentPublicationWrites(prisma, { examType: parsed.data.examType, examYear: parsed.data.examYear, academicYear: parsed.data.academicYear, semester: parsed.data.semester }, sendBack ? "send-back" : "accept"));
+    await prisma.$transaction(writes);
+
+    return NextResponse.json({ result: results[index], specialStudentsUpdated: !sendBack });
   } catch (error) {
     console.error("Unable to update result approval", error);
     return NextResponse.json({ error: "Unable to update result approval" }, { status: 503 });
