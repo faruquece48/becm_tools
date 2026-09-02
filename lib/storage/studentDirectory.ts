@@ -27,7 +27,7 @@ export type OldStudentPromotion = {
   id: string;
   examYear: string;
   academicYear: "1st" | "2nd" | "3rd" | "4th";
-  semester: "Odd" | "Even";
+  semester: "Odd" | "Even" | "Short Semester" | "Backlog";
   examType: OldStudentExamType;
   courseIds: string[];
   promotedAt: string;

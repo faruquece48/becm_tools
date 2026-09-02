@@ -24,7 +24,7 @@ const seeds: Seed[] = [
   ["4","Backlog","2021","1st","","Dr. Md. Robiul Awall","Dr. Md. Majedur Rahman","Dr. Md. Nuruzzaman","Mr. Faruque Abdullah","Dr. Md. Al-Amin-Al-Azadul Islam","2023-05-13","2023-06-24","299/35","2023-08-09"],
   ["5","Regular","2022","2nd","Odd","Dr. Md. Robiul Awall","Md. Abu Bokar Siddique","Md. Asaduzzaman","Mr. Faruque Abdullah","Dr. Md. Majedur Rahman","2023-08-09","2023-11-26","2921/35","2023-12-18"],
   ["6","Regular","2022","1st","Even","Dr. Md. Robiul Awall","Dr. Md. Bellal Hossain","Dr. Saila Ahmed","Mr. Mehedi Hasan","Dr. Md. Sazzad Hossain","2023-11-01","2024-01-22","3894/35","2024-01-29"],
-  ["7","Regular","2022","2nd","Even","Dr. Md. Robiul Awall","Md. Sabbir Ahsan","Md. Golam Mostakim","Mr. Mehedi Hasan","Dr. Md. Saifur Rahman","2024-01-02","2025-10-29","","2024-03-05"],
+  ["7","Regular","2022","2nd","Even","Dr. Md. Robiul Awall","Md. Sabbir Ahsan","Md. Golam Mostakim","Mr. Mehedi Hasan","Dr. Md. Saifur Rahman","2024-01-02","2024-03-05","","2024-03-05"],
   ["8","Backlog","2022","1st","","Dr. Md. Robiul Awall","Dr. Mohammad Kamrul Hasan","Prof. Dr. Md. Abdul Kader Zilani","Mr. Faruque Abdullah","Dr. Md. Ashraful Alam","2024-03-12","2024-03-27","5111/35","2024-03-27"],
   ["9","Regular","2023","1st","Odd","Dr. Md. Robiul Awall","Prof. Dr. Md. Al-Amin-Al-Azadul Islam","Dr. Md. Nuruzzaman","Mr. Faruque Abdullah","Dr. Md. Shamsul Alam","2024-02-13","2024-04-03","5309/35","2024-04-03"],
   ["10","Backlog","2022","2nd","","Dr. Md. Robiul Awall","Dr. Md. Feruj Alam","Mr. Mehedi Hasan","Mr. Faruque Abdullah","Dr. Md. Abdul Alim","2024-05-15","2024-08-13","567/35","2024-08-13"],
