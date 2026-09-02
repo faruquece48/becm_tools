@@ -14,7 +14,7 @@ type PreparedMark = { studentId: string; present: boolean; withheld: boolean; pa
 type PreparedCourse = { examYear: string; academicYear: string; semester: string; courseId: string; students: PreparedMark[] };
 type EligibilityRecord = { examYear: string; academicYear: string; semester: string; courseId: string; students: Array<{ studentId: string; eligible: boolean }> };
 type VivaRecord = { examYear: string; academicYear: string; semester: string; students: Array<{ id: string; marks: string; present: boolean }> };
-type BacklogMark = { studentId: string; rollNo?: string; examYear: string; courseCode: string; marks: string };
+type BacklogMark = { studentId: string; rollNo?: string; examYear: string; courseCode: string; marks: string; result?: "Pass" | "Fail" };
 type MarkSheetArchive = { examYear: string; academicYear: string; semester: string; series: string; students: ArchiveStudent[]; updatedAt?: string };
 type ResultHistoryStudent = { studentId: string; failedSubjects: string[]; registerAgain: string[]; totalEarnedCredit: number; totalGradePoints: number; cgpa: string };
 type ResultHistory = { examYear: string; academicYear: string; semester: string; series: string; committeeId?: string; examDate?: string; memoNo?: string; memoDate?: string; resultPublishDate?: string; students: ResultHistoryStudent[]; updatedAt: string };
@@ -30,6 +30,11 @@ const normalizedRoll = (value: string) => value.replace(/\s/g, "").toLowerCase()
 const rollSeries = (rollNo: string) => rollNo.trim().slice(0, 2);
 const gradePoints: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
 const numeric = (value?: string) => Number(value) || 0;
+const roundedTwo = (value: number) => {
+  const thousandths = Math.floor((value + 1e-10) * 1000);
+  const hundredths = Math.floor(thousandths / 10) + (thousandths % 10 >= 5 ? 1 : 0);
+  return (hundredths / 100).toFixed(2);
+};
 const letterGrade = (score: number, mark: PreparedMark | undefined, theory: boolean) => !mark ? "" : mark.withheld ? "W" : !mark.present || (theory && numeric(mark.partA) + numeric(mark.partB) < 15) ? "F" : score >= 80 ? "A+" : score >= 75 ? "A" : score >= 70 ? "A-" : score >= 65 ? "B+" : score >= 60 ? "B" : score >= 55 ? "B-" : score >= 50 ? "C+" : score >= 45 ? "C" : score >= 40 ? "D" : "F";
 
 export default function AcademicResultSheet({ title }: Props) {
@@ -43,6 +48,7 @@ export default function AcademicResultSheet({ title }: Props) {
   const [vivas, setVivas] = useState<VivaRecord[]>([]);
   const [backlogMarks, setBacklogMarks] = useState<BacklogMark[]>([]);
   const [marksheets, setMarksheets] = useState<MarkSheetArchive[]>([]);
+  const [backlogMarksheets, setBacklogMarksheets] = useState<MarkSheetArchive[]>([]);
   const [history, setHistory] = useState<ResultHistory[]>([]);
   const [committees, setCommittees] = useState<ExamCommitteeRecord[]>([]);
   const [selection, setSelection] = useState({ examYear: "2021", academicYear: "1st", semester: "Odd" });
@@ -55,6 +61,7 @@ export default function AcademicResultSheet({ title }: Props) {
     Promise.all([
       fetch("/api/students/directory?includeHistorical=true", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
       loadResultSection<MarkSheetArchive[]>("marks-sheet"),
+      loadResultSection<MarkSheetArchive[]>("marks-sheet-backlog"),
       loadResultSection<ResultHistory[]>("result-sheet"),
       loadExamCommittees(),
       fetch("/api/students/old", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
@@ -63,7 +70,7 @@ export default function AcademicResultSheet({ title }: Props) {
       fetch("/api/student-eligibility", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
       loadResultSection<VivaRecord[]>("add-viva-marks"),
       loadResultSection<BacklogMark[]>("prepare-result-backlog"),
-    ]).then(([studentBody, markRows, resultRows, committeeRows, oldStudentBody, syllabusBody, preparedRows, eligibilityBody, vivaRows, backlogRows]) => {
+    ]).then(([studentBody, markRows, backlogMarkRows, resultRows, committeeRows, oldStudentBody, syllabusBody, preparedRows, eligibilityBody, vivaRows, backlogRows]) => {
       setStudents(studentBody.records || []);
       setOldStudents(oldStudentBody.records || []);
       setSyllabuses(syllabusBody.syllabuses || []);
@@ -72,6 +79,7 @@ export default function AcademicResultSheet({ title }: Props) {
       setVivas(Array.isArray(vivaRows) ? vivaRows : []);
       setBacklogMarks(Array.isArray(backlogRows) ? backlogRows : []);
       setMarksheets(Array.isArray(markRows) ? markRows : []);
+      setBacklogMarksheets(Array.isArray(backlogMarkRows) ? backlogMarkRows : []);
       setHistory(Array.isArray(resultRows) ? resultRows : []);
       setCommittees(committeeRows);
     }).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load result-sheet data from Neon."));
@@ -102,11 +110,11 @@ export default function AcademicResultSheet({ title }: Props) {
       if (order[item.academicYear] !== order[selection.academicYear]) return order[item.academicYear] < order[selection.academicYear];
       return item.semester === "Odd" && selection.semester === "Even";
     };
-    const clearedBacklogCodes = (studentId: string, rollNo: string) => new Set(backlogMarks.filter((mark) => Number(mark.examYear) < Number(selection.examYear) && (mark.studentId === studentId || normalizedRoll(mark.rollNo || "") === normalizedRoll(rollNo)) && numeric(mark.marks) >= 40).map((mark) => normalizedRoll(mark.courseCode)));
+    const clearedBacklogCodes = (studentId: string, rollNo: string) => new Set(backlogMarks.filter((mark) => Number(mark.examYear) < Number(selection.examYear) && (mark.studentId === studentId || normalizedRoll(mark.rollNo || "") === normalizedRoll(rollNo)) && mark.result !== "Fail" && numeric(mark.marks) >= 40).map((mark) => normalizedRoll(mark.courseCode)));
     const regularRows = cohort.map((student) => {
       const current = currentArchive.students.find((item) => item.studentId === student.id);
       const clearedCodes = clearedBacklogCodes(student.id, student.rollNo);
-      const previousMarks = marksheets.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
+      const previousMarks = [...marksheets, ...backlogMarksheets].filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id || normalizedRoll(item.rollNo || "") === normalizedRoll(student.rollNo)));
       const previousResults = history.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
       const semesterCredit = current?.earnedCredit || 0;
       const semesterPoints = current?.gradePoints || 0;
@@ -174,7 +182,7 @@ export default function AcademicResultSheet({ title }: Props) {
       return { student, degreeCredit: NON_OBE_GRADUATION_CREDIT, semesterPoints, semesterCredit, totalPoints, totalCredit, sgpa: semesterCredit ? semesterPoints / semesterCredit : 0, cgpa: totalCredit ? totalPoints / totalCredit : 0, failed, register, currentFailed, currentRegister, historicalFailed: [], historicalRegister: [] };
     });
     return [...regularRows, ...nonObeRows];
-  }, [cohort, promotedOldStudents, currentArchive, marksheets, history, selection, syllabuses, prepared, eligibility, vivas, backlogMarks]);
+  }, [cohort, promotedOldStudents, currentArchive, marksheets, backlogMarksheets, history, selection, syllabuses, prepared, eligibility, vivas, backlogMarks]);
 
   async function generate() {
     if (!currentArchive) { setMessage("Generate the marksheet for this examination before generating the result sheet."); return; }
@@ -188,7 +196,7 @@ export default function AcademicResultSheet({ title }: Props) {
       const completed = summaryRows.filter((row) => row.totalCredit >= row.degreeCredit).length;
       const needRegister = summaryRows.filter((row) => cumulativeRegister(row).length > 0).length;
       const totalHistoricalBacklog = summaryRows.filter((row) => cumulativeFailed(row).length > 0 || cumulativeRegister(row).length > 0).length;
-      const record: ResultHistory = { ...selection, series, committeeId: committee.id, examDate: committee.examDate, memoNo: committee.memoNo, memoDate: committee.memoDate, resultPublishDate: committee.resultPublishDate, students: summaryRows.map((row) => ({ studentId: row.student.id, failedSubjects: cumulativeFailed(row), registerAgain: cumulativeRegister(row), totalEarnedCredit: row.totalCredit, totalGradePoints: row.totalPoints, cgpa: row.cgpa.toFixed(2) })), updatedAt: new Date().toISOString() };
+      const record: ResultHistory = { ...selection, series, committeeId: committee.id, examDate: committee.examDate, memoNo: committee.memoNo, memoDate: committee.memoDate, resultPublishDate: committee.resultPublishDate, students: summaryRows.map((row) => ({ studentId: row.student.id, failedSubjects: cumulativeFailed(row), registerAgain: cumulativeRegister(row), totalEarnedCredit: row.totalCredit, totalGradePoints: row.totalPoints, cgpa: roundedTwo(row.cgpa) })), updatedAt: new Date().toISOString() };
       const next = [...history.filter((item) => !(item.examYear === record.examYear && item.academicYear === record.academicYear && item.semester === record.semester)), record];
       setHistory(await saveResultSection("result-sheet", next));
 
@@ -202,7 +210,7 @@ export default function AcademicResultSheet({ title }: Props) {
       function cell(x: number, y: number, w: number, h: number, text: string, isBold = false, size = 7.3, align: "left" | "center" | "right" = "center", horizontalPadding = .7) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", isBold ? "bold" : "normal"); doc.setFontSize(size); const lines: string[] = doc.splitTextToSize(text, Math.max(1, w - horizontalPadding * 2)); const lineHeight = size * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + horizontalPadding : align === "right" ? x + w - horizontalPadding : x + w / 2, start + index * lineHeight, { align })); }
       function footer(page: number, total: number | string) { doc.line(L, H - 12, R, H - 12); doc.setFont("FreeSerif", "bolditalic"); doc.setFontSize(7.3); doc.text(`Page ${page} of ${total}`, R, H - 8, { align: "right" }); }
       function headingCell(x: number, y: number, w: number, h: number, text: string) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", "bold"); const lines = text.split("\n"), baseSize = 9.9; doc.setFontSize(baseSize); const widest = Math.max(...lines.map((line) => doc.getTextWidth(line))), fittedSize = widest > w - 1.4 ? Math.max(7.3, baseSize * (w - 1.4) / widest) : baseSize, lineHeight = fittedSize * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; doc.setFontSize(fittedSize); lines.forEach((line, index) => doc.text(line, x + w / 2, start + index * lineHeight, { align: "center" })); } function tableHeader(y: number) { let x = L; const labels = ["Roll No.", "Student Name", "SGP", "Semester\nEarned\nCredit", "Total\nEarned\nCredit", "SGPA", "CGPA"]; labels.forEach((label, index) => { headingCell(x, y, widths[index], 16, label); x += widths[index]; }); headingCell(x, y, widths[7] + widths[8], 7, "Remarks"); headingCell(x, y + 7, widths[7], 9, legacyFormat ? "Failed Subjects" : "Status"); headingCell(x + widths[7], y + 7, widths[8], 9, "Need to Register\nAgain"); return y + 16; }
-      function graduated(value: SummaryRow) { return value.totalCredit >= value.degreeCredit; } function rowValues(value: SummaryRow) { const status = graduated(value) ? completionStatus(value.cgpa, legacyFormat) : cumulativeFailed(value).join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), value.sgpa.toFixed(2), value.cgpa.toFixed(2), status, graduated(value) ? "" : cumulativeRegister(value).join(", ")]; } function rowHeight(value: SummaryRow) {
+      function graduated(value: SummaryRow) { return value.totalCredit >= value.degreeCredit; } function rowValues(value: SummaryRow) { const status = graduated(value) ? completionStatus(value.cgpa, legacyFormat) : cumulativeFailed(value).join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), value.sgpa.toFixed(2), roundedTwo(value.cgpa), status, graduated(value) ? "" : cumulativeRegister(value).join(", ")]; } function rowHeight(value: SummaryRow) {
         doc.setFont("FreeSerif", "normal");
         doc.setFontSize(9.9);
         const values = rowValues(value);
