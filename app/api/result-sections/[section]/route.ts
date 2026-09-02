@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
 
-const sectionSchema = z.enum(["add-viva-marks", "prepare-result", "prepare-result-backlog", "marks-sheet", "marks-sheet-backlog", "grade-sheet", "result-sheet", "exam-result-report", "result-sheet-backlog", "tabulation-sheet", "tabulation-sheet-backlog"]);
+const sectionSchema = z.enum(["add-viva-marks", "prepare-result", "prepare-result-backlog", "marks-sheet", "marks-sheet-backlog", "grade-sheet", "result-sheet", "result-sheet-backlog", "tabulation-sheet", "tabulation-sheet-backlog"]);
 
 async function teacherPrisma() {
   const id = (await cookies()).get("becm-portal-account")?.value;

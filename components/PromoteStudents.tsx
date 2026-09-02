@@ -116,20 +116,26 @@ export default function PromoteStudents() {
         ))
         .map((student) => student.studentId),
     );
-    const matching = records
-      .filter((student) =>
-        student.department === departmentName &&
-        student.year === source.year &&
-        student.semester === source.semester &&
-        (examYearOf(student) === source.examYear || completedStudentIds.has(student.id) || fullyIneligibleStudentIds.has(student.id)),
-      )
-      .sort((left, right) => {
-        const currentSeries = String(Number(source.examYear) - (yearNumber[source.year] || 1));
-        const leftGroup = left.series === currentSeries ? 0 : 1;
-        const rightGroup = right.series === currentSeries ? 0 : 1;
-        return leftGroup - rightGroup ||
-          left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true });
-      });
+    const matchingCandidates = records.filter((student) =>
+      student.department === departmentName &&
+      student.year === source.year &&
+      student.semester === source.semester &&
+      (examYearOf(student) === source.examYear || completedStudentIds.has(student.id) || fullyIneligibleStudentIds.has(student.id)),
+    );
+    const rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2);
+    const seriesCounts = new Map<string, number>();
+    matchingCandidates.forEach((student) => {
+      const series = rollSeries(student.rollNo);
+      seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1);
+    });
+    const expectedRollSeries = String(Number(source.examYear) - (yearNumber[source.year] || 1)).slice(-2);
+    const matching = matchingCandidates.sort((left, right) => {
+      const leftSeries = rollSeries(left.rollNo);
+      const rightSeries = rollSeries(right.rollNo);
+      return (seriesCounts.get(rightSeries) || 0) - (seriesCounts.get(leftSeries) || 0) ||
+        Number(rightSeries === expectedRollSeries) - Number(leftSeries === expectedRollSeries) ||
+        left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true });
+    });
     setStudents(matching);
     setSelected(new Set(matching.map((student) => student.id)));
     setSections(Object.fromEntries(matching.map((student) => [student.id, student.section || "A"])));

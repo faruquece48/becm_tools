@@ -34,12 +34,23 @@ async function excludedStudents(prisma: NonNullable<ReturnType<typeof getPrisma>
   const matching = eligibility.filter((row) => row.examYear === value.examYear && row.academicYear === value.academicYear && row.semester === value.semester);
   return new Set(matching.flatMap((row) => row.students.filter((student) => !student.eligible).map((student) => student.studentId)));
 }
+function orderStudents<T extends { rollNo: string }>(students: T[], expectedSeries: string) {
+  const expectedRollSeries = expectedSeries.slice(-2);
+  const rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2);
+  return [...students].sort((left, right) => {
+    const leftSeries = rollSeries(left.rollNo);
+    const rightSeries = rollSeries(right.rollNo);
+    const leftGroup = leftSeries === expectedRollSeries ? 0 : 1;
+    const rightGroup = rightSeries === expectedRollSeries ? 0 : 1;
+    return leftGroup - rightGroup || Number(rightSeries) - Number(leftSeries) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true });
+  });
+}
 async function initialStudents(prisma: NonNullable<ReturnType<typeof getPrisma>>, value: z.infer<typeof selectionSchema>): Promise<VivaStudent[]> {
   const yearNumber = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[value.academicYear];
   const series = String(Number(value.examYear) - yearNumber);
   const excluded = await excludedStudents(prisma, value);
   const directory = await storedJson<StudentDirectoryRecord>(prisma, "student-directory");
-  const matching = directory.filter((student) => Number(student.series) <= Number(series) && student.year === value.academicYear && student.semester === value.semester && !excluded.has(student.id)).sort((first, second) => { const firstGroup = first.series === series ? 0 : 1; const secondGroup = second.series === series ? 0 : 1; return firstGroup - secondGroup || first.rollNo.localeCompare(second.rollNo, undefined, { numeric: true }); });
+  const matching = orderStudents(directory.filter((student) => Number(student.series) <= Number(series) && student.year === value.academicYear && student.semester === value.semester && !excluded.has(student.id)), series);
   return matching.map((student) => ({ id: student.id, name: student.name, registrationNo: student.registrationNo, rollNo: student.rollNo, registrationType: "Regular", marks: "", present: true }));
 }
 
@@ -55,7 +66,8 @@ export async function GET(request: Request) {
     const excluded = await excludedStudents(prisma, selection.data);
     const directoryStudents = await initialStudents(prisma, selection.data);
     const allowed = new Set(directoryStudents.map((student) => student.id));
-    const students = saved?.students ? saved.students.filter((student) => allowed.has(student.id) && !excluded.has(student.id)) : directoryStudents;
+    const series = String(Number(selection.data.examYear) - { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[selection.data.academicYear]);
+    const students = saved?.students ? orderStudents(saved.students.filter((student) => allowed.has(student.id) && !excluded.has(student.id)), series) : directoryStudents;
     return NextResponse.json({ students, published: Boolean(saved?.published) });
   } catch (error) { console.error("Unable to load viva marks", error); return NextResponse.json({ error: "Unable to load viva marks" }, { status: 503 }); }
 }

@@ -1,4 +1,4 @@
-export type ResultSection = "add-viva-marks" | "prepare-result" | "prepare-result-backlog" | "marks-sheet" | "marks-sheet-backlog" | "grade-sheet" | "result-sheet" | "exam-result-report" | "result-sheet-backlog" | "tabulation-sheet" | "tabulation-sheet-backlog";
+export type ResultSection = "add-viva-marks" | "prepare-result" | "prepare-result-backlog" | "marks-sheet" | "marks-sheet-backlog" | "grade-sheet" | "result-sheet" | "result-sheet-backlog" | "tabulation-sheet" | "tabulation-sheet-backlog";
 
 export async function loadResultSection<T>(section: ResultSection): Promise<T> {
   const response = await fetch(`/api/result-sections/${section}`, { cache: "no-store" });

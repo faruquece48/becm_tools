@@ -9,7 +9,6 @@ export const resultNavigation = [
   { label: "Marks Sheet (Backlog)", href: "/teacher/result/marks-sheet-backlog" },
   { label: "Grade Sheet", href: "/teacher/result/grade-sheet" },
   { label: "Result Sheet", href: "/teacher/result/result-sheet" },
-  { label: "Exam Result Report", href: "/teacher/result/exam-result-report" },
   { label: "Result Sheet (Backlog)", href: "/teacher/result/result-sheet-backlog" },
   { label: "Tabulation Sheet", href: "/teacher/result/tabulation-sheet" },
   { label: "Tabulation Sheet (Backlog)", href: "/teacher/result/tabulation-sheet-backlog" },
