@@ -86,7 +86,7 @@ export default function PromoteStudents() {
       return;
     }
     if (source.semester === "Even") {
-      const missing = [!published("Regular", "Odd") && "Odd", !published("Regular", "Even") && "Even", !published("Backlog") && "Backlog"].filter(Boolean);
+      const missing = [!published("Regular", "Odd") && "Odd", !published("Regular", "Even") && "Even"].filter(Boolean);
       if (missing.length) {
         setStudents([]);
         setSelected(new Set());
