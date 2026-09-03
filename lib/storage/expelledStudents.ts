@@ -27,5 +27,5 @@ export function isExpelledStudentIdentity(record: ExpelledStudentRecord, student
   const normalize = (value: string) => value.trim().toLowerCase();
   return record.studentId === student.id ||
     Boolean(normalize(record.rollNo) && normalize(record.rollNo) === normalize(student.rollNo)) ||
-    Boolean(normalize(record.registrationNo) && normalize(record.registrationNo) === normalize(student.registrationNo));
+    false;
 }

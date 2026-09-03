@@ -57,9 +57,7 @@ function isSameStudent(left: StudentDirectoryRecord, right: StudentDirectoryReco
   const leftRoll = normalizedIdentity(left.rollNo);
   const rightRoll = normalizedIdentity(right.rollNo);
   if (leftRoll && leftRoll === rightRoll) return true;
-  const leftRegistration = normalizedIdentity(left.registrationNo);
-  const rightRegistration = normalizedIdentity(right.registrationNo);
-  return Boolean(leftRegistration && leftRegistration === rightRegistration);
+  return false;
 }
 
 async function save(prisma: NonNullable<ReturnType<typeof getPrisma>>, records: StudentDirectoryRecord[]) {
@@ -150,7 +148,7 @@ export async function PUT(request: Request) {
     const current = await load(prisma);
     const next = [...current];
     for (const record of parsed.data.records) {
-      const duplicate = next.findIndex((item) => item.id === record.id || item.rollNo === record.rollNo || item.registrationNo === record.registrationNo);
+      const duplicate = next.findIndex((item) => item.id === record.id || normalizedIdentity(item.rollNo) === normalizedIdentity(record.rollNo));
       if (duplicate >= 0) next[duplicate] = record; else next.push(record);
     }
     await save(prisma, next);

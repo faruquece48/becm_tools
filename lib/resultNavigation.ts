@@ -2,6 +2,7 @@ export const resultNavigation = [
   { label: "Tabulators", href: "/teacher/result/tabulators" },
   { label: "Exam Committee", href: "/teacher/result/exam-committee" },
   { label: "Add Viva Marks", href: "/teacher/result/add-viva-marks" },
+  { label: "Excel Input", href: "/teacher/result/excel-input" },
   { label: "Prepare Result", href: "/teacher/result/prepare-result" },
   { label: "Marks Sheet", href: "/teacher/result/marks-sheet" },
   { label: "Tabulation Sheet", href: "/teacher/result/tabulation-sheet" },
