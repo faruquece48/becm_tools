@@ -71,7 +71,8 @@ export default function NonObeExamTable({ selection }: { selection: Selection; t
     const theory = course.type === "Theory";
     const thesis = course.type === "Thesis";
     const total = mark ? Math.round(theory ? (mark.present ? numberValue(mark.partA) + numberValue(mark.partB) : 0) + numberValue(mark.classTestAttendance) : thesis ? numberValue(mark.internal) + numberValue(mark.external) + numberValue(mark.thesisViva) : numberValue(mark.sessional) + viva) : 0;
-    const letter = registered && eligible ? grade(total, mark, theory) : eligible ? "" : "-";
+    const baseLetter = registered && eligible ? grade(total, mark, theory) : eligible ? "" : "-";
+    const letter = course.type === "Sessional" && baseLetter && baseLetter !== "Withheld" && viva <= 0 ? "F" : baseLetter;
     const credit = registered && eligible && letter && letter !== "F" && letter !== "Withheld" ? numberValue(course.credit) : 0;
     return { registered, eligible, mark, total, letter, credit, quality: credit * (points[letter] || 0) };
   }

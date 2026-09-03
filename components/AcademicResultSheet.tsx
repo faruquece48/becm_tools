@@ -191,7 +191,8 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
         const theory = course.type === "Theory";
         const thesis = course.type === "Thesis";
         const total = mark ? Math.round(theory ? (mark.present ? numeric(mark.partA) + numeric(mark.partB) : 0) + numeric(mark.classTestAttendance) : thesis ? numeric(mark.internal) + numeric(mark.external) + numeric(mark.thesisViva) : numeric(mark.sessional) + viva) : 0;
-        const letter = nonEligible ? "-" : letterGrade(total, mark, theory);
+        const baseLetter = nonEligible ? "-" : letterGrade(total, mark, theory);
+        const letter = course.type === "Sessional" && baseLetter !== "W" && viva <= 0 ? "F" : baseLetter;
         const credit = !nonEligible && letter && letter !== "F" && letter !== "W" ? Number(course.credit) : 0;
         return [{ course, nonEligible, letter, credit, points: credit * (gradePoints[letter] || 0) }];
       });
