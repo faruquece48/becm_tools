@@ -7,6 +7,12 @@ export function graduationCreditForSeries(series: string | number) {
   return Number(series) >= 2020 ? OBE_GRADUATION_CREDIT : NON_OBE_GRADUATION_CREDIT;
 }
 
+export function graduationCreditForStudent(student: { series: string | number; degreeCredit?: number }) {
+  return Number.isFinite(student.degreeCredit) && Number(student.degreeCredit) > 0
+    ? Number(student.degreeCredit)
+    : graduationCreditForSeries(student.series);
+}
+
 function comparableDate(value?: string) {
   if (!value) return "";
   const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})/);

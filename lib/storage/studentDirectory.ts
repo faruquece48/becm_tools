@@ -46,6 +46,7 @@ export type OldStudentPromotion = {
 export type OldStudentRecord = Omit<StudentDirectoryRecord, "year" | "semester" | "backlogEligibility" | "promotionSource"> & {
   earnedCredit: number;
   gradePoints: number;
+  degreeCredit?: number;
   outstandingCourses: OldStudentCourse[];
   promotions: OldStudentPromotion[];
   createdAt: string;

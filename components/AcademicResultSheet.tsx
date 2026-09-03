@@ -8,7 +8,7 @@ import type { SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
 import { formatTabulatorDate } from "@/lib/storage/tabulators";
 import { loadExamCommittees, type ExamCommitteeRecord } from "@/lib/storage/examCommittees";
-import { completionStatus, GRADUATION_CREDIT, NON_OBE_GRADUATION_CREDIT, rankedPassedStatus, topTenCompetitionRanks, usesLegacyResultFormat } from "@/lib/resultFormatPolicy";
+import { completionStatus, GRADUATION_CREDIT, graduationCreditForStudent, rankedPassedStatus, topTenCompetitionRanks, usesLegacyResultFormat } from "@/lib/resultFormatPolicy";
 import { isExpelledStudentIdentity, isStudentSuspendedForExam, type ExpelledStudentRecord } from "@/lib/storage/expelledStudents";
 import { compareResultStudentRolls } from "@/lib/resultStudentOrder";
 
@@ -199,7 +199,8 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
       const semesterPoints = outcomes.reduce((sum, outcome) => sum + outcome.points, 0);
       const totalCredit = oldStudent.earnedCredit + semesterCredit;
       const totalPoints = oldStudent.gradePoints + semesterPoints;
-      const graduated = totalCredit >= NON_OBE_GRADUATION_CREDIT;
+      const degreeCredit = graduationCreditForStudent(oldStudent);
+      const graduated = totalCredit >= degreeCredit;
       const failedSet = new Set<string>();
       const registerSet = new Set<string>();
       oldStudent.outstandingCourses.forEach((item) => {
@@ -217,7 +218,7 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
       const failed = graduated ? [] : [...failedSet];
       const register = graduated ? [] : [...registerSet];
       const student: StudentDirectoryRecord = { ...oldStudent, year: selection.academicYear, semester: selection.semester };
-      return { student, degreeCredit: NON_OBE_GRADUATION_CREDIT, semesterPoints, semesterCredit, totalPoints, totalCredit, sgpa: semesterCredit ? semesterPoints / semesterCredit : 0, cgpa: totalCredit ? totalPoints / totalCredit : 0, failed, register, currentFailed, currentRegister, historicalFailed: [], historicalRegister: [] };
+      return { student, degreeCredit, semesterPoints, semesterCredit, totalPoints, totalCredit, sgpa: semesterCredit ? semesterPoints / semesterCredit : 0, cgpa: totalCredit ? totalPoints / totalCredit : 0, failed, register, currentFailed, currentRegister, historicalFailed: [], historicalRegister: [] };
     });
     return [...regularRows, ...nonObeRows];
   }, [cohort, promotedOldStudents, currentArchive, marksheets, backlogMarksheets, history, selection, syllabuses, prepared, eligibility, vivas, backlogMarks]);
