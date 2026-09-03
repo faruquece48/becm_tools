@@ -1,3 +1,3 @@
-import MarksSheetSummary from "@/components/MarksSheetSummary";
+import ExamSheet from "@/components/ExamSheet";
 
-export default function ResultSubpage() { return <MarksSheetSummary />; }
+export default function ResultSubpage() { return <ExamSheet kind="marks" />; }

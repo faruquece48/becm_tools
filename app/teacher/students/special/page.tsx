@@ -1,2 +1,5 @@
-import OldStudentManager from "@/components/OldStudentManager";
-export default function SpecialStudentsPage(){return <OldStudentManager/>}
+import { redirect } from "next/navigation";
+
+export default function SpecialStudentsPage() {
+  redirect("/teacher/students/non-obe");
+}

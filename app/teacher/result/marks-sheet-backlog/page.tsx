@@ -1,5 +1,3 @@
-import BacklogMarksSheet from "@/components/BacklogMarksSheet";
+import ExamSheet from "@/components/ExamSheet";
 
-export default function BacklogMarksSheetPage() {
-  return <BacklogMarksSheet />;
-}
+export default function LegacyBacklogSheetPage() { return <ExamSheet kind="marks" initialExamType="Backlog" />; }

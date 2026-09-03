@@ -28,3 +28,28 @@ export function completionStatus(cgpa: number, legacy: boolean) {
   if (cgpa >= 2.2) return "Third Class";
   return "";
 }
+
+export function roundedCgpaHundredths(cgpa: number) {
+  return Math.round((cgpa + Number.EPSILON) * 100);
+}
+
+export function topTenCompetitionRanks(cgpas: number[]) {
+  const ranks = new Map<number, number>();
+  const distinctCgpas = [...new Set(cgpas.map(roundedCgpaHundredths))].sort((left, right) => right - left);
+  distinctCgpas.slice(0, 10).forEach((cgpa, index) => ranks.set(cgpa, index + 1));
+  return ranks;
+}
+
+export function ordinalRank(rank: number) {
+  const remainder100 = rank % 100;
+  if (remainder100 >= 11 && remainder100 <= 13) return `${rank}th`;
+  if (rank % 10 === 1) return `${rank}st`;
+  if (rank % 10 === 2) return `${rank}nd`;
+  if (rank % 10 === 3) return `${rank}rd`;
+  return `${rank}th`;
+}
+
+export function rankedPassedStatus(cgpa: number, ranks: Map<number, number>) {
+  const rank = ranks.get(roundedCgpaHundredths(cgpa));
+  return rank ? `Passed (${ordinalRank(rank)})` : "Passed";
+}

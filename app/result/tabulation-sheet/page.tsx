@@ -1,5 +1,3 @@
-import TabulationSheet from "@/components/TabulationSheet";
+import ExamSheet from "@/components/ExamSheet";
 
-export default function ResultSubpage() {
-  return <TabulationSheet />;
-}
+export default function ResultSubpage() { return <ExamSheet kind="tabulation" />; }

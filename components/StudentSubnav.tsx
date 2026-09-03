@@ -1,4 +1,4 @@
 "use client";
 import Link from "next/link";import{usePathname}from"next/navigation";
-const items=[["/teacher/students","Students"],["/teacher/students/special","Special Student"],["/teacher/students/promote","Bulk Promotion"],["/teacher/students/eligible","Eligibility"],["/teacher/students/backlog-registration","Backlog Registration"]];
+const items=[["/teacher/students","Students"],["/teacher/students/non-obe","Non-OBE Student"],["/teacher/students/obe","OBE Student"],["/teacher/students/re-add","Re-Add Student"],["/teacher/students/promote","Bulk Promotion"],["/teacher/students/eligible","Eligibility"],["/teacher/students/backlog-registration","Backlog Registration"],["/teacher/students/short-semester-registration","Short Semester Registration"]];
 export default function StudentSubnav(){const path=usePathname();return <nav className="flex flex-wrap gap-2 border-b bg-white px-4 py-3">{items.map(([href,label])=><Link key={href} href={href} suppressHydrationWarning className={"rounded px-4 py-2 text-sm font-bold "+(path===href?"bg-[#082f57] text-white":"bg-slate-100 text-[#102555] hover:bg-slate-200")}>{label}</Link>)}</nav>}

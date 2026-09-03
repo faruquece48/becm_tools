@@ -17,6 +17,9 @@ const officialSummary = new Map([
   ["2012024",[20,3.14]],["2012025",[12,2.88]],["2012026",[20,3.33]],["2012027",[20,3.51]],
   ["2012028",[20,3.41]],["2012029",[20,2.88]],["2012030",[20,3.23]],["1612016",[5,2.85]],
 ]);
+const officialGradePoints = new Map([
+  ["2012002",60.25],["2012017",58.5],["2012025",34.5],["2012029",57.5],["2012030",64.5],
+]);
 const rows = [
   ["1712020",[[9,2.5,14],[2,3,32],[7.5,9,11],[5,0,5],[21,18,15]],[18,45,35,33],14],
   ["2012001",[[8.5,23,36],[25.5,21,31],[20.5,12,27],[21,13,35],[17,17,36]],[52,51,49,55],20],
@@ -43,7 +46,7 @@ const rows = [
   ["2012026",[[10,20,34],[15,10.5,35],[23.5,21.5,27],[12,21,27],[17,20,35]],[56,55,50,58],20],
   ["2012027",[[8,15,33],[22,17.5,33],[16.5,21,29],[20,25,31],[21,23,35]],[61,55,57,53],20],
   ["2012028",[[17,19.5,36],[22,15,33],[17,18,27],[17,17,33],[19,17,34]],[55,55,55,52],20],
-  ["2012029",[[18,7.5,31],[16,2,31],[18.5,20,28],[10,10,26],[15,12,35]],[48,54,55,51],20],
+  ["2012029",[[18,7.5,31],[16,2,31],[18.5,20,28],[10,10,26],[15,12,35]],[48,54,55,51],18],
   ["2012030",[[22,15.5,32],[14,8,36],[13,19,28],[16,12,23],[20,18,36]],[41,54,65,61],20],
   ["1612016",[null,[10.5,15,32],[23.5,18,22],null,null],[null,null,null,null],null],
 ];
@@ -99,7 +102,7 @@ try {
     const student = identities.get(roll), results = [];
     theories.forEach((values, index) => { if (!values) return; const score = Math.round(values[0] + values[1] + values[2]); results.push({ course: courses[index], credit: officialCredits[index], grade: letter(score, true, values) }); });
     sessionals.forEach((value, index) => { if (value == null) return; const courseIndex = index + 5, score = Math.round(value + (vivaMark || 0)); results.push({ course: courses[courseIndex], credit: officialCredits[courseIndex], grade: letter(score, false, [0,0]) }); });
-    const [earnedCredit, officialSgpa] = officialSummary.get(roll), gradePoints = earnedCredit * officialSgpa;
+    const [earnedCredit, officialSgpa] = officialSummary.get(roll), gradePoints = officialGradePoints.get(roll) ?? earnedCredit * officialSgpa;
     return { studentId: student.id, rollNo: student.rollNo, earnedCredit, gradePoints: Number(gradePoints.toFixed(3)), sgpa: officialSgpa.toFixed(2), failedSubjects: results.filter((result) => result.grade === "F").map((result) => result.course.code), registerAgain: [] };
   });
   archive.students = [...(archive.students || []).filter((student) => !targetIds.has(student.studentId) && !rows.some(([roll]) => normalize(roll) === normalize(student.rollNo))), ...archiveStudents]; archive.updatedAt = now;

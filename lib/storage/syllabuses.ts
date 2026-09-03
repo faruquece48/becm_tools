@@ -1,6 +1,15 @@
 export type SyllabusCourse = { id: string; title: string; code: string; credit: string; type: "Theory" | "Sessional" | "Thesis"; department: string; year: "1st" | "2nd" | "3rd" | "4th"; semester: "Odd" | "Even" | "Short Semester" };
 export type SyllabusSegment = { id: string; name: string; fromSeries: string; toSeries: string; active?: boolean; courses: SyllabusCourse[] };
 
+const isUndergraduateThesis = (course: SyllabusCourse) => course.type === "Thesis" && course.code.replace(/\s/g, "").toLowerCase() === "becm4000";
+
+export function applyThesisCreditRule(courses: SyllabusCourse[], year: SyllabusCourse["year"], semester: SyllabusCourse["semester"]) {
+  if (year !== "4th") return courses;
+  if (semester === "Odd") return courses.filter((course) => !isUndergraduateThesis(course));
+  if (semester === "Even") return courses.map((course) => isUndergraduateThesis(course) ? { ...course, credit: "4.50" } : course);
+  return courses;
+}
+
 export function syllabusCoursesForExam(
   syllabuses: SyllabusSegment[],
   series: string,
@@ -15,7 +24,7 @@ export function syllabusCoursesForExam(
     segment.courses.filter((course) => course.year === year && course.semester === semester),
   );
 
-  return Array.from(new Map(courses.map((course) => [course.id, course])).values());
+  return applyThesisCreditRule(Array.from(new Map(courses.map((course) => [course.id, course])).values()), year, semester);
 }
 
 type SeedRow = [string, string, string, SyllabusCourse["type"], SyllabusCourse["year"], SyllabusCourse["semester"]];

@@ -1,5 +1,3 @@
-import BacklogCumulativeSheet from "@/components/BacklogCumulativeSheet";
+import ExamSheet from "@/components/ExamSheet";
 
-export default function ResultSubpage() {
-  return <BacklogCumulativeSheet mode="result" />;
-}
+export default function LegacyBacklogSheetPage() { return <ExamSheet kind="result" initialExamType="Backlog" />; }

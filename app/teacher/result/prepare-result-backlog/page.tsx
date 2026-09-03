@@ -1,5 +1,3 @@
-import PrepareBacklogResult from "@/components/PrepareBacklogResult";
+import ExamPreparation from "@/components/ExamPreparation";
 
-export default function PrepareResultBacklogPage() {
-  return <PrepareBacklogResult />;
-}
+export default function LegacyBacklogPreparationPage() { return <ExamPreparation initialExamType="Backlog" />; }

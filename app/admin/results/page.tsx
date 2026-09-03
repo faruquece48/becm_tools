@@ -84,6 +84,12 @@ export default function AdminResultApprovalPage() {
     }
   };
 
+  const orderedResults = [...results].sort((left, right) => {
+    const leftRequested = left.submitted && !left.published && !left.returnedForCorrection;
+    const rightRequested = right.submitted && !right.published && !right.returnedForCorrection;
+    return Number(rightRequested) - Number(leftRequested);
+  });
+
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -124,7 +130,7 @@ export default function AdminResultApprovalPage() {
               </tr>
             </thead>
             <tbody>
-              {results.map((result) => {
+              {orderedResults.map((result) => {
                 const examType = result.examType || "Regular";
                 const key = examType + "|" + result.examYear + "|" + result.academicYear + "|" + result.semester;
                 const busy = busyKey === key;

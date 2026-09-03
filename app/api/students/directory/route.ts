@@ -11,6 +11,7 @@ const PREPARED_SECTION = "prepare-result";
 const academicYearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const backlogEligibilitySchema = z.object({ examYear: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd", "4th"]), semester: z.enum(["Odd", "Even"]), createdAt: z.string().datetime() });
 const promotionSourceSchema = z.object({ examYear: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd"]), semester: z.literal("Even"), promotedAt: z.string().datetime() });
+const obeBatchPlacementSchema = z.object({ id: z.string().min(1), series: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd", "4th"]), semester: z.enum(["Odd", "Even", "Short Semester"]), effectiveExamYear: z.string().regex(/^\d{4}$/), reason: z.string().max(500), assignedAt: z.string().datetime() });
 const recordSchema = z.object({
   id: z.string().trim().min(1).max(100),
   department: z.string().trim().min(1).max(150),
@@ -28,6 +29,8 @@ const recordSchema = z.object({
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Birth date is required"),
   backlogEligibility: z.array(backlogEligibilitySchema).max(16).optional(),
   promotionSource: promotionSourceSchema.optional(),
+  placementExamYear: z.string().regex(/^\d{4}$/).optional(),
+  obeBatchPlacements: z.array(obeBatchPlacementSchema).max(100).optional(),
 });
 const payloadSchema = z.object({ records: z.array(recordSchema).min(1).max(1000) });
 

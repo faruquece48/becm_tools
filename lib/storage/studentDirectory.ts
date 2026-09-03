@@ -1,5 +1,14 @@
 export type BacklogEligibility = { examYear: string; academicYear: string; semester: "Odd" | "Even"; createdAt: string };
 export type PromotionSource = { examYear: string; academicYear: string; semester: "Even"; promotedAt: string };
+export type ObeBatchPlacement = {
+  id: string;
+  series: string;
+  academicYear: "1st" | "2nd" | "3rd" | "4th";
+  semester: "Odd" | "Even" | "Short Semester";
+  effectiveExamYear: string;
+  reason: string;
+  assignedAt: string;
+};
 
 export type StudentDirectoryRecord = {
   id: string;
@@ -18,6 +27,8 @@ export type StudentDirectoryRecord = {
   birthDate: string;
   backlogEligibility?: BacklogEligibility[];
   promotionSource?: PromotionSource;
+  placementExamYear?: string;
+  obeBatchPlacements?: ObeBatchPlacement[];
 };
 
 export type OldStudentCourseStatus = "failed" | "need-register";

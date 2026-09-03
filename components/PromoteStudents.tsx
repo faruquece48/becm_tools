@@ -6,6 +6,8 @@ import { academicYears, departmentName, semesters, type StudentDirectoryRecord }
 import type { CourseEligibility } from "@/lib/storage/studentEligibility";
 import { loadResultSection } from "@/lib/storage/resultSections";
 import type { VivaCohort } from "@/lib/storage/vivaMarks";
+import { isExpelledStudentIdentity, isStudentSuspendedForExam, type ExpelledStudentRecord } from "@/lib/storage/expelledStudents";
+import { compareResultStudentRolls } from "@/lib/resultStudentOrder";
 
 const yearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const currentExamYear = new Date().getFullYear();
@@ -25,7 +27,7 @@ const nextPromotion = (source: { examYear: string; year: string; semester: strin
 
 export default function PromoteStudents() {
   const [records, setRecords] = useState<StudentDirectoryRecord[]>([]);
-  const [resultCohorts, setResultCohorts] = useState<ResultCohort[]>([]);
+  const [, setResultCohorts] = useState<ResultCohort[]>([]);
   const [eligibility, setEligibility] = useState<CourseEligibility[]>([]);
   const [publications, setPublications] = useState<VivaCohort[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,14 @@ export default function PromoteStudents() {
   const field = "h-9 w-full rounded-sm border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500";
   const availableExamYears = useMemo(() => [...new Set([...examYears, ...records.map(examYearOf)])].sort().reverse(), [records]);
 
-  function showStudents() {
+  async function showStudents() {
+    setLoading(true);
+    const refreshed = await Promise.all([loadResultSection<ResultCohort[]>("marks-sheet"), loadResultSection<ResultCohort[]>("prepare-result"), fetch("/api/expelled-students", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; })]).catch((error) => { setMessage(error instanceof Error ? error.message : "Unable to refresh promotion eligibility."); return null; });
+    setLoading(false);
+    if (!refreshed) return;
+    const activeResultCohorts = [...(Array.isArray(refreshed[0]) ? refreshed[0] : []), ...(Array.isArray(refreshed[1]) ? refreshed[1] : [])];
+    const activeExpelled = (refreshed[2].records || []) as ExpelledStudentRecord[];
+    setResultCohorts(activeResultCohorts);
     const published = (examType: "Regular" | "Backlog", semester = "") => publications.some((result) =>
       (result.examType || "Regular") === examType &&
       result.examYear === source.examYear &&
@@ -95,7 +104,7 @@ export default function PromoteStudents() {
       }
     }
     const completedStudentIds = new Set(
-      resultCohorts
+      activeResultCohorts
         .filter((result) =>
           result.examYear === source.examYear &&
           result.academicYear === source.year &&
@@ -118,24 +127,10 @@ export default function PromoteStudents() {
     );
     const matchingCandidates = records.filter((student) =>
       student.department === departmentName &&
-      student.year === source.year &&
-      student.semester === source.semester &&
-      (examYearOf(student) === source.examYear || completedStudentIds.has(student.id) || fullyIneligibleStudentIds.has(student.id)),
+      (completedStudentIds.has(student.id) || fullyIneligibleStudentIds.has(student.id) || student.year === source.year && student.semester === source.semester && examYearOf(student) === source.examYear) &&
+      (() => { const expulsion = activeExpelled.find((record) => isExpelledStudentIdentity(record, student)); return !expulsion || !isStudentSuspendedForExam(expulsion, source.examYear, source.year, source.semester) && completedStudentIds.has(student.id); })(),
     );
-    const rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2);
-    const seriesCounts = new Map<string, number>();
-    matchingCandidates.forEach((student) => {
-      const series = rollSeries(student.rollNo);
-      seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1);
-    });
-    const expectedRollSeries = String(Number(source.examYear) - (yearNumber[source.year] || 1)).slice(-2);
-    const matching = matchingCandidates.sort((left, right) => {
-      const leftSeries = rollSeries(left.rollNo);
-      const rightSeries = rollSeries(right.rollNo);
-      return (seriesCounts.get(rightSeries) || 0) - (seriesCounts.get(leftSeries) || 0) ||
-        Number(rightSeries === expectedRollSeries) - Number(leftSeries === expectedRollSeries) ||
-        left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true });
-    });
+    const matching = matchingCandidates.sort((left, right) => compareResultStudentRolls(left.rollNo, right.rollNo, source.examYear, source.year));
     setStudents(matching);
     setSelected(new Set(matching.map((student) => student.id)));
     setSections(Object.fromEntries(matching.map((student) => [student.id, student.section || "A"])));
@@ -167,7 +162,7 @@ export default function PromoteStudents() {
       const existingEligibility = student.backlogEligibility || [];
       const addedEligibility = completedYearCycle ? (["Odd", "Even"] as const).filter((semester) => !existingEligibility.some((item) => item.examYear === source.examYear && item.academicYear === source.year && item.semester === semester)).map((semester) => ({ examYear: source.examYear, academicYear: source.year, semester, createdAt: promotedAt })) : [];
       const promotionSource = completedYearCycle && source.year !== "4th" ? { examYear: source.examYear, academicYear: source.year, semester: "Even" as const, promotedAt } : student.promotionSource;
-      return { ...student, year: target.year, semester: target.semester, section: sections[student.id] || "A", backlogEligibility: [...existingEligibility, ...addedEligibility], promotionSource };
+      return { ...student, year: target.year, semester: target.semester, placementExamYear: target.examYear, section: sections[student.id] || "A", backlogEligibility: [...existingEligibility, ...addedEligibility], promotionSource };
     });
     try {
       const response = await fetch("/api/students/directory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ records: promoted }), signal: AbortSignal.timeout(30000) });
@@ -193,7 +188,7 @@ export default function PromoteStudents() {
         <label className="grid items-center gap-3 text-sm font-semibold sm:grid-cols-[250px_1fr]">Academic Year<select value={source.year} onChange={(e) => setSource({ ...source, year: e.target.value })} className={field}>{academicYears.map((year) => <option key={year}>{year}</option>)}</select></label>
         <label className="grid items-center gap-3 text-sm font-semibold sm:grid-cols-[250px_1fr]">Semester<select value={source.semester} onChange={(e) => setSource({ ...source, semester: e.target.value })} className={field}>{semesters.map((semester) => <option key={semester}>{semester}</option>)}</select></label>
       </div>
-      <div className="border-b border-[#0a315b] p-5"><button type="button" disabled={loading} onClick={showStudents} className="rounded bg-[#082f57] px-4 py-2 text-sm font-bold text-white"><Search className="mr-1 inline h-4 w-4" />Student Details</button></div>
+      <div className="flex justify-center border-b border-[#0a315b] p-5"><button type="button" disabled={loading} onClick={() => void showStudents()} className="rounded bg-[#082f57] px-4 py-2 text-sm font-bold text-white"><Search className="mr-1 inline h-4 w-4" />Student Details</button></div>
       {message && <p role="status" className={`mx-5 mt-4 rounded p-3 text-sm font-semibold ${message.includes("successfully") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>{message}</p>}
       {students.length > 0 && <div className="p-5">
         <div className="grid gap-x-12 gap-y-3 md:grid-cols-2">

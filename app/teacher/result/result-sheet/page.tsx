@@ -1,5 +1,3 @@
-import AcademicResultSheet from "@/components/AcademicResultSheet";
+import ExamSheet from "@/components/ExamSheet";
 
-export default function ResultSubpage() {
-  return <AcademicResultSheet title="Result Sheet" />;
-}
+export default function ResultSubpage() { return <ExamSheet kind="result" />; }

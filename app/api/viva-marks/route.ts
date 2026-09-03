@@ -6,6 +6,7 @@ import { getPrisma } from "@/lib/prisma";
 import type { VivaCohort, VivaStudent } from "@/lib/storage/vivaMarks";
 import { oldStudentPromotionForExam, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import type { CourseEligibility } from "@/lib/storage/studentEligibility";
+import { isExpelledStudentIdentity, isStudentSuspendedForExam, type ExpelledStudentRecord } from "@/lib/storage/expelledStudents";
 
 const SECTION = "add-viva-marks";
 const selectionSchema = z.object({ department: z.string().min(1).max(150), examYear: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st","2nd","3rd","4th"]), semester: z.enum(["Odd","Even"]) });
@@ -49,12 +50,15 @@ async function initialStudents(prisma: NonNullable<ReturnType<typeof getPrisma>>
   const yearNumber = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[value.academicYear];
   const series = String(Number(value.examYear) - yearNumber);
   const excluded = await excludedStudents(prisma, value);
+  const expelled = await storedJson<ExpelledStudentRecord>(prisma, "expelled-students");
+  const suspended = (student: { id: string; rollNo: string; registrationNo: string }) => expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, value.examYear, value.academicYear, value.semester));
   const directory = await storedJson<StudentDirectoryRecord>(prisma, "student-directory");
-  const matching = orderStudents(directory.filter((student) => Number(student.series) <= Number(series) && student.year === value.academicYear && student.semester === value.semester && !excluded.has(student.id)), series);
+  const matching = orderStudents(directory.filter((student) => (student.placementExamYear || String(Number(student.series) + yearNumber)) === value.examYear && student.year === value.academicYear && student.semester === value.semester && !excluded.has(student.id) && !suspended(student)), series);
   const specialStudents = await storedJson<OldStudentRecord>(prisma, "old-student-directory");
   const promotedSpecialStudents = specialStudents.filter((student) =>
     Boolean(oldStudentPromotionForExam(student, value.examYear, value.academicYear, value.semester, "Regular"))
-    && !excluded.has(student.id),
+    && !excluded.has(student.id)
+    && !suspended(student),
   );
   const specialIds = new Set(promotedSpecialStudents.flatMap((student) => [student.id, student.rollNo.replace(/\s/g, "")]));
   return orderStudents([
