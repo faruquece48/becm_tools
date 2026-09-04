@@ -2,20 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
-import { FilePlus2, Link2, Trash2 } from "lucide-react";
+import { FilePlus2, Link2, Mail } from "lucide-react";
 import type { ColumnWidths, ExaminationBillData } from "../create/components/types";
 import CombinedBillPdfPreview from "../combined/CombinedBillPdfPreview";
-import ColumnWidthEditor from "../preview/components/ColumnWidthEditor";
-import SectionPanel from "../preview/components/SectionPanel";
-import IndividualLayoutEditor, {
-  defaultIndividualBillLayout,
-} from "../individual/IndividualLayoutEditor";
+
+
+import { defaultIndividualBillLayout } from "../individual/IndividualLayoutEditor";
 import { loadAllIndividualTeacherInformation, type SavedIndividualTeacherInformation } from "@/lib/storage/individualTeacher";
 import { normalizeImportedBill, teachersForBill, type ImportedSummaryBill } from "../summary/summaryData";
 import IndividualSummaryPdfDocument from "./IndividualSummaryPdfDocument";
 import type { IndividualSummaryPage } from "./types";
 import { deriveTeacherRows, rowAmount } from "../individual/individualBill";
-import { loadSummarySession } from "@/lib/storage/summary";
+import { loadSummarySession, type SummarySession } from "@/lib/storage/summary";
+import SummaryPdfDocument from "../summary/SummaryPdfDocument";
+import { withStaffRemunerationData } from "@/lib/staffRemunerationMatching";
+import type { StaffRemunerationData } from "@/lib/storage/staffRemuneration";
+import { defaultTeacherRankData, normalizeTeacherRankData, type TeacherRankData } from "@/lib/storage/teacherRank";
 
 const defaultMetaWidths: ColumnWidths = { qualifications: 40, examination: 42, billNumber: 18 };
 const defaultTableWidths: ColumnWidths = { serial: 6, descriptionGroup: 9, description: 22, course: 18, quantity: 10, courseCount: 8, classTestCount: 9, rate: 10, amount: 8 };
@@ -64,19 +66,23 @@ export default function IndividualSummaryBillPage() {
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [teacherInformation, setTeacherInformation] = useState<Record<string, SavedIndividualTeacherInformation>>({});
+  const [selectedEmailTeacherKeys, setSelectedEmailTeacherKeys] = useState<string[]>([]);
+  const [emailing, setEmailing] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
+  const [attachFullSummary, setAttachFullSummary] = useState(true);
+  const [summaryWorkspace, setSummaryWorkspace] = useState<SummarySession | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const connectSummary = useCallback(async () => {
-    const localBills = loadSummarySession()?.bills ?? [];
-    let summaryBills = localBills;
+    let workspace = loadSummarySession();
     try {
       const response = await fetch("/api/summary-workspace", { cache: "no-store" });
-      const body = await response.json() as { workspace?: { bills?: ImportedSummaryBill[] } | null };
-      if (response.ok && Array.isArray(body.workspace?.bills) && body.workspace.bills.length) {
-        summaryBills = body.workspace.bills;
-      }
+      const body = await response.json() as { workspace?: SummarySession | null };
+      if (response.ok && Array.isArray(body.workspace?.bills) && body.workspace.bills.length) workspace = body.workspace;
     } catch {
       // The browser-saved Summary workspace remains available when Neon is offline.
     }
+    const summaryBills = workspace?.bills ?? [];
+    setSummaryWorkspace(workspace);
     let information = loadAllIndividualTeacherInformation();
     try {
       const response = await fetch("/api/teacher-information", { cache: "no-store" });
@@ -86,6 +92,8 @@ export default function IndividualSummaryBillPage() {
       // Existing browser data is only a fallback when Neon cannot be reached.
     }
     setTeacherInformation(information);
+    setSelectedEmailTeacherKeys([]);
+    setEmailMessage("");
     const connectedPages = individualPagesFromSummary(summaryBills, information);
     const initialPage = connectedPages.find((page) => page.department === "Dept. of BECM, RUET") ?? connectedPages[0];
     setPages(connectedPages);
@@ -116,6 +124,14 @@ export default function IndividualSummaryBillPage() {
       });
     return Array.from(names.values()).sort((left, right) => left.name.localeCompare(right.name));
   }, [pages, selectedDepartment]);
+  const emailCandidates = useMemo(() => teachers.map(({ name, billCount }) => ({
+    name,
+    billCount,
+    key: teacherKey(name),
+    email: teacherInformation[teacherKey(name)]?.email?.trim() || "",
+  })), [teacherInformation, teachers]);
+  const emailableCandidates = emailCandidates.filter((candidate) => candidate.email);
+
   const selectedPages = useMemo(
     () => pages
       .filter((page) => (
@@ -187,8 +203,64 @@ export default function IndividualSummaryBillPage() {
     if (inputRef.current) inputRef.current.value = "";
   };
 
-  const updatePage = (id: string, update: Partial<IndividualSummaryPage>) =>
-    setPages((current) => current.map((page) => page.id === id ? { ...page, ...update } : page));
+  const sendSelectedBills = async () => {
+    const recipients = emailCandidates.filter((candidate) => selectedEmailTeacherKeys.includes(candidate.key) && candidate.email);
+    if (!recipients.length) return;
+    setEmailing(true);
+    setEmailMessage(`Preparing 1 of ${recipients.length}…`);
+    let sent = 0;
+    try {
+      let fullSummaryBlob: Blob | null = null;
+      if (attachFullSummary && summaryWorkspace?.bills.length) {
+        setEmailMessage("Preparing the complete Summary book…");
+        const [staffResponse, rankResponse] = await Promise.all([
+          fetch("/api/staff/remuneration", { cache: "no-store" }),
+          fetch(`/api/teacher-rank?refresh=${Date.now()}`, { cache: "no-store" }),
+        ]);
+        const staffBody = await staffResponse.json().catch(() => null) as { data?: StaffRemunerationData } | null;
+        const rankBody = await rankResponse.json().catch(() => null) as { data?: TeacherRankData } | null;
+        const staffData = staffResponse.ok ? staffBody?.data ?? null : null;
+        const rankData = rankResponse.ok && rankBody?.data ? normalizeTeacherRankData(rankBody.data) : defaultTeacherRankData;
+        const summaryBills = summaryWorkspace.bills.map((item) => ({ ...item, bill: withStaffRemunerationData(item.bill, staffData) }));
+        const generatedSummaryBlob = await pdf(<SummaryPdfDocument bills={summaryBills} tableGap={summaryWorkspace.tableGap} remunerationListYear={summaryWorkspace.remunerationListYear} indexTableWidth={summaryWorkspace.indexTableWidth} rankData={rankData} />).toBlob();
+        const deletedPages = [...new Set(summaryWorkspace.deletedPageIndexes)]
+          .filter((index) => Number.isInteger(index) && index >= 0)
+          .sort((left, right) => right - left);
+        if (deletedPages.length) {
+          const { PDFDocument } = await import("pdf-lib");
+          const finalizedSummary = await PDFDocument.load(await generatedSummaryBlob.arrayBuffer());
+          deletedPages
+            .filter((index) => index < finalizedSummary.getPageCount())
+            .forEach((index) => finalizedSummary.removePage(index));
+          if (finalizedSummary.getPageCount() < 1) throw new Error("The finalized Summary has no pages to email.");
+          const finalizedBytes = await finalizedSummary.save();
+          fullSummaryBlob = new Blob([Uint8Array.from(finalizedBytes).buffer], { type: "application/pdf" });
+        } else {
+          fullSummaryBlob = generatedSummaryBlob;
+        }
+      }
+      for (const recipient of recipients) {
+        setEmailMessage(`Preparing ${sent + 1} of ${recipients.length}: ${recipient.name}`);
+        const teacherPages = pages.filter((page) => teacherKey(page.teacher) === recipient.key && (!selectedDepartment || page.department === selectedDepartment));
+        const blob = await pdf(<IndividualSummaryPdfDocument pages={teacherPages} />).toBlob();
+        const form = new FormData();
+        form.append("teacher", recipient.name);
+        form.append("email", recipient.email);
+        form.append("file", blob, `${fileSafeName(recipient.name)}_Individual_Summary_Bills.pdf`);
+        if (fullSummaryBlob) form.append("summaryFile", fullSummaryBlob, `Complete_Summary_Book_${summaryWorkspace?.remunerationListYear || ""}.pdf`);
+        const response = await fetch("/api/individual-bills/email", { method: "POST", body: form });
+        const body = await response.json().catch(() => null) as { error?: string } | null;
+        if (!response.ok) throw new Error(`${recipient.name}: ${body?.error || "Email could not be sent"}`);
+        sent += 1;
+      }
+      setEmailMessage(`${sent} teacher bill email(s) sent successfully.`);
+    } catch (error) {
+      setEmailMessage(`${sent} sent. ${error instanceof Error ? error.message : "Email delivery failed."}`);
+    } finally {
+      setEmailing(false);
+    }
+  };
+
 
   const download = async () => {
     if (!selectedPages.length) return;
@@ -227,7 +299,7 @@ export default function IndividualSummaryBillPage() {
           <div className="shrink-0"><h2 className="font-semibold">Select teacher</h2><p className="text-xs text-slate-500">The preview and PDF include only the selected teacher.</p></div>
           <label className="mt-3 block shrink-0 text-xs font-medium text-slate-600">
             Department
-            <select value={selectedDepartment} onChange={(event) => { setSelectedDepartment(event.target.value); setSelectedTeacher(""); }} className={`${inputClass} mt-1.5`}>
+            <select value={selectedDepartment} onChange={(event) => { setSelectedDepartment(event.target.value); setSelectedTeacher(""); setSelectedEmailTeacherKeys([]); setEmailMessage(""); }} className={`${inputClass} mt-1.5`}>
               <option value="">All departments</option>
               {departments.map((department) => <option key={department} value={department}>{department}</option>)}
             </select>
@@ -250,25 +322,30 @@ export default function IndividualSummaryBillPage() {
             </div>
           )}
 
-          <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          {selectedTeacher && <div className="sticky top-0 z-10 bg-white pb-1"><h3 className="text-sm font-semibold">Bills for {selectedTeacher}</h3><p className="text-xs text-slate-500">{selectedPages.length} bill page(s)</p></div>}
-          {selectedPages.map((page, index) => (
-            <SectionPanel key={page.id} title={`${index + 1}. ${page.fileName} — Bill ${page.bill.billInfo.billNo || "—"}`}>
-              <p className="truncate text-xs text-slate-500">{page.fileName}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="col-span-2 text-xs text-slate-600">Name (Bangla)<input value={page.nameBangla} onChange={(event) => updatePage(page.id, { nameBangla: event.target.value })} className={`${inputClass} mt-1`} /></label>
-                <label className="text-xs text-slate-600">Designation<input value={page.designationBangla} onChange={(event) => updatePage(page.id, { designationBangla: event.target.value })} className={`${inputClass} mt-1`} /></label>
-                <label className="text-xs text-slate-600">Account number<input value={page.accountNumber} onChange={(event) => updatePage(page.id, { accountNumber: event.target.value })} className={`${inputClass} mt-1`} /></label>
-                <label className="col-span-2 text-xs text-slate-600">Address<input value={page.addressBangla} onChange={(event) => updatePage(page.id, { addressBangla: event.target.value })} className={`${inputClass} mt-1`} /></label>
-              </div>
-              <div><h3 className="mb-2 text-sm font-semibold">Information table widths</h3><ColumnWidthEditor widths={page.metaWidths} setWidths={(metaWidths) => updatePage(page.id, { metaWidths })} labels={{ qualifications: "Qualifications", examination: "Examination", billNumber: "Bill number" }} /></div>
-              <div><h3 className="mb-2 text-sm font-semibold">Remuneration table widths</h3><ColumnWidthEditor widths={page.tableWidths} setWidths={(tableWidths) => updatePage(page.id, { tableWidths })} labels={{ serial: "Sl. No.", descriptionGroup: "Description", description: "Individual description", course: "Course", quantity: "Scripts/students", courseCount: "Courses", classTestCount: "Class tests", rate: "Rate", amount: "Amount" }} /></div>
-              <IndividualLayoutEditor settings={page.layoutSettings} setSettings={(layoutSettings) => updatePage(page.id, { layoutSettings })} />
-              <button type="button" onClick={() => setPages((current) => current.filter((item) => item.id !== page.id))} className="flex items-center gap-2 rounded-md border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Remove this bill page</button>
-            </SectionPanel>
-          ))}
-          {selectedTeacher && selectedPages.length === 0 && <div className="rounded-lg border border-dashed p-5 text-center text-sm text-slate-500">This teacher has no remaining bill pages.</div>}
+          <div className="mt-4 shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <div className="flex items-start gap-2">
+              <Mail className="mt-0.5 h-4 w-4 text-emerald-700" />
+              <div><h3 className="text-sm font-semibold text-emerald-900">Email individual bills</h3><p className="text-xs text-emerald-700">{selectedDepartment || "All departments"}: choose teachers whose saved email will receive their own PDF.</p></div>
+            </div>
+            <label className="mt-3 flex items-center gap-2 border-b border-emerald-200 pb-2 text-xs font-semibold text-emerald-900">
+              <input type="checkbox" checked={emailableCandidates.length > 0 && emailableCandidates.every((candidate) => selectedEmailTeacherKeys.includes(candidate.key))} onChange={(event) => setSelectedEmailTeacherKeys(event.target.checked ? emailableCandidates.map((candidate) => candidate.key) : [])} />
+              Select all teachers with email ({emailableCandidates.length})
+            </label>
+            <div className="max-h-40 space-y-1 overflow-y-auto py-2">
+              {emailCandidates.map((candidate) => <label key={candidate.key} className={`flex items-start gap-2 rounded px-1 py-1 text-xs ${candidate.email ? "text-slate-700" : "text-slate-400"}`}>
+                <input type="checkbox" className="mt-0.5" disabled={!candidate.email || emailing} checked={selectedEmailTeacherKeys.includes(candidate.key)} onChange={(event) => setSelectedEmailTeacherKeys((current) => event.target.checked ? [...new Set([...current, candidate.key])] : current.filter((key) => key !== candidate.key))} />
+                <span className="min-w-0"><span className="block font-medium">{candidate.name} ({candidate.billCount} bills)</span><span className="block truncate">{candidate.email || "No email saved in Teacher Information"}</span></span>
+              </label>)}
+              {!emailCandidates.length && <p className="py-2 text-xs text-slate-500">No teachers are available in this department.</p>}
+            </div>
+            <label className="mb-2 flex items-start gap-2 rounded border border-emerald-200 bg-white px-2 py-2 text-xs font-medium text-emerald-900">
+              <input type="checkbox" className="mt-0.5" checked={attachFullSummary} disabled={!summaryWorkspace?.bills.length || emailing} onChange={(event) => setAttachFullSummary(event.target.checked)} />
+              <span>Also attach the complete finalized Summary book to every selected teacher email</span>
+            </label>
+            <button type="button" disabled={emailing || !selectedEmailTeacherKeys.length} onClick={() => void sendSelectedBills()} className="w-full rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400">{emailing ? "Sending emails…" : `Send selected teacher bills (${selectedEmailTeacherKeys.length})`}</button>
+            {emailMessage && <p role="status" className="mt-2 text-xs text-slate-700">{emailMessage}</p>}
           </div>
+
         </aside>
 
         <section className="min-w-0 rounded-xl bg-slate-300 p-5">
