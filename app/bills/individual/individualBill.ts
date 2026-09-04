@@ -169,14 +169,22 @@ export function deriveTeacherRows(
 
   bill.committees.forEach((member, index) => {
     if (!sameTeacher(member.name, teacherName)) return;
-    add({
-      description: index === 0 ? "পরীক্ষা কমিটির সভাপতি" : "পরীক্ষা কমিটির সদস্য",
-      course: "",
-      quantity: "",
-      courseCount: "",
-      classTestCount: "",
-      rate: "5000",
-    });
+    const normalizedRole = member.role?.trim().toLocaleLowerCase();
+    const isChairman = normalizedRole === "chairman"
+      || (!normalizedRole && index === 0);
+    const committeeDuties = isChairman
+      ? ["পরীক্ষা কমিটির সভাপতি", "পরীক্ষা কমিটির সদস্য"]
+      : ["পরীক্ষা কমিটির সদস্য"];
+    committeeDuties.forEach((description) =>
+      add({
+        description,
+        course: "",
+        quantity: "",
+        courseCount: "",
+        classTestCount: "",
+        rate: "5000",
+      })
+    );
   });
 
   [
