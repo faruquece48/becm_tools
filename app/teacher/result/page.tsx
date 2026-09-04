@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function ResultPage() {
-  return null;
+  redirect("/teacher/result/tabulators");
 }
