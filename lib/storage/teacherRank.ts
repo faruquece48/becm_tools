@@ -8,10 +8,11 @@ const becmNames = [
   "Mr. Md. Jubaer Hossain", "Mr. Md. Mustakim", "Mr. Mithun Chakrabartty", "Mr. Md. Rumman Howlader",
 ];
 const ceNames = [
-  "Dr. Md. Abdul Alim", "Dr. N.H.M. Kamrujjaman Serker", "Dr. Md. Kumruzzaman (1)", "Dr. Md. Niamul Bari",
-  "Dr. Md. Kamruzzaman (2)", "Dr. Md. Mahmud Sazzad", "Dr. S. M. Zahurul Islam", "Dr. Md. Akhtar Hossain",
-  "Dr. Md. Shafiqul Islam", "Dr. Md. Robiul Awall", "Dr. Abu Sufian Md. Zia Hasan", "Dr. H. M. Rasel",
-  "Dr. Md. Abu Sayeed", "Dr. Md. Zahangir Alam", "Dr. Anupam Chowdhury", "Dr. Bulbul Ahmed",
+  "Dr. Md. Abdul Alim", "Dr. NHM Kamrujjaman Serker", "Dr. Md. Kumruzzaman (1)", "Dr. Md. Niamul Bari",
+  "Dr. Md. Kamruzzaman (2)", "Dr. Md. Mahmud Sazzad", "Dr. Md. Akhtar Hossain", "Dr. Md. Shafiqul Islam",
+  "Dr. Md. Robiul Awall", "Dr. Abu Sufian Md. Zia Hasan", "Dr. H. M. Rasel", "Dr. Md. Abu Sayeed",
+  "Dr. Md. Zahangir Alam", "Dr. Anupam Chowdhury", "Md. Rafiul Islam", "Sumaya Tabassum",
+  "Mohammad Ali", "Abu Shad", "Shraboni Rani Paul", "Atonu Saha", "Briti Ray", "Ragib Noor Srijan",
 ];
 const entries = (department: string, names: string[]) => names.map((name, index) => ({ id: `${department}-teacher-${index + 1}`, name }));
 

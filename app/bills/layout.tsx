@@ -34,6 +34,8 @@ function NavLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
+      suppressHydrationWarning
       className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
         active
           ? "bg-black text-white"

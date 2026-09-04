@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
+import { mergeDefaultTeacherInformation } from "@/lib/storage/individualTeacher";
 
 const SECTION = "bill-teacher-information";
 const informationSchema = z.object({
@@ -33,7 +34,7 @@ export async function GET() {
   const rows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue; updatedAt: Date }>>(Prisma.sql`
     SELECT "data", "updatedAt" FROM "ResultSectionStore" WHERE "section" = ${SECTION} LIMIT 1
   `);
-  return NextResponse.json({ records: rows[0]?.data ?? {}, updatedAt: rows[0]?.updatedAt ?? null });
+  return NextResponse.json({ records: mergeDefaultTeacherInformation(rows[0]?.data), updatedAt: rows[0]?.updatedAt ?? null });
 }
 
 export async function PUT(request: Request) {
