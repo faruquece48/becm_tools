@@ -6,8 +6,8 @@ import { emptyBill } from "../create/components/emptyBill";
 import type { ExaminationBillData } from "../create/components/types";
 import { loadCurrentWork } from "@/lib/storage/draft";
 import {
-  loadIndividualTeacherInformation,
-  saveIndividualTeacherInformation,
+  loadAllIndividualTeacherInformation,
+  type SavedIndividualTeacherInformation,
 } from "@/lib/storage/individualTeacher";
 import ColumnWidthEditor from "../preview/components/ColumnWidthEditor";
 import type { ColumnWidths } from "../create/components/types";
@@ -24,6 +24,7 @@ import {
 
 const inputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500";
 const defaultAddressBangla = "বিইসিএম বিভাগ, রুয়েট।";
+const teacherKey = (name: string) => name.normalize("NFKC").trim().replace(/\s+/gu, " ").toLocaleLowerCase();
 
 function toSutonnyText(value: string | number) {
   const bengaliDigits = String(value).replace(/\d/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
@@ -63,6 +64,7 @@ export default function IndividualTeacherBillPage() {
   const [addressBangla, setAddressBangla] = useState(defaultAddressBangla);
   const [accountNumber, setAccountNumber] = useState("");
   const [teacherSaveStatus, setTeacherSaveStatus] = useState("");
+  const [teacherRecords, setTeacherRecords] = useState<Record<string, SavedIndividualTeacherInformation>>({});
   const [divisionGaps, setDivisionGaps] = useState<Record<string, number>>({ header: 0, teacher: 0, exam: 1, mainTable: 0, signature: 0, account: 0, footer: 0 });
   const [approvalSignatureGap, setApprovalSignatureGap] = useState(16);
   const [sectionFontSizes, setSectionFontSizes] = useState<Record<string, number>>({ header: 12, teacher: 12, exam: 12, mainTable: 10, signature: 13, account: 13, footer: 10 });
@@ -77,6 +79,21 @@ export default function IndividualTeacherBillPage() {
     // Hydrate the client-only draft after the page mounts.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setBill({ ...emptyBill, ...saved });
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/teacher-information", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json() as { records?: Record<string, SavedIndividualTeacherInformation> };
+        if (!response.ok) throw new Error("Could not load teacher information from Neon");
+        const remoteRecords = body.records ?? {};
+        setTeacherRecords(Object.keys(remoteRecords).length ? remoteRecords : loadAllIndividualTeacherInformation());
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setTeacherRecords(loadAllIndividualTeacherInformation());
+      });
+    return () => controller.abort();
   }, []);
 
   const teachers = useMemo(() => collectTeacherNames(bill), [bill]);
@@ -106,24 +123,33 @@ export default function IndividualTeacherBillPage() {
   const selectTeacher = (value: string) => {
     setTeacher(value);
     setTeacherSaveStatus("");
-    const savedInformation = value
-      ? loadIndividualTeacherInformation(value)
-      : null;
+    const savedInformation = value ? teacherRecords[teacherKey(value)] ?? null : null;
     setNameBangla(savedInformation?.nameBangla ?? value);
     setDesignationBangla(savedInformation?.designationBangla ?? "");
     setAddressBangla(savedInformation?.addressBangla ?? defaultAddressBangla);
     setAccountNumber(savedInformation?.accountNumber ?? "");
   };
 
-  const saveTeacherInformation = () => {
+  const saveTeacherInformation = async () => {
     if (!teacher) return;
-    const saved = saveIndividualTeacherInformation(teacher, {
-      nameBangla,
-      designationBangla,
-      addressBangla,
-      accountNumber,
-    });
-    setTeacherSaveStatus(saved ? "Teacher information saved." : "Unable to save teacher information.");
+    setTeacherSaveStatus("Saving to Neon…");
+    const nextRecords = {
+      ...teacherRecords,
+      [teacherKey(teacher)]: { ...teacherRecords[teacherKey(teacher)], englishName: teacher.trim(), nameBangla, designationBangla, addressBangla, accountNumber },
+    };
+    try {
+      const response = await fetch("/api/teacher-information", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextRecords),
+      });
+      const body = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) throw new Error(body?.error || "Unable to save teacher information to Neon");
+      setTeacherRecords(nextRecords);
+      setTeacherSaveStatus("Teacher information saved to Neon.");
+    } catch (error) {
+      setTeacherSaveStatus(error instanceof Error ? error.message : "Unable to save teacher information to Neon.");
+    }
   };
 
   const printOrSavePdf = async () => {

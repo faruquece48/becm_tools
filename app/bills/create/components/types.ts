@@ -210,6 +210,7 @@ export interface ExaminationBillData {
   courseAdviserStudentCount: string;
   practicalSurveyingTeachers: VerificationTeacher[];
   practicalSurveyingStudentCount: string;
+  practicalSurveyingCourseFileTeacher: VerificationTeacher;
   thesisTeachers: ThesisTeacher[];
   verificationTeachers: VerificationTeacher[];
   verificationStudentCount: string;

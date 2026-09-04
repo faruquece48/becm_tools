@@ -346,6 +346,13 @@ export default function Home() {
                   practicalSurveyingStudentCount: value,
                 }))
               }
+              courseFileTeacher={billData.practicalSurveyingCourseFileTeacher}
+              setCourseFileTeacher={(teacher) =>
+                setBillData((prev) => ({
+                  ...prev,
+                  practicalSurveyingCourseFileTeacher: teacher,
+                }))
+              }
             />
           )}
         </div>

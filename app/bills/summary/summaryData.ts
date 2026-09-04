@@ -38,12 +38,30 @@ interface TeacherSource {
 
 const teacherKey = (name: string) =>
   name
+    .normalize("NFKC")
     .trim()
-    .replace(/^(mr|mrs|ms|mst)\.?\s+/i, "")
-    .trim()
-    .toLocaleLowerCase();
+    .toLocaleLowerCase()
+    .replace(/^(?:(?:mr|mrs|ms|mst|dr|prof|professor|engr|engineer|architect|ar)\.?\s+)+/i, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+const teacherKeyVariants = (name: string) => {
+  const key = teacherKey(name);
+  const withoutMd = key.replace(/^md\s+/, "");
+  return withoutMd && withoutMd !== key ? [key, withoutMd] : [key];
+};
 
 const departmentOrder = ["becm", "ce", "arch", "eee", "me", "math", "chem", "phy", "hum"] as const;
+
+const designationRank = (designation: string) => {
+  const normalized = designation.toLocaleLowerCase().replace(/[^a-z]+/g, " ").trim();
+  if (/\bprofessor\b/.test(normalized) && !/\b(?:associate|assistant)\b/.test(normalized)) return 0;
+  if (/\bassociate professor\b/.test(normalized)) return 1;
+  if (/\bassistant professor\b/.test(normalized) && /\bhead\b/.test(normalized)) return 2;
+  if (/\bassistant professor\b/.test(normalized)) return 3;
+  if (/\blecturer\b/.test(normalized)) return 4;
+  return 5;
+};
 
 function normalizedDepartment(value: string): string {
   return value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -71,34 +89,54 @@ function departmentKey(department: string): string {
 }
 
 function summaryTeacherComparator(rankData?: TeacherRankData) {
-  const departmentRanks = new Map(
-    rankData?.departments.map((department) => [
-      department.id,
-      new Map(department.teachers.map((teacher, index) => [teacherKey(teacher.name), index])),
-    ]) ?? [],
-  );
+  const departmentRanks = new Map<string, Map<string, number>>();
+  rankData?.departments.forEach((department) => {
+    const ranks = new Map<string, number>();
+    department.teachers.forEach((teacher, index) => {
+      teacherKeyVariants(teacher.name).forEach((key) => {
+        if (key && !ranks.has(key)) ranks.set(key, index);
+      });
+    });
+    departmentRanks.set(department.id, ranks);
+  });
+  const configuredRank = (departmentId: string, teacherName: string) => {
+    const ranks = departmentRanks.get(departmentId);
+    if (!ranks) return undefined;
+    for (const key of teacherKeyVariants(teacherName)) {
+      const rank = ranks.get(key);
+      if (rank !== undefined) return rank;
+    }
+    return undefined;
+  };
   return (left: SummaryTeacher, right: SummaryTeacher): number => {
     const leftExternal = isOtherUniversity(left.department);
     const rightExternal = isOtherUniversity(right.department);
     if (leftExternal !== rightExternal) return leftExternal ? 1 : -1;
-    const leftKey = departmentKey(left.department);
-    const rightKey = departmentKey(right.department);
-    const leftIndex = departmentOrder.indexOf(leftKey as typeof departmentOrder[number]);
-    const rightIndex = departmentOrder.indexOf(rightKey as typeof departmentOrder[number]);
-    const leftDepartmentRank = leftIndex < 0 ? departmentOrder.length : leftIndex;
-    const rightDepartmentRank = rightIndex < 0 ? departmentOrder.length : rightIndex;
-    if (leftDepartmentRank !== rightDepartmentRank) return leftDepartmentRank - rightDepartmentRank;
-    const rankSection = leftExternal && rightExternal ? "other-university" : leftKey === rightKey ? leftKey : "";
-    const ranks = departmentRanks.get(rankSection);
-    if (ranks) {
-      const leftTeacherRank = ranks.get(left.key) ?? Number.MAX_SAFE_INTEGER;
-      const rightTeacherRank = ranks.get(right.key) ?? Number.MAX_SAFE_INTEGER;
-      if (leftTeacherRank !== rightTeacherRank) return leftTeacherRank - rightTeacherRank;
+
+    const leftDepartment = leftExternal ? "other-university" : departmentKey(left.department);
+    const rightDepartment = rightExternal ? "other-university" : departmentKey(right.department);
+    const departmentPosition = (department: string) => {
+      if (department === "other-university") return departmentOrder.length + 1;
+      const index = departmentOrder.indexOf(department as typeof departmentOrder[number]);
+      return index < 0 ? departmentOrder.length : index;
+    };
+    const departmentDifference = departmentPosition(leftDepartment) - departmentPosition(rightDepartment);
+    if (departmentDifference) return departmentDifference;
+
+    if (leftDepartment === rightDepartment) {
+      const leftRank = configuredRank(leftDepartment, left.name);
+      const rightRank = configuredRank(rightDepartment, right.name);
+      if (leftRank !== undefined || rightRank !== undefined) {
+        if (leftRank === undefined) return 1;
+        if (rightRank === undefined) return -1;
+        if (leftRank !== rightRank) return leftRank - rightRank;
+      }
     }
-    return left.name.localeCompare(right.name);
+    const designationDifference = designationRank(left.designation) - designationRank(right.designation);
+    if (designationDifference) return designationDifference;
+    return teacherKey(left.name).localeCompare(teacherKey(right.name));
   };
 }
-
 export function normalizeImportedBill(
   data: Partial<ExaminationBillData>
 ): ExaminationBillData {
@@ -164,6 +202,7 @@ function teacherSources(bill: ExaminationBillData): TeacherSource[] {
     ...bill.verificationTeachers,
     ...bill.courseCoordinatorTeachers,
     ...bill.practicalSurveyingTeachers,
+    bill.practicalSurveyingCourseFileTeacher,
   ];
 }
 

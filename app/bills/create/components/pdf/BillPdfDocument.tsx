@@ -396,7 +396,20 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
   const obeSessionalDuties = bill.sessionalDuties.filter((course) => (course.syllabus ?? "obe") === "obe");
   const nonObeSessionalDuties = bill.sessionalDuties.filter((course) => course.syllabus === "nonObe");
   const visibleSessionalDuties = sessionalIsMixed ? [...obeSessionalDuties, ...nonObeSessionalDuties] : obeSessionalDuties;
-  const courseFileRows = isShortSemester ? [] : flattenCourseFile(bill.courseDuties.obe, obeSessionalDuties);
+  const courseFileRows = [
+    ...(isShortSemester ? [] : flattenCourseFile(bill.courseDuties.obe, obeSessionalDuties)),
+    ...(isPracticalSurveyingApplicable && bill.practicalSurveyingCourseFileTeacher.name.trim()
+      ? [{
+          courseCode: "CE 1226",
+          courseTitle: "Practical Surveying",
+          teacherLine: formatTeacher(
+            bill.practicalSurveyingCourseFileTeacher.name,
+            bill.practicalSurveyingCourseFileTeacher.designation,
+            bill.practicalSurveyingCourseFileTeacher.department
+          ),
+        }]
+      : []),
+  ];
   const obeSessionalRows = flattenSessional(obeSessionalDuties);
   const nonObeSessionalRows = flattenSessional(nonObeSessionalDuties);
   const sessionalRows = sessionalIsMixed ? [...obeSessionalRows, ...nonObeSessionalRows] : obeSessionalRows;

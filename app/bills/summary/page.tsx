@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
-import { ArrowDown, ArrowUp, FilePlus2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowDown, ArrowRight, ArrowUp, FilePlus2, Trash2 } from "lucide-react";
 import CombinedBillPdfPreview from "../combined/CombinedBillPdfPreview";
 import type { ExaminationBillData } from "../create/components/types";
 import type { StaffRemunerationData } from "@/lib/storage/staffRemuneration";
-import type { TeacherRankData } from "@/lib/storage/teacherRank";
+import { defaultTeacherRankData, normalizeTeacherRankData, type TeacherRankData } from "@/lib/storage/teacherRank";
+import { loadCurrentWork } from "@/lib/storage/draft";
 import { applySummaryBillLayout, buildSummaryCustomization, type SummaryCustomization, type TeacherCustomizations } from "@/lib/storage/teacherCustomizations";
 import { withStaffRemunerationData } from "@/lib/staffRemunerationMatching";
 import type { TableLayoutSettings } from "../create/components/types";
@@ -129,7 +131,7 @@ function ImportedBillCustomization({
 export default function SummaryPage() {
   const [bills, setBills] = useState<ImportedSummaryBill[]>([]);
   const [staffData, setStaffData] = useState<StaffRemunerationData | null>(null);
-  const [rankData, setRankData] = useState<TeacherRankData | null>(null);
+  const [rankData, setRankData] = useState<TeacherRankData>(defaultTeacherRankData);
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
@@ -148,10 +150,27 @@ export default function SummaryPage() {
   useEffect(() => {
     const controller = new AbortController();
     const applySession = (saved: SummarySession) => {
-        setBills(saved.bills.map((item) => ({
-          ...item,
-          bill: normalizeImportedBill(item.bill),
-        })));
+        const currentWork = loadCurrentWork();
+        setBills(saved.bills.map((item) => {
+          const bill = normalizeImportedBill(item.bill);
+          const sameCurrentBill = currentWork &&
+            bill.billInfo.billNo === currentWork.billInfo.billNo &&
+            bill.billInfo.examination === currentWork.billInfo.examination &&
+            bill.billInfo.year === currentWork.billInfo.year &&
+            bill.billInfo.semester === currentWork.billInfo.semester &&
+            bill.billInfo.examType === currentWork.billInfo.examType &&
+            bill.billInfo.examYear === currentWork.billInfo.examYear &&
+            bill.billInfo.series === currentWork.billInfo.series;
+          return {
+            ...item,
+            bill: sameCurrentBill && currentWork.practicalSurveyingCourseFileTeacher?.name.trim()
+              ? {
+                  ...bill,
+                  practicalSurveyingCourseFileTeacher: currentWork.practicalSurveyingCourseFileTeacher,
+                }
+              : bill,
+          };
+        }));
         setTableGap(saved.tableGap);
         setRemunerationListYear(saved.remunerationListYear);
         setIndexTableWidth(saved.indexTableWidth);
@@ -190,14 +209,27 @@ export default function SummaryPage() {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void fetch("/api/teacher-rank", { cache: "no-store", signal: controller.signal })
-      .then(async (response) => {
-        const body = await response.json() as { data?: TeacherRankData };
-        if (response.ok && body.data) setRankData(body.data);
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
+    let controller: AbortController | null = null;
+    const loadRanks = () => {
+      controller?.abort();
+      controller = new AbortController();
+      void fetch(`/api/teacher-rank?refresh=${Date.now()}`, { cache: "no-store", signal: controller.signal })
+        .then(async (response) => {
+          const body = await response.json() as { data?: TeacherRankData };
+          if (response.ok && body.data) setRankData(normalizeTeacherRankData(body.data));
+        })
+        .catch((error) => {
+          if (!controller?.signal.aborted) {
+            setMessage(error instanceof Error ? `Unable to refresh teacher ranks: ${error.message}` : "Unable to refresh teacher ranks.");
+          }
+        });
+    };
+    loadRanks();
+    window.addEventListener("focus", loadRanks);
+    return () => {
+      controller?.abort();
+      window.removeEventListener("focus", loadRanks);
+    };
   }, []);
   useEffect(() => {
     const controller = new AbortController();
@@ -236,8 +268,9 @@ export default function SummaryPage() {
   }, [bills, hydrated, indexTableWidth, remunerationListYear, sidebarWidth, tableGap]);
 
   const billsWithStaff = useMemo(() => bills.map((item) => ({ ...item, bill: withStaffRemunerationData(item.bill, staffData) })), [bills, staffData]);
+  const downloadFileBase = `Remuneration Bill_${(remunerationListYear.trim() || "Unspecified").replace(/[<>:"/\\|?*\u0000-\u001F]+/g, "-")}`;
   const document = useMemo(
-    () => <SummaryPdfDocument bills={billsWithStaff} tableGap={tableGap} remunerationListYear={remunerationListYear} indexTableWidth={indexTableWidth} rankData={rankData ?? undefined} />,
+    () => <SummaryPdfDocument bills={billsWithStaff} tableGap={tableGap} remunerationListYear={remunerationListYear} indexTableWidth={indexTableWidth} rankData={rankData} />,
     [billsWithStaff, tableGap, remunerationListYear, indexTableWidth, rankData]
   );
 
@@ -323,7 +356,7 @@ export default function SummaryPage() {
       const url = URL.createObjectURL(blob);
       const link = window.document.createElement("a");
       link.href = url;
-      link.download = "Examination_Bill_Summary.pdf";
+      link.download = `${downloadFileBase}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
       setMessage("PDF downloaded and the complete Summary workspace was saved to Neon.");
@@ -343,12 +376,12 @@ export default function SummaryPage() {
         billsWithStaff,
         remunerationListYear,
         indexTableWidth,
-        rankData ?? undefined,
+        rankData,
       );
       const url = URL.createObjectURL(wordBlob);
       const link = window.document.createElement("a");
       link.href = url;
-      link.download = "Examination_Bill_Summary.docx";
+      link.download = `${downloadFileBase}.docx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -376,6 +409,16 @@ export default function SummaryPage() {
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
+        <Link
+          href="/bills/individual-summary"
+          aria-disabled={!bills.length}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white ${
+            bills.length ? "bg-emerald-700 hover:bg-emerald-800" : "pointer-events-none bg-slate-400"
+          }`}
+        >
+          Generate Individual Bills
+          <ArrowRight className="h-4 w-4" />
+        </Link>
         <button
           type="button"
           onClick={() => void downloadWord()}

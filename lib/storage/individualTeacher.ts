@@ -7,6 +7,7 @@ export interface SavedIndividualTeacherInformation {
   designationBangla: string;
   addressBangla: string;
   accountNumber: string;
+  email?: string;
 }
 
 type TeacherInformationIndex = Record<string, SavedIndividualTeacherInformation>;

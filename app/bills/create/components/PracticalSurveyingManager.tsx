@@ -26,6 +26,8 @@ interface Props {
   setTeachers: (teachers: VerificationTeacher[]) => void;
   totalStudents: string;
   setTotalStudents: (value: string) => void;
+  courseFileTeacher: VerificationTeacher;
+  setCourseFileTeacher: (teacher: VerificationTeacher) => void;
 }
 
 export default function PracticalSurveyingManager({
@@ -34,6 +36,8 @@ export default function PracticalSurveyingManager({
   setTeachers,
   totalStudents,
   setTotalStudents,
+  courseFileTeacher,
+  setCourseFileTeacher,
 }: Props) {
   const [isMinimized, setIsMinimized] = useState(true);
 
@@ -45,6 +49,10 @@ export default function PracticalSurveyingManager({
     const next = [...teachers];
     next[index] = { ...next[index], [field]: value };
     setTeachers(next);
+  };
+
+  const updateCourseFileTeacher = (field: keyof VerificationTeacher, value: string) => {
+    setCourseFileTeacher({ ...courseFileTeacher, [field]: value });
   };
 
   return (
@@ -72,6 +80,38 @@ export default function PracticalSurveyingManager({
       </div>
       {!isMinimized && (
         <>
+          <div className="space-y-3 rounded-lg border bg-slate-50 p-4">
+            <h3 className="text-sm font-semibold">
+              Teacher Associated with Course File
+            </h3>
+            <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-3">
+              <Input
+                placeholder="Teacher Name"
+                value={courseFileTeacher.name}
+                onChange={(event) => updateCourseFileTeacher("name", event.target.value)}
+              />
+              <Select
+                value={courseFileTeacher.designation}
+                onValueChange={(value) =>
+                  value !== null && updateCourseFileTeacher("designation", value)
+                }
+              >
+                <SelectTrigger><SelectValue placeholder="Designation" /></SelectTrigger>
+                <SelectContent>
+                  {designations.map((designation) => (
+                    <SelectItem key={designation} value={designation}>
+                      {designation}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Department"
+                value={courseFileTeacher.department}
+                onChange={(event) => updateCourseFileTeacher("department", event.target.value)}
+              />
+            </div>
+          </div>
           <div className="flex flex-wrap items-end gap-4">
             <label className="space-y-1 text-sm font-medium">
               <span>Total Number of Students</span>

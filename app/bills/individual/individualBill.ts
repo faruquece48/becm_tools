@@ -97,6 +97,7 @@ export function collectTeacherNames(bill: ExaminationBillData): string[] {
   }
   if (isPracticalSurveyingApplicable(bill)) {
     teacherLists.push(...bill.practicalSurveyingTeachers);
+    if (bill.practicalSurveyingCourseFileTeacher.name.trim()) teacherLists.push(bill.practicalSurveyingCourseFileTeacher);
   }
   teacherLists.forEach((teacher) => add(teacher.name));
 
@@ -150,6 +151,7 @@ export function collectTeacherNameWarnings(bill: ExaminationBillData): TeacherNa
   }
   if (isPracticalSurveyingApplicable(bill)) {
     checkList("Practical surveying", bill.practicalSurveyingTeachers);
+    check(bill.practicalSurveyingCourseFileTeacher.name, "Practical surveying, course file teacher");
   }
   return warnings;
 }
@@ -389,8 +391,15 @@ export function deriveTeacherRows(
           classTestCount: "",
           rate: "1000",
         })
-      );
-  }
+      );    if (sameTeacher(bill.practicalSurveyingCourseFileTeacher.name, teacherName))
+      add({
+        description: "কোর্স ফাইল প্রস্তুতকরণ",
+        course: "CE 1226",
+        quantity: "",
+        courseCount: "1",
+        classTestCount: "",
+        rate: "6000",
+      });  }
   if (isVerificationApplicable(bill)) {
     bill.verificationTeachers
       .filter((teacher) => sameTeacher(teacher.name, teacherName))

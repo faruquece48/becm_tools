@@ -9,6 +9,7 @@ import {
   flattenPaperSetter,
   flattenSessional,
   flattenTabulation,
+  formatTeacher,
   mixedSessionalStudentTotal,
 } from "../create/components/pdf/pdfHelpers";
 import { practicalSurveyingStaffGroups, staffSessionalGroups } from "@/lib/staffRemunerationMatching";
@@ -39,7 +40,22 @@ export function summaryCustomizationSections(bill: ExaminationBillData): Summary
     ? bill.sessionalDuties
     : obeSessional;
   const sessionalRows = flattenSessional(visibleSessional);
-  const courseFileRows = isShort ? [] : flattenCourseFile(bill.courseDuties.obe, obeSessional);
+  const fourthYear = bill.billInfo.examType === "semester" && bill.billInfo.year === "4th Year";
+  const firstYearEven = !isBacklog && bill.billInfo.year === "1st Year" && bill.billInfo.semester === "Even";
+  const courseFileRows = [
+    ...(isShort ? [] : flattenCourseFile(bill.courseDuties.obe, obeSessional)),
+    ...(firstYearEven && bill.practicalSurveyingCourseFileTeacher.name.trim()
+      ? [{
+          courseCode: "CE 1226",
+          courseTitle: "Practical Surveying",
+          teacherLine: formatTeacher(
+            bill.practicalSurveyingCourseFileTeacher.name,
+            bill.practicalSurveyingCourseFileTeacher.designation,
+            bill.practicalSurveyingCourseFileTeacher.department
+          ),
+        }]
+      : []),
+  ];
   const sessionalTotal = mixedSessionalStudentTotal(visibleSessional);
   const boardRows = flattenBoardViva(
     visibleSessional,
@@ -50,8 +66,6 @@ export function summaryCustomizationSections(bill: ExaminationBillData): Summary
   const tabulationRows = flattenTabulation(bill.studentDuties);
   const gradeRows = deriveGradeSheetRows(bill.studentDuties, String(sessionalTotal || bill.tabulationStudentCount));
   const scrutinyRows = isMixed ? [...bill.scrutinies.obe, ...bill.scrutinies.nonObe] : bill.scrutinies.obe;
-  const fourthYear = bill.billInfo.examType === "semester" && bill.billInfo.year === "4th Year";
-  const firstYearEven = !isBacklog && bill.billInfo.year === "1st Year" && bill.billInfo.semester === "Even";
   const practicalTeachers = firstYearEven && bill.practicalSurveyingTeachers.some((teacher) => teacher.name.trim());
   const staffSessional = !isBacklog && sessionalRows.length > 0 && staffSessionalGroups(bill).length > 0;
   const practicalStaff = practicalTeachers && practicalSurveyingStaffGroups(bill).length > 0;

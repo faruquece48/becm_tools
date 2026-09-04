@@ -25,6 +25,7 @@ import {
   flattenPaperSetter,
   flattenSessional,
   flattenTabulation,
+  formatTeacher,
   mixedSessionalStudentTotal,
 } from "../create/components/pdf/pdfHelpers";
 
@@ -216,7 +217,20 @@ export default function PreviewPage() {
   const obeSessionalDuties = billData.sessionalDuties.filter(
     (course) => (course.syllabus ?? "obe") === "obe"
   );
-  const courseFileRows = isShortSemester ? [] : flattenCourseFile(billData.courseDuties.obe, obeSessionalDuties);
+  const courseFileRows = [
+    ...(isShortSemester ? [] : flattenCourseFile(billData.courseDuties.obe, obeSessionalDuties)),
+    ...(!isBacklog && billData.billInfo.year === "1st Year" && billData.billInfo.semester === "Even" && billData.practicalSurveyingCourseFileTeacher.name.trim()
+      ? [{
+          courseCode: "CE 1226",
+          courseTitle: "Practical Surveying",
+          teacherLine: formatTeacher(
+            billData.practicalSurveyingCourseFileTeacher.name,
+            billData.practicalSurveyingCourseFileTeacher.designation,
+            billData.practicalSurveyingCourseFileTeacher.department
+          ),
+        }]
+      : []),
+  ];
   const sessionalRows = flattenSessional(visibleSessionalDuties);
   const mixedSessionalTotal = mixedSessionalStudentTotal(visibleSessionalDuties);
   const sharedStudentTotal = mixedSessionalTotal || billData.tabulationStudentCount;

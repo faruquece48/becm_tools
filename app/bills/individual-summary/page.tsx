@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
-import { FilePlus2, Trash2 } from "lucide-react";
+import { FilePlus2, Link2, Trash2 } from "lucide-react";
 import type { ColumnWidths, ExaminationBillData } from "../create/components/types";
 import CombinedBillPdfPreview from "../combined/CombinedBillPdfPreview";
 import ColumnWidthEditor from "../preview/components/ColumnWidthEditor";
@@ -10,20 +10,52 @@ import SectionPanel from "../preview/components/SectionPanel";
 import IndividualLayoutEditor, {
   defaultIndividualBillLayout,
 } from "../individual/IndividualLayoutEditor";
-import { loadAllIndividualTeacherInformation } from "@/lib/storage/individualTeacher";
-import { normalizeImportedBill, teachersForBill } from "../summary/summaryData";
+import { loadAllIndividualTeacherInformation, type SavedIndividualTeacherInformation } from "@/lib/storage/individualTeacher";
+import { normalizeImportedBill, teachersForBill, type ImportedSummaryBill } from "../summary/summaryData";
 import IndividualSummaryPdfDocument from "./IndividualSummaryPdfDocument";
 import type { IndividualSummaryPage } from "./types";
 import { deriveTeacherRows, rowAmount } from "../individual/individualBill";
+import { loadSummarySession } from "@/lib/storage/summary";
 
 const defaultMetaWidths: ColumnWidths = { qualifications: 40, examination: 42, billNumber: 18 };
 const defaultTableWidths: ColumnWidths = { serial: 6, descriptionGroup: 9, description: 22, course: 18, quantity: 10, courseCount: 8, classTestCount: 9, rate: 10, amount: 8 };
 const defaultAddress = "বিইসিএম বিভাগ, রুয়েট।";
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-const teacherKey = (name: string) => name.trim().toLocaleLowerCase();
+const teacherKey = (name: string) => name.normalize("NFKC").trim().replace(/\s+/gu, " ").toLocaleLowerCase();
 const fileSafeName = (name: string) => name.trim().replace(/[\\/:*?"<>|]/g, "-") || "Selected_Teacher";
 
 const inputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm";
+
+function individualPagesFromSummary(
+  bills: ImportedSummaryBill[],
+  information: Record<string, SavedIndividualTeacherInformation>,
+): IndividualSummaryPage[] {
+  return [...bills]
+    .sort((left, right) => collator.compare(left.fileName, right.fileName))
+    .flatMap((item, billIndex) => {
+      const bill = normalizeImportedBill(item.bill);
+      return teachersForBill(bill).map(({ name: teacher, department }, teacherIndex) => {
+        const saved = information[teacherKey(teacher)];
+        return {
+          id: `summary-${item.id}-${billIndex}-${teacherIndex}`,
+          fileName: item.fileName,
+          bill,
+          teacher,
+          department: department || saved?.departmentKey || "",
+          nameBangla: saved?.nameBangla || teacher.replace(/^(mr|mrs|ms|mst)\.?\s+/i, ""),
+          designationBangla: saved?.designationBangla || "",
+          addressBangla: saved?.addressBangla || defaultAddress,
+          accountNumber: saved?.accountNumber || "",
+          metaWidths: { ...defaultMetaWidths },
+          tableWidths: { ...defaultTableWidths },
+          layoutSettings: {
+            fontSizes: { ...defaultIndividualBillLayout.fontSizes },
+            sectionGaps: { ...defaultIndividualBillLayout.sectionGaps },
+          },
+        };
+      });
+    });
+}
 
 export default function IndividualSummaryBillPage() {
   const [pages, setPages] = useState<IndividualSummaryPage[]>([]);
@@ -31,7 +63,43 @@ export default function IndividualSummaryBillPage() {
   const [selectedDepartment, setSelectedDepartment] = useState("Dept. of BECM, RUET");
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [teacherInformation, setTeacherInformation] = useState<Record<string, SavedIndividualTeacherInformation>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const connectSummary = useCallback(async () => {
+    const localBills = loadSummarySession()?.bills ?? [];
+    let summaryBills = localBills;
+    try {
+      const response = await fetch("/api/summary-workspace", { cache: "no-store" });
+      const body = await response.json() as { workspace?: { bills?: ImportedSummaryBill[] } | null };
+      if (response.ok && Array.isArray(body.workspace?.bills) && body.workspace.bills.length) {
+        summaryBills = body.workspace.bills;
+      }
+    } catch {
+      // The browser-saved Summary workspace remains available when Neon is offline.
+    }
+    let information = loadAllIndividualTeacherInformation();
+    try {
+      const response = await fetch("/api/teacher-information", { cache: "no-store" });
+      const body = await response.json() as { records?: Record<string, SavedIndividualTeacherInformation> };
+      if (response.ok) information = body.records ?? {};
+    } catch {
+      // Existing browser data is only a fallback when Neon cannot be reached.
+    }
+    setTeacherInformation(information);
+    const connectedPages = individualPagesFromSummary(summaryBills, information);
+    const initialPage = connectedPages.find((page) => page.department === "Dept. of BECM, RUET") ?? connectedPages[0];
+    setPages(connectedPages);
+    setSelectedDepartment(initialPage?.department || "Dept. of BECM, RUET");
+    setSelectedTeacher(initialPage?.teacher || "");
+    setMessage(summaryBills.length
+      ? `${summaryBills.length} saved Summary bill(s) connected; ${connectedPages.length} individual bill page(s) generated.`
+      : "No saved bills were found on the Summary page.");
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => void connectSummary(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [connectSummary]);
   const departments = useMemo(
     () => Array.from(new Set(["Dept. of BECM, RUET", ...pages.map((page) => page.department).filter(Boolean)]))
       .sort((left, right) => left.localeCompare(right)),
@@ -76,7 +144,7 @@ export default function IndividualSummaryBillPage() {
 
   const importFiles = async (files: FileList | null) => {
     if (!files?.length) return;
-    const information = loadAllIndividualTeacherInformation();
+    const information = Object.keys(teacherInformation).length ? teacherInformation : loadAllIndividualTeacherInformation();
     const imported: IndividualSummaryPage[] = [];
     const rejected: string[] = [];
     const sortedFiles = Array.from(files).sort((left, right) => collator.compare(left.name, right.name));
@@ -144,9 +212,10 @@ export default function IndividualSummaryBillPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Individual Summary Bill</h1>
-          <p className="text-sm text-slate-500">Import multiple bill JSON files and generate a separate Legal-page individual bill for every billable teacher.</p>
+          <p className="text-sm text-slate-500">Automatically use bills saved on the Summary page, or add JSON files manually, to generate individual teacher bills.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void connectSummary()} className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"><Link2 className="h-4 w-4" />Load from Summary</button>
           <button type="button" onClick={() => inputRef.current?.click()} className="flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white"><FilePlus2 className="h-4 w-4" />Add JSON files</button>
           <button type="button" onClick={download} disabled={!selectedPages.length || downloading} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400">{downloading ? "Generating…" : `Download Selected Teacher (${selectedPages.length})`}</button>
         </div>

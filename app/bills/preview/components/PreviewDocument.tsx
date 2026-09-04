@@ -75,6 +75,10 @@ export default function PreviewDocument({ bill }: Props) {
     bill.billInfo.year === "4th Year" &&
     bill.billInfo.semester === "Even";
   const isVerificationApplicable = bill.billInfo.hasGraduatingStudents === "yes";
+  const isPracticalSurveyingApplicable =
+    !isBacklog &&
+    bill.billInfo.year === "1st Year" &&
+    bill.billInfo.semester === "Even";
   const isCourseCoordinatorApplicable =
     bill.billInfo.examType === "semester" &&
     bill.billInfo.year === "4th Year" &&
@@ -104,7 +108,20 @@ export default function PreviewDocument({ bill }: Props) {
   const visibleSessionalDuties = sessionalIsMixed
     ? [...obeSessionalDuties, ...nonObeSessionalDuties]
     : obeSessionalDuties;
-  const courseFileRows = isShortSemester ? [] : flattenCourseFile(bill.courseDuties.obe, obeSessionalDuties);
+  const courseFileRows = [
+    ...(isShortSemester ? [] : flattenCourseFile(bill.courseDuties.obe, obeSessionalDuties)),
+    ...(isPracticalSurveyingApplicable && bill.practicalSurveyingCourseFileTeacher.name.trim()
+      ? [{
+          courseCode: "CE 1226",
+          courseTitle: "Practical Surveying",
+          teacherLine: formatTeacher(
+            bill.practicalSurveyingCourseFileTeacher.name,
+            bill.practicalSurveyingCourseFileTeacher.designation,
+            bill.practicalSurveyingCourseFileTeacher.department
+          ),
+        }]
+      : []),
+  ];
   const obeSessionalRows = flattenSessional(obeSessionalDuties);
   const nonObeSessionalRows = flattenSessional(nonObeSessionalDuties);
   const sessionalRows = sessionalIsMixed ? [...obeSessionalRows, ...nonObeSessionalRows] : obeSessionalRows;

@@ -157,7 +157,12 @@ function billTables(bill: ExaminationBillData): TableDefinition[] {
       layoutKey: "courseFile",
       title: "List of Teachers Associated with Course File",
       columns: [{ key: "course", label: "Course No. & Title" }, { key: "teacherLine", label: "Name of Teachers & Designation" }, { key: "count", label: "No. of Course File" }],
-      rows: withCourse(isShort ? [] : flattenCourseFile(bill.courseDuties.obe, sessional)),
+      rows: withCourse([
+        ...(isShort ? [] : flattenCourseFile(bill.courseDuties.obe, sessional)),
+        ...(bill.practicalSurveyingCourseFileTeacher.name.trim()
+          ? [{ courseCode: "CE 1226", courseTitle: "Practical Surveying", teacherLine: formatTeacher(bill.practicalSurveyingCourseFileTeacher.name, bill.practicalSurveyingCourseFileTeacher.designation, bill.practicalSurveyingCourseFileTeacher.department), count: "01" }]
+          : []),
+      ]),
     },
     questionWork: {
       layoutKey: "questionWork",
