@@ -17,6 +17,7 @@ export default function ResultSubnav() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={`shrink-0 rounded px-4 py-2 text-sm font-bold transition ${active ? "bg-[#082f57] text-white" : "bg-slate-100 text-[#102555] hover:bg-slate-200"}`}
+              suppressHydrationWarning
             >
               {item.label}
             </Link>
