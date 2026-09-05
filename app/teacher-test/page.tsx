@@ -120,7 +120,7 @@ export default function TeacherTestPage() {
             {mainNavigation.map(({ label, icon: Icon, active, href }) => {
               const classes = `flex w-full items-center gap-4 rounded-xl px-5 py-3 text-left text-sm font-medium transition ${
                 active
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white shadow-lg shadow-indigo-200"
+                  ? "bg-gradient-to-r from-violet-600 to-indigo-700 text-white shadow-lg shadow-indigo-950/40"
                   : href
                     ? "text-blue-100 hover:bg-white/10"
                     : "cursor-not-allowed text-blue-200/45"
