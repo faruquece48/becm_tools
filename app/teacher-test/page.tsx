@@ -25,14 +25,13 @@ import {
 } from "lucide-react";
 import logoImage from "../images/image_03.png";
 import dashboardReference from "../images/image_04..png";
-import { resultNavigation } from "@/lib/resultNavigation";
 
 const mainNavigation = [
   { label: "Dashboard", icon: Grid2X2, active: true, href: "/teacher/dashboard" },
   { label: "Remuneration Bill", icon: FileText, href: "/bills/create" },
   { label: "OBE", icon: BookOpenText },
-  { label: "Result", icon: FileChartColumn, href: "/teacher/result" },
-  { label: "Student", icon: UsersRound },
+  { label: "Result", icon: FileChartColumn, href: "/teacher/result/tabulators" },
+  { label: "Student", icon: UsersRound, href: "/teacher/students" },
   { label: "Syllabus", icon: LibraryBig, href: "/teacher/syllabus" },
   { label: "File", icon: Megaphone, href: "/files" },
   { label: "Exam Notice", icon: Bell },
@@ -107,8 +106,6 @@ const quickLinks = [
 
 export default function TeacherTestPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [resultMenuOpen, setResultMenuOpen] = useState(false);
-  const [studentMenuOpen, setStudentMenuOpen] = useState(false);
 
   return (
     <main className="min-h-screen bg-[#f7f9fd] text-[#102555]">
@@ -136,53 +133,7 @@ export default function TeacherTestPage() {
                 <span className={classes} aria-disabled="true" title="This page is not available yet">{content}</span>
               );
 
-              if (label === "Student") {
-                return (
-                  <div key={label}>
-                    <button
-                      type="button"
-                      onClick={() => setStudentMenuOpen((open) => !open)}
-                      className="flex w-full items-center gap-4 rounded-xl px-5 py-3 text-left text-sm font-medium text-blue-100 transition hover:bg-white/10"
-                      aria-label={studentMenuOpen ? "Minimize Student menu" : "Expand Student menu"}
-                      aria-expanded={studentMenuOpen}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{label}</span>
-                      <ChevronRight className={`ml-auto h-4 w-4 transition-transform ${studentMenuOpen ? "rotate-90" : ""}`} />
-                    </button>
-                    <div className={`ml-5 border-l border-white/20 py-1 pl-3 ${studentMenuOpen ? "block" : "hidden"}`}>
-                      <Link href="/teacher/students" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Student List</Link>
-                      <Link href="/teacher/students/promote" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Promote Students</Link>
-                      <Link href="/teacher/students/eligible" className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">Eligibility List</Link>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (label !== "Result") return <div key={label}>{mainItem}</div>;
-
-              return (
-                <div key={label}>
-                  <button
-                    type="button"
-                    onClick={() => setResultMenuOpen((open) => !open)}
-                    className="flex w-full items-center gap-4 rounded-xl px-5 py-3 text-left text-sm font-medium text-blue-100 transition hover:bg-white/10"
-                    aria-label={resultMenuOpen ? "Minimize Result menu" : "Expand Result menu"}
-                    aria-expanded={resultMenuOpen}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{label}</span>
-                    <ChevronRight className={`ml-auto h-4 w-4 transition-transform ${resultMenuOpen ? "rotate-90" : ""}`} />
-                  </button>
-                  <div className={`ml-5 border-l border-white/20 py-1 pl-3 ${resultMenuOpen ? "block" : "hidden"}`}>
-                    {resultNavigation.map((subItem) => (
-                      <Link key={subItem.href} href={subItem.href} className="block rounded-lg px-3 py-2 text-sm text-blue-100 transition hover:bg-white/10 hover:text-white">
-                        {subItem.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              );
+              return <div key={label}>{mainItem}</div>;
             })}
           </nav>
 

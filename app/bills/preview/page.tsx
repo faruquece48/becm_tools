@@ -362,6 +362,7 @@ export default function PreviewPage() {
   }, []);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_OFFLINE_BILLS === "true") return;
     const controller = new AbortController();
     void fetch("/api/teacher-customizations", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
@@ -375,6 +376,7 @@ export default function PreviewPage() {
   }, []);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_OFFLINE_BILLS === "true") return;
     if (!hydrated.current || !neonCustomizationReady.current) return;
     const timer = window.setTimeout(() => {
       void fetch("/api/teacher-customizations", {
@@ -387,6 +389,7 @@ export default function PreviewPage() {
   }, [billData]);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_OFFLINE_BILLS === "true") return;
     const controller = new AbortController();
     void fetch("/api/staff/remuneration", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {

@@ -31,6 +31,15 @@ export default function Toolbar({
   return (
     <div className="rounded-xl border bg-white shadow-sm p-4 mb-6">
       <div className="flex flex-wrap gap-3">
+        <a
+          href="/downloads/bills-create.html"
+          download="bills-create.html"
+          data-offline-download
+          className="inline-flex h-8 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-gray-100"
+        >
+          <Download className="h-4 w-4" />
+          Download Offline HTML
+        </a>
         <Button type="button" onClick={onSave}>
           <Save className="mr-2 h-4 w-4" />
           Save Draft
