@@ -1,4 +1,4 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import subprocess
 import os
@@ -97,7 +97,7 @@ class Handler(BaseHTTPRequestHandler):
 
         allowed_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "allowed-origin.txt")
         try:
-            with open(allowed_file, "r", encoding="utf-8") as handle:
+            with open(allowed_file, "r", encoding="utf-8-sig") as handle:
                 installed_origin = handle.read().strip().rstrip("/")
         except OSError:
             installed_origin = ""
@@ -112,6 +112,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        if self._origin_allowed():
+            self.send_header("Access-Control-Allow-Private-Network", "true")
 
     def do_OPTIONS(self):
         if not self._origin_allowed():
@@ -314,4 +316,4 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     print("Downloader server running at http://127.0.0.1:8765")
     print("Default save folder:", DEFAULT_DOWNLOAD_FOLDER, "(can be overridden per-download from the page)")
-    HTTPServer(("127.0.0.1", 8765), Handler).serve_forever()
+    ThreadingHTTPServer(("127.0.0.1", 8765), Handler).serve_forever()

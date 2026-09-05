@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
-  Download,
   FileChartColumn,
   FileText,
   Grid2X2,
@@ -38,7 +37,6 @@ const mainNavigation = [
   { label: "General Notice", icon: ClipboardList },
   { label: "Paper Setters", icon: SlidersHorizontal },
   { label: "Academic Calendar", icon: CalendarDays },
-  { label: "Video Downloader", icon: Download, href: "/download" },
 ];
 
 const quickLinks = [

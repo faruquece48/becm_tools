@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Download, Menu, RefreshCw, ShieldCheck } from "lucide-react";
 import AppSidebar from "@/components/AppSidebar";
 
@@ -45,19 +45,18 @@ function detectSiteKey(url: string) {
 
 export default function DownloadPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const hasAutoStarted = useRef(false);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [downloading, setDownloading] = useState(false);
   const [setupApproved, setSetupApproved] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const startServer = useCallback(() => {
+  const startServer = useCallback(async () => {
     if (typeof window === "undefined") return;
 
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      fetch("/api/run-downloader", { method: "POST" }).catch(() => {
-        // silently ignore; the request below will simply fail to reach the server
-      });
+      const response = await fetch("/api/run-downloader", { method: "POST", signal: AbortSignal.timeout(10000) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "The local downloader could not be launched.");
     } else {
       // Deployed/online: a website can't launch a local .bat file directly, so use a
       // custom URL protocol registered once on this PC (see register-protocol.reg).
@@ -66,18 +65,17 @@ export default function DownloadPage() {
   }, []);
 
   const waitForServer = async () => {
-    for (let attempt = 0; attempt < 20; attempt++) {
+    const deadline = Date.now() + 120000;
+    while (Date.now() < deadline) {
       try {
-        await fetch("http://127.0.0.1:8765/download", { method: "OPTIONS", mode: "cors" });
-        return true;
+        const response = await fetch("http://127.0.0.1:8765/download", {
+          method: "OPTIONS", mode: "cors", signal: AbortSignal.timeout(2000),
+        });
+        if (response.ok) return true;
       } catch {
-        // If the server still isn't up after a few seconds, try (re)launching it
-        // in case the original auto-start on page load never actually fired.
-        if (attempt === 3 || attempt === 8) {
-          startServer();
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Keep waiting without restarting an installation or active download.
       }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     return false;
   };
@@ -87,12 +85,6 @@ export default function DownloadPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    // Launch the local backend only after this device has confirmed the one-time setup.
-    if (!setupApproved || hasAutoStarted.current) return;
-    hasAutoStarted.current = true;
-    startServer();
-  }, [setupApproved, startServer]);
 
   const approveSetupAndRefresh = () => {
     window.localStorage.setItem(SETUP_PERMISSION_KEY, "true");
@@ -117,15 +109,23 @@ export default function DownloadPage() {
     setDownloading(true);
     setResult(null);
 
+    // Invoke the protocol directly from the click so browsers can show its prompt.
+    try {
+      await startServer();
+    } catch (error) {
+      setResult({ ok: false, text: "Could not start the downloader: " + String(error) });
+      setDownloading(false);
+      return;
+    }
+    setResult({ ok: true, text: "Waiting for the local downloader (up to 2 minutes). Accept the browser prompt to open RUET Downloader if shown." });
     const serverReady = await waitForServer();
     if (!serverReady) {
       setResult({
         ok: false,
         text:
           "✘ Could not reach the local downloader server.\n\n" +
-          "It may still be starting up (installing dependencies on first run can take a while) " +
-          "or failed to launch. Click Download again in a moment, or check the minimized " +
-          '"RUET Downloader" window for errors.',
+          "Download and run the latest setup.ps1 below, then retry. Accept the browser prompt to open RUET Downloader. " +
+          "If your browser asks for local network access, allow it for this site. Check the RUET Downloader window for installation errors.",
       });
       setDownloading(false);
       return;

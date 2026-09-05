@@ -14,7 +14,7 @@ foreach ($file in @('server.py', 'start.bat', 'launch-protocol.bat')) {
   Write-Host "Downloading $file..."
   Invoke-WebRequest -UseBasicParsing -Uri "$sourceBase/$file" -OutFile (Join-Path $installDir $file)
 }
-Set-Content -Path (Join-Path $installDir 'allowed-origin.txt') -Value '${origin}' -Encoding UTF8
+[System.IO.File]::WriteAllText((Join-Path $installDir 'allowed-origin.txt'), '${origin}', (New-Object System.Text.UTF8Encoding($false)))
 
 if (-not (Get-Command py -ErrorAction SilentlyContinue) -and -not (Get-Command python -ErrorAction SilentlyContinue)) {
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
@@ -25,6 +25,10 @@ if (-not (Get-Command py -ErrorAction SilentlyContinue) -and -not (Get-Command p
 }
 
 $python = Get-Command py -ErrorAction SilentlyContinue
+if ($python) {
+  & $python.Source -c "import sys"
+  if ($LASTEXITCODE -ne 0) { $python = $null }
+}
 if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
 if (-not $python) {
   $python = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs\\Python\\Python*\\python.exe') -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
@@ -35,7 +39,9 @@ $pythonExe = $python.Source
 if (-not $pythonExe) { $pythonExe = $python.FullName }
 Write-Host 'Installing Python packages...'
 & $pythonExe -m pip install --upgrade pip yt-dlp playwright
+if ($LASTEXITCODE -ne 0) { throw 'Python package installation failed. Check the error above and run setup again.' }
 & $pythonExe -m playwright install chromium
+if ($LASTEXITCODE -ne 0) { throw 'Chromium installation failed. Check your connection and run setup again.' }
 
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -and (Get-Command winget -ErrorAction SilentlyContinue)) {
   Write-Host 'Installing FFmpeg...'
@@ -50,7 +56,7 @@ $launcher = Join-Path $installDir 'launch-protocol.bat'
 Set-Item -Path $commandKey -Value ('"' + $launcher + '" "%1"')
 
 Write-Host 'Starting the downloader...'
-Start-Process -FilePath $launcher -ArgumentList 'ruetdownloader://start'
+Start-Process -FilePath $launcher -ArgumentList 'ruetdownloader://start' -WindowStyle Hidden
 Start-Sleep -Seconds 3
 
 try {

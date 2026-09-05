@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 import { NextResponse } from "next/server";
 
@@ -10,16 +10,15 @@ export async function POST() {
   const downloaderDir = path.join(process.cwd(), "app", "Downloader");
 
   try {
-    // Close any window left over from a previous launch so they don't pile up.
-    spawnSync("taskkill", ["/F", "/T", "/FI", `WINDOWTITLE eq ${WINDOW_TITLE}*`], {
-      stdio: "ignore",
-    });
-
     const child = spawn("cmd.exe", ["/c", "start", "/min", WINDOW_TITLE, "start.bat"], {
       cwd: downloaderDir,
       detached: true,
       stdio: "ignore",
-      windowsHide: false,
+      windowsHide: true,
+    });
+    await new Promise<void>((resolve, reject) => {
+      child.once("spawn", resolve);
+      child.once("error", reject);
     });
     child.unref();
 

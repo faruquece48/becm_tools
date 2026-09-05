@@ -2,20 +2,19 @@
 title RUET Downloader
 cd /d "%~dp0"
 
-echo Stopping any previous downloader server (if running)...
-for /f "tokens=5" %%a in ('netstat -aon ^| find "8765" ^| find "LISTENING"') do (
-    taskkill /F /PID %%a >nul 2>&1
-)
-
 set "PYTHON_CMD=py"
-where py >nul 2>&1
+py -c "import sys" >nul 2>&1
 if errorlevel 1 set "PYTHON_CMD=python"
-where %PYTHON_CMD% >nul 2>&1
+%PYTHON_CMD% -c "import sys" >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python was not found. Run setup.ps1 again, or restart Windows after installing Python.
     pause
     exit /b 1
 )
+
+rem Leave an existing downloader (and any active download) running.
+%PYTHON_CMD% -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8765/download', method='OPTIONS'), timeout=2)" >nul 2>&1
+if not errorlevel 1 exit /b 0
 
 echo Checking required packages ^(first run only^)...
 
