@@ -9,4 +9,5 @@ export const resultNavigation = [
   { label: "Result Sheet", href: "/teacher/result/result-sheet" },
   { label: "Grade Sheet", href: "/teacher/result/grade-sheet" },
   { label: "Publish Result", href: "/teacher/result/publish" },
+  { label: "Rules", href: "/teacher/result/rules" },
 ] as const;

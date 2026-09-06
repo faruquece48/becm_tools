@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
 import { academicYears, departmentName, oldStudentPromotionForExam, semesters, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import { cohortSeries } from "@/lib/storage/studentEligibility";
-import { syllabusCoursesForExam, type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
+import { defaultSyllabuses, syllabusCoursesForExam, type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
 import { missedRegistrationCourseCodes } from "@/lib/missedRegistrationCourses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
 import { formatTabulatorDate } from "@/lib/storage/tabulators";
@@ -13,6 +13,7 @@ import { loadExamCommittees, type ExamCommitteeRecord } from "@/lib/storage/exam
 import { completionStatus, GRADUATION_CREDIT, graduationCreditForStudent, rankedPassedStatus, topTenCompetitionRanks, usesLegacyResultFormat } from "@/lib/resultFormatPolicy";
 import { isExpelledStudentIdentity, isStudentSuspendedForExam, type ExpelledStudentRecord } from "@/lib/storage/expelledStudents";
 import { compareResultStudentRolls } from "@/lib/resultStudentOrder";
+import { formatResultToTwo } from "@/lib/resultRounding";
 
 type ArchiveStudent = { studentId: string; rollNo: string; earnedCredit: number; gradePoints: number; sgpa: string; failedSubjects: string[]; registerAgain: string[] };
 type PreparedMark = { studentId: string; present: boolean; withheld: boolean; partA: string; partB: string; classTestAttendance: string; sessional?: string; internal?: string; external?: string; thesisViva?: string };
@@ -35,11 +36,7 @@ const normalizedRoll = (value: string) => value.replace(/\s/g, "").toLowerCase()
 const rollSeries = (rollNo: string) => rollNo.trim().slice(0, 2);
 const gradePoints: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
 const numeric = (value?: string) => Number(value) || 0;
-const roundedTwo = (value: number) => {
-  const thousandths = Math.floor((value + 1e-10) * 1000);
-  const hundredths = Math.floor(thousandths / 10) + (thousandths % 10 >= 5 ? 1 : 0);
-  return (hundredths / 100).toFixed(2);
-};
+const roundedTwo = formatResultToTwo;
 const letterGrade = (score: number, mark: PreparedMark | undefined, theory: boolean) => !mark ? "" : mark.withheld ? "W" : !mark.present || (theory && numeric(mark.partA) + numeric(mark.partB) < 15) ? "F" : score >= 80 ? "A+" : score >= 75 ? "A" : score >= 70 ? "A-" : score >= 65 ? "B+" : score >= 60 ? "B" : score >= 55 ? "B-" : score >= 50 ? "C+" : score >= 45 ? "C" : score >= 40 ? "D" : "F";
 
 export default function AcademicResultSheet({ title, examType, onExamTypeChange }: Props) {
@@ -65,7 +62,7 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/students/directory?includeHistorical=true", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
+fetch("/api/students/directory", { cache: "no-store" }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error); return body; }),
       loadResultSection<MarkSheetArchive[]>("marks-sheet"),
       loadResultSection<MarkSheetArchive[]>("marks-sheet-backlog"),
       loadResultSection<ResultHistory[]>("result-sheet"),
@@ -126,13 +123,13 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
   }, [selection.examYear, selection.academicYear, selection.semester]);
   const currentArchive = marksheets.find((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
   const committee = committees.find((item) => item.examType === "Regular" && item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
-  const examCourseIds = useMemo(() => syllabusCoursesForExam(syllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"]).map(course => course.id), [syllabuses, series, selection]);
+  const examCourseIds = useMemo(() => { const stored = syllabusCoursesForExam(syllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"]); return (stored.length ? stored : syllabusCoursesForExam(defaultSyllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"])).map(course => course.id); }, [syllabuses, series, selection]);
   const promotedOldStudents = useMemo(() => oldStudents
     .filter((student) => Boolean(oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")?.courseIds.length) && !fullyIneligibleForExam(student, oldStudents, oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")?.courseIds || [], eligibility, selection) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)))
     .sort((left, right) => compareResultStudentRolls(left.rollNo, right.rollNo, selection.examYear, selection.academicYear)), [oldStudents, selection, expelled, eligibility]);
   const cohort = useMemo(() => {
     const appeared = new Set(currentArchive?.students.map((student) => student.studentId) || []);
-    const oldIdentityKeys = new Set(promotedOldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalizedRoll(student.rollNo)}`]));
+    const oldIdentityKeys = new Set(oldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalizedRoll(student.rollNo)}`]));
     const matching = students.filter((student) => appeared.has(student.id) && isObeRoll(student.rollNo) && belongsToRegularExam(student, students, examCourseIds, prepared, selection) && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
     const byRoll = new Map<string, StudentDirectoryRecord>();
     matching.forEach((student) => { const key = normalizedRoll(student.rollNo); if (!byRoll.has(key)) byRoll.set(key, student); });
@@ -140,7 +137,7 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
     const seriesCounts = new Map<string, number>();
     regular.forEach((student) => { const key = rollSeries(student.rollNo); seriesCounts.set(key, (seriesCounts.get(key) || 0) + 1); });
     return regular.filter(student => !fullyIneligibleForExam(student, students, examCourseIds, eligibility, selection)).sort((left, right) => compareResultStudentRolls(left.rollNo, right.rollNo, selection.examYear, selection.academicYear));
-  }, [students, selection, currentArchive, promotedOldStudents, expelled, examCourseIds, eligibility, prepared]);
+  }, [students, oldStudents, selection, currentArchive, expelled, examCourseIds, eligibility, prepared]);
 
   const summaryRows = useMemo<SummaryRow[]>(() => {
     if (!currentArchive) return [];
@@ -240,10 +237,13 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
     const isFinalSemester = selection.academicYear === "4th" && selection.semester === "Even";
     const ranks = topTenCompetitionRanks(summaryRows.filter((row) => row.totalCredit >= row.degreeCredit).map((row) => row.cgpa));
     try {
-      const appeared = summaryRows.length;
-      const backlogged = summaryRows.filter(countsAsSemesterBacklogged).length;
-      const cleared = appeared - summaryRows.filter(countsAsSemesterUncleared).length;
-      const completed = summaryRows.filter((row) => row.totalCredit >= row.degreeCredit).length;
+      // The first four statistics describe this examination's meeting sheet only.
+      // The final two columns explicitly include outstanding records from other exams.
+      const meetingRows = summaryRows;
+      const appeared = meetingRows.length;
+      const backlogged = meetingRows.filter(countsAsSemesterBacklogged).length;
+      const cleared = appeared - meetingRows.filter(countsAsSemesterUncleared).length;
+      const completed = meetingRows.filter((row) => row.totalCredit >= row.degreeCredit && row.totalCredit - row.semesterCredit < row.degreeCredit).length;
       const needRegister = summaryRows.filter((row) => cumulativeRegister(row).length > 0).length;
       const totalHistoricalBacklog = summaryRows.filter((row) => cumulativeFailed(row).length > 0).length;
       const record: ResultHistory = { ...selection, series, committeeId: committee.id, examDate: committee.examDate, memoNo: committee.memoNo, memoDate: committee.memoDate, resultPublishDate: committee.resultPublishDate, students: summaryRows.map((row) => ({ studentId: row.student.id, failedSubjects: cumulativeFailed(row), registerAgain: cumulativeRegister(row), totalEarnedCredit: row.totalCredit, totalGradePoints: row.totalPoints, cgpa: roundedTwo(row.cgpa) })), updatedAt: new Date().toISOString() };

@@ -1,10 +1,11 @@
 import { Prisma } from "@prisma/client";
+import { backlogGradePoint } from "@/lib/backlogGrading";
 import { getPrisma } from "@/lib/prisma";
 
 type Db = NonNullable<ReturnType<typeof getPrisma>>;
 type Selection = { examYear: string; academicYear: string };
 const norm = (value: unknown) => String(value || "").replace(/\s/g, "").toLowerCase();
-const point = (score: number) => score >= 80 ? 4 : score >= 75 ? 3.75 : score >= 70 ? 3.5 : score >= 65 ? 3.25 : score >= 60 ? 3 : score >= 55 ? 2.75 : score >= 50 ? 2.5 : score >= 45 ? 2.25 : score >= 40 ? 2 : 0;
+const regularGradePoint = (score: number) => score >= 80 ? 4 : score >= 75 ? 3.75 : score >= 70 ? 3.5 : score >= 65 ? 3.25 : score >= 60 ? 3 : score >= 55 ? 2.75 : score >= 50 ? 2.5 : score >= 45 ? 2.25 : score >= 40 ? 2 : 0;
 
 async function data(prisma: Db, section: string) {
   const rows = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section"=${section} LIMIT 1`);
@@ -23,7 +24,7 @@ export async function backlogMarksheetPublicationData(prisma: Db, selection: Sel
     if (!course) throw Error(`Missing syllabus course for backlog result: ${String(row.courseCode || "")}`);
     const current = students.get(studentId) || { studentId, rollNo, earnedCredit: 0, gradePoints: 0, failedSubjects: [] };
     const score = Number(row.marks || 0), passed = row.result !== "Fail" && score >= 40, credit = Number(course.credit || 0);
-    if (passed) { current.earnedCredit += credit; current.gradePoints += credit * point(score); }
+    if (passed) { current.earnedCredit += credit; current.gradePoints += credit * backlogGradePoint(score); }
     else current.failedSubjects.push(String(row.courseCode || course.code || ""));
     students.set(studentId, current);
   }
@@ -53,7 +54,7 @@ export async function regularMarksheetPublicationData(prisma: Db, selection: Sel
       const score = Math.round(theory ? (value.present === false ? 0 : n("partA") + n("partB")) + n("classTestAttendance") : thesis ? n("internal") + n("external") + n("thesisViva") : n("sessional") + vivaMark);
       const failed = value.withheld || value.present === false || (theory && n("partA") + n("partB") < 15) || (!theory && !thesis && vivaMark <= 0) || score < 40;
       const credit = failed ? 0 : Number(course.credit || 0);
-      return { code: String(course.code || ""), status: failed ? "failed" : "passed", credit, gp: failed ? 0 : credit * point(score) };
+      return { code: String(course.code || ""), status: failed ? "failed" : "passed", credit, gp: failed ? 0 : credit * regularGradePoint(score) };
     });
     if (results.every(result => result.status === "register")) return [];
     const earnedCredit = Number(results.reduce((sum, result) => sum + result.credit, 0).toFixed(3)), gradePoints = Number(results.reduce((sum, result) => sum + result.gp, 0).toFixed(3));

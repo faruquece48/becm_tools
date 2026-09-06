@@ -6,10 +6,12 @@ import { FileDown } from "lucide-react";
 import { academicYears, departmentName, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import { type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
+import { backlogGrade } from "@/lib/backlogGrading";
 import { formatTabulatorDate, loadTabulators, type TabulatorRecord } from "@/lib/storage/tabulators";
 import { loadExamCommittees, type ExamCommitteeRecord } from "@/lib/storage/examCommittees";
 import { completionStatus, GRADUATION_CREDIT, usesLegacyResultFormat } from "@/lib/resultFormatPolicy";
 import SyncedHorizontalScroll from "@/components/SyncedHorizontalScroll";
+import { formatResultToTwo } from "@/lib/resultRounding";
 
 type BacklogMark = { studentId: string; rollNo: string; examYear: string; academicYear: string; semester: "Odd" | "Even"; courseCode: string; courseTitle: string; marks: string; result: "Pass" | "Fail" };
 type ArchiveStudent = { studentId: string; rollNo?: string; earnedCredit: number; gradePoints: number; failedSubjects?: string[]; registerAgain?: string[] };
@@ -19,16 +21,12 @@ type ResultArchive = { examYear: string; academicYear: string; semester: string;
 const points: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
 const order: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const norm = (value: string) => value.replace(/\s/g, "").toLowerCase();
-const letter = (score: number) => score >= 80 ? "A+" : score >= 75 ? "A" : score >= 70 ? "A-" : score >= 65 ? "B+" : score >= 60 ? "B" : score >= 55 ? "B-" : score >= 50 ? "C+" : score >= 45 ? "C" : score >= 40 ? "D" : "F";
-const roundedTwo = (value: number) => {
-  const thousandths = Math.floor((value + 1e-10) * 1000);
-  const hundredths = Math.floor(thousandths / 10) + (thousandths % 10 >= 5 ? 1 : 0);
-  return (hundredths / 100).toFixed(2);
-};
+const letter = backlogGrade;
+const roundedTwo = formatResultToTwo;
 const unique = (values: string[]) => [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 const studentDetailScore = (student: StudentDirectoryRecord) => (student.fatherName.trim() ? 8 : 0) + (student.registrationNo.trim() ? 4 : 0) + (student.name && student.name !== "Historical Student" ? 2 : 0) + (student.motherName.trim() ? 1 : 0);
 const examRank = (archive: Pick<Archive, "examYear" | "academicYear" | "semester">) => Number(archive.examYear) * 100 + (order[archive.academicYear] || 0) * 3 + (archive.semester === "Odd" ? 0 : archive.semester === "Even" ? 1 : 2);
-const gradeRows = [["80% and above", "A+", "4.00"], ["75% to less than 80%", "A", "3.75"], ["70% to less than 75%", "A-", "3.50"], ["65% to less than 70%", "B+", "3.25"], ["60% to less than 65%", "B", "3.00"], ["55% to less than 60%", "B-", "2.75"], ["50% to less than 55%", "C+", "2.50"], ["45% to less than 50%", "C", "2.25"], ["40% to less than 45%", "D", "2.00"], ["Less than 40%", "F", "0.00"], ["Incomplete", "I", "-"], ["Need to Register Again", "-", "-"]];
+const gradeRows = [["65% and above", "B+", "3.25"], ["60% to less than 65%", "B", "3.00"], ["55% to less than 60%", "B-", "2.75"], ["50% to less than 55%", "C+", "2.50"], ["45% to less than 50%", "C", "2.25"], ["40% to less than 45%", "D", "2.00"], ["Less than 40%", "F", "0.00"], ["Incomplete", "I", "-"], ["Need to Register Again", "-", "-"]];
 
 export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChange }: { mode: "tabulation" | "result"; examType: "Regular" | "Backlog"; onExamTypeChange: (value: "Regular" | "Backlog") => void }) {
   const currentYear = String(new Date().getFullYear());
@@ -46,7 +44,7 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => { Promise.all([
-    fetch("/api/students/directory?includeHistorical=true", { cache: "no-store" }).then((response) => response.json()),
+fetch("/api/students/directory", { cache: "no-store" }).then((response) => response.json()),
     fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
     loadResultSection<BacklogMark[]>("prepare-result-backlog"), loadResultSection<Archive[]>("marks-sheet"),
     loadResultSection<Archive[]>("marks-sheet-backlog"), loadResultSection<ResultArchive[]>("result-sheet"), loadResultSection<ResultArchive[]>("result-sheet-backlog"), loadTabulators(), loadExamCommittees(),
@@ -79,9 +77,9 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
     const passed = rows.filter((row) => row.mark && row.grade !== "F");
     const recalculatedCurrentCredit = passed.reduce((sum, row) => sum + Number(row.course.credit), 0);
     const recalculatedCurrentGp = passed.reduce((sum, row) => sum + points[row.grade] * Number(row.course.credit), 0);
-    const currentBacklogStudent = backlogArchives.find((archive) => archive.examYear === selection.examYear && archive.academicYear === selection.academicYear)?.students.find(sameStudent);
-    const currentCredit = currentBacklogStudent ? Number(currentBacklogStudent.earnedCredit || 0) : recalculatedCurrentCredit;
-    const currentGp = currentBacklogStudent ? Number(currentBacklogStudent.gradePoints || 0) : recalculatedCurrentGp;
+    // Recalculate the selected exam so an older archive cannot bypass the B+ ceiling.
+    const currentCredit = recalculatedCurrentCredit;
+    const currentGp = recalculatedCurrentGp;
     // A historical archive can contain duplicate rows for the same roll. Each exam
     // contributes at most once to the cumulative totals.
     const previous = priorArchives.map((archive) => archive.students.find(sameStudent)).filter((item): item is ArchiveStudent => Boolean(item));
@@ -146,10 +144,12 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
     const chunks: Array<typeof rows> = []; let chunk: typeof rows = [], measuredY = 69; rows.forEach((row) => { const height = rowHeight(row); if (chunk.length && measuredY + height > H - 14) { chunks.push(chunk); chunk = []; measuredY = 33; } chunk.push(row); measuredY += height; }); chunks.push(chunk); const lastStart = chunks.length === 1 ? 69 : 33, lastEnd = chunks[chunks.length - 1].reduce((position, row) => position + rowHeight(row), lastStart), statisticsOnNewPage = lastEnd + 7 + 33 > H - 14; let y = 0, currentPage = chunks.length;
     chunks.forEach((items, pageIndex) => { if (pageIndex) doc.addPage("a4", "portrait"); if (!pageIndex) { doc.setFont("FreeSerif", "normal"); doc.setFontSize(10.5); doc.text(`Date of Examination: ${formatTabulatorDate(selectedCommittee.examDate)}`, R, 19, { align: "right" }); doc.text("Heavens Light is Our Guide", W / 2, 24, { align: "center" }); doc.text("Rajshahi University of Engineering & Technology", W / 2, 29, { align: "center" }); doc.text(`Department of ${departmentName}`, W / 2, 34, { align: "center" }); const introduction = `Subject to the approval of the Syndicate on recommendation of the Academic Council, the result of B.Sc Engineering ${selection.academicYear} Year Backlog Examination, ${selection.examYear} is published as follows-`; doc.text(doc.splitTextToSize(introduction, R - L), L, 42, { align: "justify", maxWidth: R - L, lineHeightFactor: 1.15 }); y = tableHeader(53); } else y = tableHeader(17); items.forEach((row) => { y = drawRow(y, row); }); if (pageIndex < chunks.length - 1) footer(pageIndex + 1); });
     if (statisticsOnNewPage) { footer(currentPage); doc.addPage("a4", "portrait"); currentPage += 1; y = 17; } else y += 7;
+    // These four values come only from the selected backlog meeting sheet.
     const appeared = rows.length;
     const cleared = rows.filter((row) => !row.currentFailed.length).length;
     const backlogged = rows.filter((row) => row.currentFailed.length).length;
     const completed = rows.filter((row) => row.previousCredit < GRADUATION_CREDIT && row.totalCredit >= GRADUATION_CREDIT).length;
+    // These two values intentionally use the cumulative result state.
     const needRegister = rows.filter((row) => row.register.length).length;
     const totalBacklogged = rows.filter((row) => row.failed.length > 0).length;
     const statWidths = [29, 29, 28, 30, 30, 30], statLabels = ["Nos. of students\nappeared in the\nexam", "Nos. of students\ncleared all\nsubjects", "Nos. of\nbacklogged\nstudents", "Nos. of students\ncompleted the\ndegree", "Need to\nregister again\n(incl. other exam)", "Nos. of total\nbacklogged student\n(incl. other exam)"], statValues = [appeared, cleared, backlogged, completed, needRegister, totalBacklogged], leftWidth = statWidths.slice(0, 4).reduce((sum, width) => sum + width, 0), top = y;

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { getPrisma } from "@/lib/prisma";
 import type { OldStudentCourseStatus, OldStudentRecord } from "@/lib/storage/studentDirectory";
 import type { SyllabusSegment } from "@/lib/storage/syllabuses";
+import { backlogGrade } from "@/lib/backlogGrading";
 
 const DIRECTORY_SECTION = "old-student-directory";
 const LEDGER_SECTION = "old-student-result-updates";
@@ -71,7 +72,7 @@ export async function specialStudentPublicationWrites(prisma: PrismaClient, sele
           }
         } else {
           const row = (prepared as PreparedBacklog[]).find((record) => record.studentId === student.id && record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.courseId === courseId);
-          if (row) { const score = numberValue(row.marks) || Math.round((row.present ? numberValue(row.partA) + numberValue(row.partB) : 0) + numberValue(row.classTestAttendance)); letter = row.result === "Fail" || !row.present || numberValue(row.partA) + numberValue(row.partB) < 15 ? "F" : grade(score); after = letter === "F" ? "failed" : null; }
+          if (row) { const score = numberValue(row.marks) || Math.round((row.present ? numberValue(row.partA) + numberValue(row.partB) : 0) + numberValue(row.classTestAttendance)); letter = row.result === "Fail" || !row.present || numberValue(row.partA) + numberValue(row.partB) < 15 ? "F" : backlogGrade(score); after = letter === "F" ? "failed" : null; }
         }
         if (after === before) return;
         change.courses.push({ courseId, before, after });

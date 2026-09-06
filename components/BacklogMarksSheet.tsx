@@ -3,12 +3,13 @@ const roundSgpa=(value:number)=>(Math.round((value+Number.EPSILON)*100)/100).toF
 
 import { useEffect, useMemo, useState } from "react";
 import { Printer } from "lucide-react";
-import { academicYears, departmentName, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import { academicYears, departmentName, oldStudentPromotionForExam, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import { type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
+import { backlogGrade } from "@/lib/backlogGrading";
 import SyncedHorizontalScroll from "@/components/SyncedHorizontalScroll";
 
-type BacklogMark = { studentId: string; rollNo: string; examYear: string; academicYear: string; semester: "Odd" | "Even"; courseCode: string; courseTitle: string; present: boolean; partA: string; partB: string; classTestAttendance: string; marks: string; result: "Pass" | "Fail" };
+type BacklogMark = { studentId: string; rollNo: string; examYear: string; academicYear: string; semester: "Odd" | "Even"; courseId?: string; courseCode: string; courseTitle: string; present: boolean; partA: string; partB: string; classTestAttendance: string; marks: string; result: "Pass" | "Fail" };
 type ArchiveStudent = { studentId: string; rollNo: string; earnedCredit: number; gradePoints: number; sgpa: string; failedSubjects: string[]; registerAgain: string[] };
 type Archive = { examYear: string; academicYear: string; semester: ""; series: string; students: ArchiveStudent[]; updatedAt: string };
 type SheetStudent = Pick<StudentDirectoryRecord, "id" | "rollNo" | "name" | "registrationNo" | "fatherName" | "motherName">;
@@ -17,7 +18,7 @@ const gradePoints: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+":
 const numberValue = (value?: string) => Number(value) || 0;
 const normalize = (value: string) => value.replace(/\s/g, "").toLowerCase();
 const studentDetailScore = (student: StudentDirectoryRecord) => (student.fatherName.trim() ? 8 : 0) + (student.registrationNo.trim() ? 4 : 0) + (student.name && student.name !== "Historical Student" ? 2 : 0) + (student.motherName.trim() ? 1 : 0);
-const grade = (score: number) => score >= 80 ? "A+" : score >= 75 ? "A" : score >= 70 ? "A-" : score >= 65 ? "B+" : score >= 60 ? "B" : score >= 55 ? "B-" : score >= 50 ? "C+" : score >= 45 ? "C" : score >= 40 ? "D" : "F";
+const grade = backlogGrade;
 const ordinal: Record<string, string> = { "1st": "1st", "2nd": "2nd", "3rd": "3rd", "4th": "4th" };
 
 export default function BacklogMarksSheet({ examType, onExamTypeChange }: { examType: "Regular" | "Backlog"; onExamTypeChange: (value: "Regular" | "Backlog") => void }) {
@@ -35,7 +36,7 @@ export default function BacklogMarksSheet({ examType, onExamTypeChange }: { exam
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/students/directory?includeHistorical=true", { cache: "no-store" }).then((response) => response.json()),
+fetch("/api/students/directory", { cache: "no-store" }).then((response) => response.json()),
       fetch("/api/students/old", { cache: "no-store" }).then((response) => response.json()),
       fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
       loadResultSection<BacklogMark[]>("prepare-result-backlog"),
@@ -62,7 +63,13 @@ export default function BacklogMarksSheet({ examType, onExamTypeChange }: { exam
     matching.filter((student) => !oldKeys.has(`id:${student.id}`) && !oldKeys.has(`roll:${normalize(student.rollNo)}`)).forEach((student) => { const key = normalize(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); });
     const resolved = [...byRoll.values()], rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2), seriesCounts = new Map<string, number>(); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((left, right) => (seriesCounts.get(rollSeries(right.rollNo)) || 0) - (seriesCounts.get(rollSeries(left.rollNo)) || 0) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true }));
   }, [students, oldStudents, currentMarks]);
-  const nonObeCohort = useMemo(() => oldStudents.filter((student) => currentMarks.some((mark) => mark.studentId === student.id || normalize(mark.rollNo) === normalize(student.rollNo))).sort((left, right) => left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true })), [oldStudents, currentMarks]);
+  const nonObeCohort = useMemo(() => oldStudents.filter((student) => {
+    const promotion = oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, "Backlog", "Backlog");
+    if (!promotion?.courseIds.length) return false;
+    const promotedIds = new Set(promotion.courseIds);
+    const promotedCodes = new Set(syllabuses.flatMap((segment) => segment.courses).filter((course) => promotedIds.has(course.id)).map((course) => normalize(course.code)));
+    return currentMarks.some((mark) => (mark.studentId === student.id || normalize(mark.rollNo) === normalize(student.rollNo)) && (mark.courseId ? promotedIds.has(mark.courseId) : promotedCodes.has(normalize(mark.courseCode))));
+  }).sort((left, right) => left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true })), [oldStudents, currentMarks, selection, syllabuses]);
   const cohort: SheetStudent[] = [...obeCohort, ...nonObeCohort];
 
   function result(student: SheetStudent, course: SyllabusCourse) {
@@ -99,7 +106,7 @@ export default function BacklogMarksSheet({ examType, onExamTypeChange }: { exam
     doc.addFileToVFS("FreeSerifBold.ttf", boldFont); doc.addFont("FreeSerifBold.ttf", "FreeSerif", "bold");
     doc.addFileToVFS("FreeSerifBoldItalic.ttf", boldItalicFont); doc.addFont("FreeSerifBoldItalic.ttf", "FreeSerif", "bolditalic");
     const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), L = 12, R = W - 12, rollWidth = 14, earnedWidth = 12, sgpaWidth = 10, failedWidth = 29, registerWidth = 24, remarksWidth = failedWidth + registerWidth, courseWidth = (R - L - rollWidth - earnedWidth - sgpaWidth - remarksWidth) / Math.max(1, courses.length), subWidth = courseWidth / 5;
-    const cell = (x: number, y: number, w: number, h: number, value: string, bold = false, align: "left" | "center" = "center", size = 7.3, failed = false) => { doc.setLineWidth(.15); doc.setTextColor(failed ? 220 : 0, failed ? 38 : 0, failed ? 38 : 0); doc.rect(x, y, w, h); doc.setFont("FreeSerif", bold ? "bold" : "normal"); doc.setFontSize(size); const lines = doc.splitTextToSize(value || "", Math.max(1, w - 1.6)) as string[], lineHeight = size * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + .8 : x + w / 2, start + index * lineHeight, { align })); doc.setTextColor(0); };
+    const cell = (x: number, y: number, w: number, h: number, value: string, bold = false, align: "left" | "center" = "center", size = 7.3, failed = false) => { doc.setLineWidth(.15); doc.setTextColor(failed ? 220 : 0, failed ? 38 : 0, failed ? 38 : 0); doc.rect(x, y, w, h); doc.setFont("FreeSerif", bold ? "bold" : "normal"); doc.setFontSize(size); const available = Math.max(1, w - 1.6), singleLine = /^(A|B|CT|T\.|Gr\.)$/.test(value); if (singleLine && doc.getTextWidth(value) > available) doc.setFontSize(Math.max(5.5, size * available / doc.getTextWidth(value))); const lines = singleLine ? [value] : doc.splitTextToSize(value || "", available) as string[], lineHeight = doc.getFontSize() * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + .8 : x + w / 2, start + index * lineHeight, { align })); doc.setTextColor(0); };
     const heading = () => { doc.setFont("FreeSerif", "bold"); doc.setFontSize(8); doc.text("Heavens Light is Our Guide", W / 2, 9, { align: "center" }); doc.text("Rajshahi University of Engineering & Technology", W / 2, 13, { align: "center" }); doc.text(`Department of ${departmentName}`, W / 2, 17, { align: "center" }); doc.text(`${ordinal[selection.academicYear]} Year Backlog Examination, ${selection.examYear}`, W / 2, 21, { align: "center" }); doc.line(L, 25, R, 25); };
     const tableHeader = (top: number) => { let x = L; cell(x, top, rollWidth, 18, "Roll No.", true); x += rollWidth; courses.forEach((course) => { cell(x, top, courseWidth, 10, `${course.code}\n${numberValue(course.credit).toFixed(2)}`, true); ["A", "B", "CT", "T.", "Gr."].forEach((label) => { cell(x, top + 10, subWidth, 8, label, true); x += subWidth; }); }); cell(x, top, earnedWidth, 18, "Earned\nCredit", true); x += earnedWidth; cell(x, top, sgpaWidth, 18, "SGPA", true); x += sgpaWidth; cell(x, top, remarksWidth, 10, "Remarks", true); cell(x, top + 10, failedWidth, 8, "Failed Subjects", true); cell(x + failedWidth, top + 10, registerWidth, 8, "Need to Register\nAgain", true); return top + 18; };
     const rowData = (list: SheetStudent[]) => list.map((student) => ({ student, data: summary(student) }));
