@@ -146,7 +146,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "This result has not been finalized" }, { status: 409 });
     }
 
-    if (!results[index].submitted && !results[index].published) {
+    const updateRequested = Boolean(results[index].published);
+    if (updateRequested || !results[index].submitted) {
       results[index] = {
         ...results[index],
         finalized: true,
@@ -167,7 +168,7 @@ export async function PUT(request: Request) {
         ON CONFLICT ("section") DO UPDATE
         SET "data" = EXCLUDED."data", "updatedAt" = NOW()`,
     );
-    return NextResponse.json({ result: results[index] });
+    return NextResponse.json({ result: results[index], updateRequested });
   } catch (error) {
     console.error("Unable to publish result", error);
     return NextResponse.json({ error: "Unable to publish result" }, { status: 503 });
