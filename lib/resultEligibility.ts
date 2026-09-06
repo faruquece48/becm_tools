@@ -20,10 +20,8 @@ type ExamMark = { studentId: string; rollNo?: string; present?: boolean; partA?:
 type PreparedExam = Exam & { courseId: string; students: ExamMark[] };
 
 export function belongsToRegularExam(student: Student & { series: string; year?: string; semester?: string; placementExamYear?: string }, _directory: Student[], courseIds: string[], _prepared: PreparedExam[], exam: Exam) {
-  const year = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[exam.academicYear];
-  if (!year || !courseIds.length) return false;
-  const placementExamYear = student.placementExamYear || String(Number(student.series) + year);
-  return placementExamYear === exam.examYear && student.year === exam.academicYear && student.semester === exam.semester;
+  if (!courseIds.length) return false;
+  return student.placementExamYear === exam.examYear && student.year === exam.academicYear && student.semester === exam.semester;
 }
 
 export function fullyIneligibleForExam(student: Student, directory: Student[], courseIds: string[], records: Eligibility[], exam: Exam) {

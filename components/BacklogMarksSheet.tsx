@@ -13,6 +13,7 @@ type BacklogMark = { studentId: string; rollNo: string; examYear: string; academ
 type ArchiveStudent = { studentId: string; rollNo: string; earnedCredit: number; gradePoints: number; sgpa: string; failedSubjects: string[]; registerAgain: string[] };
 type Archive = { examYear: string; academicYear: string; semester: ""; series: string; students: ArchiveStudent[]; updatedAt: string };
 type SheetStudent = Pick<StudentDirectoryRecord, "id" | "rollNo" | "name" | "registrationNo" | "fatherName" | "motherName">;
+type BacklogRegistration = { studentId: string; rollNo: string; examYear: string; academicYear: string; courses: Array<{ courseCode: string; semester: "Odd" | "Even" }> };
 
 const gradePoints: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
 const numberValue = (value?: string) => Number(value) || 0;
@@ -29,6 +30,7 @@ export default function BacklogMarksSheet({ examType, onExamTypeChange }: { exam
   const [marks, setMarks] = useState<BacklogMark[]>([]);
   const [syllabuses, setSyllabuses] = useState<SyllabusSegment[]>([]);
   const [archives, setArchives] = useState<Archive[]>([]);
+  const [registrations, setRegistrations] = useState<BacklogRegistration[]>([]);
   const [selection, setSelection] = useState({ examYear: currentYear, academicYear: "1st" });
   const [searched, setSearched] = useState(false);
   const [message, setMessage] = useState("");
@@ -41,12 +43,14 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
       fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
       loadResultSection<BacklogMark[]>("prepare-result-backlog"),
       loadResultSection<Archive[]>("marks-sheet-backlog"),
-    ]).then(([studentBody, oldStudentBody, syllabusBody, savedMarks, savedArchives]) => {
+      fetch("/api/backlog-registrations", { cache: "no-store" }).then((response) => response.json()),
+    ]).then(([studentBody, oldStudentBody, syllabusBody, savedMarks, savedArchives, registrationBody]) => {
       setStudents(studentBody.records || []);
       setOldStudents(oldStudentBody.records || []);
       setSyllabuses(syllabusBody.syllabuses || []);
       setMarks(Array.isArray(savedMarks) ? savedMarks : []);
       setArchives(Array.isArray(savedArchives) ? savedArchives : []);
+      setRegistrations(registrationBody.registrations || []);
     }).catch(() => setMessage("Unable to load backlog marksheet data from Neon."));
   }, []);
 
@@ -57,12 +61,13 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     return [`${item.semester}|${normalize(item.courseCode)}`, course] as const;
   })).values()], [currentMarks, syllabuses, selection.academicYear]);
   const obeCohort = useMemo(() => {
-    const ids = new Set(currentMarks.map((item) => item.studentId));
+    const registered = registrations.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.courses.length > 0);
+    const ids = new Set(registered.map((item) => item.studentId));
     const oldKeys = new Set(oldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalize(student.rollNo)}`]));
-    const matching = students.filter((student) => ids.has(student.id) || currentMarks.some((mark) => normalize(mark.rollNo) === normalize(student.rollNo))), byRoll = new Map<string, StudentDirectoryRecord>();
+    const matching = students.filter((student) => ids.has(student.id) || registered.some((item) => normalize(item.rollNo) === normalize(student.rollNo))), byRoll = new Map<string, StudentDirectoryRecord>();
     matching.filter((student) => !oldKeys.has(`id:${student.id}`) && !oldKeys.has(`roll:${normalize(student.rollNo)}`)).forEach((student) => { const key = normalize(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); });
     const resolved = [...byRoll.values()], rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2), seriesCounts = new Map<string, number>(); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((left, right) => (seriesCounts.get(rollSeries(right.rollNo)) || 0) - (seriesCounts.get(rollSeries(left.rollNo)) || 0) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true }));
-  }, [students, oldStudents, currentMarks]);
+  }, [students, oldStudents, registrations, selection]);
   const nonObeCohort = useMemo(() => oldStudents.filter((student) => {
     const promotion = oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, "Backlog", "Backlog");
     if (!promotion?.courseIds.length) return false;

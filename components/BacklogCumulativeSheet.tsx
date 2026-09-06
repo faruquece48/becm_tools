@@ -18,6 +18,7 @@ type ArchiveStudent = { studentId: string; rollNo?: string; earnedCredit: number
 type Archive = { examYear: string; academicYear: string; semester: string; students: ArchiveStudent[] };
 type ResultStudent = { studentId: string; rollNo?: string; failedSubjects: string[]; registerAgain: string[]; totalEarnedCredit: number; totalGradePoints: number; cgpa: string };
 type ResultArchive = { examYear: string; academicYear: string; semester: string; series: string; students: ResultStudent[]; updatedAt: string };
+type BacklogRegistration = { studentId: string; rollNo: string; examYear: string; academicYear: string; courses: Array<{ courseCode: string; semester: "Odd" | "Even" }> };
 const points: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
 const order: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const norm = (value: string) => value.replace(/\s/g, "").toLowerCase();
@@ -40,6 +41,7 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
   const [syllabuses, setSyllabuses] = useState<SyllabusSegment[]>([]);
   const [tabulators, setTabulators] = useState<TabulatorRecord[]>([]);
   const [committees, setCommittees] = useState<ExamCommitteeRecord[]>([]);
+  const [registrations, setRegistrations] = useState<BacklogRegistration[]>([]);
   const [selection, setSelection] = useState({ examYear: currentYear, academicYear: "" });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,10 +49,10 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
 fetch("/api/students/directory", { cache: "no-store" }).then((response) => response.json()),
     fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
     loadResultSection<BacklogMark[]>("prepare-result-backlog"), loadResultSection<Archive[]>("marks-sheet"),
-    loadResultSection<Archive[]>("marks-sheet-backlog"), loadResultSection<ResultArchive[]>("result-sheet"), loadResultSection<ResultArchive[]>("result-sheet-backlog"), loadTabulators(), loadExamCommittees(),
-  ]).then(([studentBody, syllabusBody, savedMarks, regularMarks, backlogMarks, publishedRegularResults, results, tabulatorRows, committeeRows]) => {
+    loadResultSection<Archive[]>("marks-sheet-backlog"), loadResultSection<ResultArchive[]>("result-sheet"), loadResultSection<ResultArchive[]>("result-sheet-backlog"), loadTabulators(), loadExamCommittees(), fetch("/api/backlog-registrations", { cache: "no-store" }).then((response) => response.json()),
+  ]).then(([studentBody, syllabusBody, savedMarks, regularMarks, backlogMarks, publishedRegularResults, results, tabulatorRows, committeeRows, registrationBody]) => {
     setStudents(studentBody.records || []); setSyllabuses(syllabusBody.syllabuses || []); setMarks(savedMarks || []);
-    setRegular(regularMarks || []); setBacklogArchives(backlogMarks || []); setRegularResults(publishedRegularResults || []); setResultArchives(results || []); setTabulators(tabulatorRows); setCommittees(committeeRows);
+    setRegular(regularMarks || []); setBacklogArchives(backlogMarks || []); setRegularResults(publishedRegularResults || []); setResultArchives(results || []); setTabulators(tabulatorRows); setCommittees(committeeRows); setRegistrations(registrationBody.registrations || []);
   }).catch(() => setMessage(`Unable to load backlog ${mode} data from Neon.`)); }, [mode]);
   const current = useMemo(() => marks.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear), [marks, selection]);
   const courses = useMemo(() => {
@@ -65,7 +67,7 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     })).values()];
     return resolved;
   }, [current, syllabuses, selection]);
-  const cohort = useMemo(() => { const ids = new Set(current.map((item) => item.studentId)), byRoll = new Map<string, StudentDirectoryRecord>(); students.filter((student) => ids.has(student.id) || current.some((mark) => norm(mark.rollNo) === norm(student.rollNo))).forEach((student) => { const key = norm(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); }); const resolved = [...byRoll.values()], seriesCounts = new Map<string, number>(), rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((a, b) => (seriesCounts.get(rollSeries(b.rollNo)) || 0) - (seriesCounts.get(rollSeries(a.rollNo)) || 0) || a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true })); }, [students, current]);
+  const cohort = useMemo(() => { const registered = registrations.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.courses.length > 0), ids = new Set(registered.map((item) => item.studentId)), byRoll = new Map<string, StudentDirectoryRecord>(); students.filter((student) => ids.has(student.id) || registered.some((item) => norm(item.rollNo) === norm(student.rollNo))).forEach((student) => { const key = norm(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); }); const resolved = [...byRoll.values()], seriesCounts = new Map<string, number>(), rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((a, b) => (seriesCounts.get(rollSeries(b.rollNo)) || 0) - (seriesCounts.get(rollSeries(a.rollNo)) || 0) || a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true })); }, [students, registrations, selection]);
   const tabulator = tabulators.find((item) => item.examType === "Backlog" && item.examYear === selection.examYear && item.academicYear === selection.academicYear);
   const committee = committees.find((item) => item.examType === "Backlog" && item.examYear === selection.examYear && item.academicYear === selection.academicYear);
   function summary(student: StudentDirectoryRecord) {
