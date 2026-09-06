@@ -6,6 +6,7 @@ import { oldStudentPromotionForExam, type OldStudentRecord } from "@/lib/storage
 import { type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection } from "@/lib/storage/resultSections";
 import { compareResultStudentRolls } from "@/lib/resultStudentOrder";
+import { fullyIneligibleForExam } from "@/lib/resultEligibility";
 
 type Selection = { examYear: string; academicYear: string; semester: string };
 type Mark = { studentId: string; present: boolean; withheld: boolean; partA: string; partB: string; classTestAttendance: string; sessional?: string; internal?: string; external?: string; thesisViva?: string };
@@ -39,24 +40,31 @@ export default function NonObeExamTable({ selection }: { selection: Selection; t
   const [vivas, setVivas] = useState<Viva[]>([]);
 
   useEffect(() => {
-    Promise.all([
+    let active = true;
+    const refresh = () => Promise.all([
       fetch("/api/students/old", { cache: "no-store" }).then((response) => response.json()),
       fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
       loadResultSection<Prepared[]>("prepare-result"),
       fetch("/api/student-eligibility", { cache: "no-store" }).then((response) => response.json()),
       loadResultSection<Viva[]>("add-viva-marks"),
     ]).then(([studentBody, syllabusBody, preparedRows, eligibilityBody, vivaRows]) => {
+      if (!active) return;
       setStudents(studentBody.records || []);
       setSyllabuses(syllabusBody.syllabuses || []);
       setPrepared(preparedRows || []);
       setEligibility(eligibilityBody.records || []);
       setVivas(vivaRows || []);
-    });
-  }, []);
+    }).catch(() => { if (active) setStudents([]); });
+    void refresh();
+    const onFocus = () => { void refresh(); };
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; window.removeEventListener("focus", onFocus); };
+  }, [selection.examYear, selection.academicYear, selection.semester]);
 
   const cohort = useMemo(() => students
     .filter((student) => Boolean(oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")))
-    .sort((left, right) => compareResultStudentRolls(left.rollNo, right.rollNo, selection.examYear, selection.academicYear)), [students, selection]);
+    .filter((student) => !fullyIneligibleForExam(student, students, oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")?.courseIds || [], eligibility, selection))
+    .sort((left, right) => compareResultStudentRolls(left.rollNo, right.rollNo, selection.examYear, selection.academicYear)), [students, selection, eligibility]);
   const courseIds = new Set(cohort.flatMap((student) => oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")?.courseIds || []));
   const courses = syllabuses.flatMap((syllabus) => syllabus.courses).filter((course, index, all) => courseIds.has(course.id) && all.findIndex((candidate) => candidate.id === course.id) === index);
   const vivaCohort = vivas.find((row) => row.examYear === selection.examYear && row.academicYear === selection.academicYear && row.semester === selection.semester);
