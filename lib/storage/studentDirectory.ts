@@ -59,3 +59,14 @@ export function oldStudentPromotionForExam(student: OldStudentRecord, examYear: 
 export const departmentName = "Building Engineering & Construction Management";
 export const academicYears = ["1st", "2nd", "3rd", "4th"];
 export const semesters = ["Odd", "Even", "Short Semester"];
+
+const academicYearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
+
+export function studentAssignedToRegularExam(
+  student: { series: string; year?: string; semester?: string; placementExamYear?: string },
+  exam: { examYear: string; academicYear: string; semester: string },
+) {
+  if (student.year !== exam.academicYear || student.semester !== exam.semester) return false;
+  const assignedExamYear = student.placementExamYear || String(Number(student.series) + (academicYearNumber[student.year] || 0));
+  return assignedExamYear === exam.examYear;
+}

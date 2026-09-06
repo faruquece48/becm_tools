@@ -7,12 +7,13 @@ import { academicYears, departmentName, oldStudentPromotionForExam, type OldStud
 import { type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
 import { backlogGrade } from "@/lib/backlogGrading";
+import { sortCourseCodesBySyllabus } from "@/lib/resultCourseOrder";
 import SyncedHorizontalScroll from "@/components/SyncedHorizontalScroll";
 
 type BacklogMark = { studentId: string; rollNo: string; examYear: string; academicYear: string; semester: "Odd" | "Even"; courseId?: string; courseCode: string; courseTitle: string; present: boolean; partA: string; partB: string; classTestAttendance: string; marks: string; result: "Pass" | "Fail" };
 type ArchiveStudent = { studentId: string; rollNo: string; earnedCredit: number; gradePoints: number; sgpa: string; failedSubjects: string[]; registerAgain: string[] };
 type Archive = { examYear: string; academicYear: string; semester: ""; series: string; students: ArchiveStudent[]; updatedAt: string };
-type SheetStudent = Pick<StudentDirectoryRecord, "id" | "rollNo" | "name" | "registrationNo" | "fatherName" | "motherName">;
+type SheetStudent = Pick<StudentDirectoryRecord, "id" | "rollNo" | "name" | "registrationNo" | "fatherName" | "motherName" | "series">;
 type BacklogRegistration = { studentId: string; rollNo: string; examYear: string; academicYear: string; courses: Array<{ courseCode: string; semester: "Odd" | "Even" }> };
 
 const gradePoints: Record<string, number> = { "A+": 4, A: 3.75, "A-": 3.5, "B+": 3.25, B: 3, "B-": 2.75, "C+": 2.5, C: 2.25, D: 2, F: 0 };
@@ -62,12 +63,12 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
   })).values()], [currentMarks, syllabuses, selection.academicYear]);
   const obeCohort = useMemo(() => {
     const registered = registrations.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.courses.length > 0);
-    const ids = new Set(registered.map((item) => item.studentId));
+    const ids = new Set([...registered.map((item) => item.studentId), ...currentMarks.map((item) => item.studentId)]);
     const oldKeys = new Set(oldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalize(student.rollNo)}`]));
-    const matching = students.filter((student) => ids.has(student.id) || registered.some((item) => normalize(item.rollNo) === normalize(student.rollNo))), byRoll = new Map<string, StudentDirectoryRecord>();
+    const matching = students.filter((student) => ids.has(student.id) || registered.some((item) => normalize(item.rollNo) === normalize(student.rollNo)) || currentMarks.some((item) => normalize(item.rollNo) === normalize(student.rollNo))), byRoll = new Map<string, StudentDirectoryRecord>();
     matching.filter((student) => !oldKeys.has(`id:${student.id}`) && !oldKeys.has(`roll:${normalize(student.rollNo)}`)).forEach((student) => { const key = normalize(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); });
     const resolved = [...byRoll.values()], rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2), seriesCounts = new Map<string, number>(); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((left, right) => (seriesCounts.get(rollSeries(right.rollNo)) || 0) - (seriesCounts.get(rollSeries(left.rollNo)) || 0) || left.rollNo.localeCompare(right.rollNo, undefined, { numeric: true }));
-  }, [students, oldStudents, registrations, selection]);
+  }, [students, oldStudents, registrations, selection, currentMarks]);
   const nonObeCohort = useMemo(() => oldStudents.filter((student) => {
     const promotion = oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, "Backlog", "Backlog");
     if (!promotion?.courseIds.length) return false;
@@ -88,7 +89,7 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     const passed = rows.filter((row) => row.mark && row.letter !== "F");
     const earned = passed.reduce((sum, row) => sum + numberValue(row.course.credit), 0);
     const quality = passed.reduce((sum, row) => sum + gradePoints[row.letter] * numberValue(row.course.credit), 0);
-    return { rows, earned, quality, sgpa: earned ? quality / earned : 0, failed: rows.filter((row) => row.mark && row.letter === "F").map((row) => row.course.code) };
+    return { rows, earned, quality, sgpa: earned ? quality / earned : 0, failed: sortCourseCodesBySyllabus(rows.filter((row) => row.mark && row.letter === "F").map((row) => row.course.code), syllabuses, student.series) };
   }
 
   async function search() {

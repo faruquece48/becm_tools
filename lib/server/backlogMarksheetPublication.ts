@@ -4,6 +4,8 @@ import { getPrisma } from "@/lib/prisma";
 
 type Db = NonNullable<ReturnType<typeof getPrisma>>;
 type Selection = { examYear: string; academicYear: string };
+type ArchiveRow = { studentId: string; rollNo?: string; earnedCredit: number; gradePoints: number; failedSubjects: string[]; registerAgain: string[] };
+type SemesterArchive = Selection & { semester: string; series?: string; students: ArchiveRow[]; updatedAt?: string };
 const norm = (value: unknown) => String(value || "").replace(/\s/g, "").toLowerCase();
 const regularGradePoint = (score: number) => score >= 80 ? 4 : score >= 75 ? 3.75 : score >= 70 ? 3.5 : score >= 65 ? 3.25 : score >= 60 ? 3 : score >= 55 ? 2.75 : score >= 50 ? 2.5 : score >= 45 ? 2.25 : score >= 40 ? 2 : 0;
 
@@ -62,4 +64,31 @@ export async function regularMarksheetPublicationData(prisma: Db, selection: Sel
   });
   const record = { ...selection, series: String(Number(selection.examYear) - ({ "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[selection.academicYear] || 1)), students, updatedAt: new Date().toISOString() };
   return [...archives.filter(row => !(row.examYear === selection.examYear && row.academicYear === selection.academicYear && row.semester === selection.semester)), record];
+}
+
+const yearOrder: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
+const rank = (row: Record<string, unknown>) => Number(row.examYear) * 100 + (yearOrder[String(row.academicYear)] || 0) * 3 + (row.semester === "Odd" ? 0 : row.semester === "Even" ? 1 : 2);
+
+export async function resultPublicationData(prisma: Db, selection: Selection & { semester: string }, examType: "Regular" | "Backlog", currentArchives: Array<Record<string, unknown>>) {
+  const section = examType === "Backlog" ? "result-sheet-backlog" : "result-sheet";
+  const [regularResults, backlogResults, regularMarks, backlogMarks, prepared, syllabuses] = await Promise.all([data(prisma, "result-sheet"), data(prisma, "result-sheet-backlog"), data(prisma, "marks-sheet"), data(prisma, "marks-sheet-backlog"), data(prisma, examType === "Backlog" ? "prepare-result-backlog" : "prepare-result"), data(prisma, "syllabuses")]);
+  const current = currentArchives.find(row => row.examYear === selection.examYear && row.academicYear === selection.academicYear && (examType === "Backlog" || row.semester === selection.semester)) as SemesterArchive | undefined;
+  if (!current) throw Error("Approved marksheet archive could not be built");
+  const currentRank = rank({ ...selection, semester: examType === "Backlog" ? "" : selection.semester });
+  const histories = [...regularResults, ...backlogResults], marks = [...regularMarks, ...backlogMarks, current as unknown as Record<string, unknown>];
+  const allCourses = syllabuses.flatMap(segment => Array.isArray(segment.courses) ? segment.courses as Array<Record<string, unknown>> : []);
+  const attemptedCodes = examType === "Backlog" ? prepared.filter(row => row.examYear === selection.examYear && row.academicYear === selection.academicYear).map(row => String(row.courseCode || allCourses.find(course => course.id === row.courseId)?.code || "")).filter(Boolean) : allCourses.filter(course => course.year === selection.academicYear && course.semester === selection.semester).map(course => String(course.code || "")).filter(Boolean);
+  const sameStudent = (left: { studentId: string; rollNo?: string }, right: { studentId?: unknown; rollNo?: unknown }) => left.studentId === right.studentId || Boolean(left.rollNo && right.rollNo) && norm(left.rollNo) === norm(right.rollNo);
+  const students = current.students.map(student => {
+    const latestResult = histories.filter(row => rank(row) < currentRank).sort((a, b) => rank(b) - rank(a)).flatMap(row => Array.isArray(row.students) ? (row.students as Array<Record<string, unknown>>).filter(candidate => sameStudent(student, candidate)) : []).at(0);
+    const priorMarks = marks.filter(row => rank(row) < currentRank).flatMap(row => Array.isArray(row.students) ? (row.students as Array<Record<string, unknown>>).filter(candidate => sameStudent(student, candidate)) : []);
+    const archivedCredit = priorMarks.reduce((sum, row) => sum + Number(row.earnedCredit || 0), 0), archivedGp = priorMarks.reduce((sum, row) => sum + Number(row.gradePoints || 0), 0);
+    const previousCredit = Math.max(Number(latestResult?.totalEarnedCredit || 0), archivedCredit), previousGp = Math.max(Number(latestResult?.totalGradePoints || 0), archivedGp);
+    const failed = new Map<string, string>(((latestResult?.failedSubjects as string[] | undefined) || priorMarks.flatMap(row => row.failedSubjects as string[] || [])).map(code => [norm(code), code])), register = new Map<string, string>(((latestResult?.registerAgain as string[] | undefined) || priorMarks.flatMap(row => row.registerAgain as string[] || [])).map(code => [norm(code), code]));
+    attemptedCodes.forEach(code => { failed.delete(norm(code)); register.delete(norm(code)); }); student.failedSubjects.forEach(code => { failed.set(norm(code), code); register.delete(norm(code)); }); student.registerAgain.forEach(code => { register.set(norm(code), code); failed.delete(norm(code)); });
+    const totalEarnedCredit = Number((previousCredit + Number(student.earnedCredit || 0)).toFixed(3)), totalGradePoints = Number((previousGp + Number(student.gradePoints || 0)).toFixed(3));
+    return { studentId: student.studentId, rollNo: student.rollNo || "", failedSubjects: [...failed.values()], registerAgain: [...register.values()], totalEarnedCredit, totalGradePoints, cgpa: (Math.round((((totalEarnedCredit ? totalGradePoints / totalEarnedCredit : 0) + Number.EPSILON) * 100)) / 100).toFixed(2) };
+  });
+  const record = { ...selection, semester: examType === "Backlog" ? "" : selection.semester, series: String(Number(selection.examYear) - (yearOrder[selection.academicYear] || 1)), students, updatedAt: new Date().toISOString() }, existing = examType === "Backlog" ? backlogResults : regularResults;
+  return { section, data: [...existing.filter(row => !(row.examYear === selection.examYear && row.academicYear === selection.academicYear && (examType === "Backlog" || row.semester === selection.semester))), record] };
 }

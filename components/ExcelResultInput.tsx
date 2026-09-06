@@ -3,7 +3,7 @@ import Link from "next/link";
 import {useState} from "react";
 import * as XLSX from "xlsx";
 import {loadResultSection,saveResultSection} from "@/lib/storage/resultSections";
-import {academicYears,departmentName,oldStudentPromotionForExam,type OldStudentRecord,type StudentDirectoryRecord} from "@/lib/storage/studentDirectory";
+import {academicYears,departmentName,oldStudentPromotionForExam,studentAssignedToRegularExam,type OldStudentRecord,type StudentDirectoryRecord} from "@/lib/storage/studentDirectory";
 import {cohortSeries,type CourseEligibility} from "@/lib/storage/studentEligibility";
 import {syllabusCoursesForExam,type SyllabusCourse,type SyllabusSegment} from "@/lib/storage/syllabuses";
 import type {VivaCohort} from "@/lib/storage/vivaMarks";
@@ -52,7 +52,7 @@ const[d,s,e,p,b,r,v,o,ma,mba,rh,rbh]=await Promise.all([get("/api/students/direc
     const extraCourses=syllabi.flatMap(segment=>segment.courses).filter(course=>oldCourseIds.has(course.id)&&!cs.some(item=>item.id===course.id));
     if(extraCourses.length)cs.push(...extraCourses);
     const savedIds=new Set((p as Prepared[]).filter(record=>record.examYear===examYear&&record.academicYear===academicYear&&record.semester===semester).flatMap(record=>record.students.map(student=>student.studentId))),promotedRolls=new Set(promotedOld.map(student=>norm(student.rollNo)));
-    const candidates=(d.records as StudentDirectoryRecord[]).filter(student=>!promotedRolls.has(norm(student.rollNo))&&(((student.placementExamYear||String(Number(student.series)+academicYears.indexOf(student.year)+1))===examYear&&student.year===academicYear&&student.semester===semester)||savedIds.has(student.id)||Boolean(viva?.students.some(item=>item.id===student.id))));
+    const candidates=(d.records as StudentDirectoryRecord[]).filter(student=>!promotedRolls.has(norm(student.rollNo))&&(studentAssignedToRegularExam(student,{examYear,academicYear,semester})||savedIds.has(student.id)||Boolean(viva?.students.some(item=>item.id===student.id))));
     const expectedSeries=cohortSeries(examYear,academicYear),byRoll=new Map<string,StudentDirectoryRecord>();
     candidates.forEach(student=>{const identity=norm(student.rollNo),current=byRoll.get(identity);if(!current||String(student.series)===expectedSeries&&String(current.series)!==expectedSeries)byRoll.set(identity,student)});
     const seriesCounts=new Map<string,number>();byRoll.forEach(student=>{const series=rollSeries(student.rollNo);seriesCounts.set(series,(seriesCounts.get(series)||0)+1)});

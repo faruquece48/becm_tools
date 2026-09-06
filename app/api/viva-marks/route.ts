@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
 import type { VivaCohort, VivaStudent } from "@/lib/storage/vivaMarks";
-import { oldStudentPromotionForExam, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import { oldStudentPromotionForExam, studentAssignedToRegularExam, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import type { CourseEligibility } from "@/lib/storage/studentEligibility";
 import { isExpelledStudentIdentity, isStudentSuspendedForExam, type ExpelledStudentRecord } from "@/lib/storage/expelledStudents";
 
@@ -53,7 +53,7 @@ async function initialStudents(prisma: NonNullable<ReturnType<typeof getPrisma>>
   const expelled = await storedJson<ExpelledStudentRecord>(prisma, "expelled-students");
   const suspended = (student: { id: string; rollNo: string; registrationNo: string }) => expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, value.examYear, value.academicYear, value.semester));
   const directory = await storedJson<StudentDirectoryRecord>(prisma, "student-directory");
-  const matching = orderStudents(directory.filter((student) => (student.placementExamYear || String(Number(student.series) + yearNumber)) === value.examYear && student.year === value.academicYear && student.semester === value.semester && !excluded.has(student.id) && !suspended(student)), series);
+  const matching = orderStudents(directory.filter((student) => studentAssignedToRegularExam(student, value) && !excluded.has(student.id) && !suspended(student)), series);
   const specialStudents = await storedJson<OldStudentRecord>(prisma, "old-student-directory");
   const promotedSpecialStudents = specialStudents.filter((student) =>
     Boolean(oldStudentPromotionForExam(student, value.examYear, value.academicYear, value.semester, "Regular"))

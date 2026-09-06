@@ -14,10 +14,11 @@ import { completionStatus, GRADUATION_CREDIT, graduationCreditForStudent, ranked
 import { isExpelledStudentIdentity, isStudentSuspendedForExam, type ExpelledStudentRecord } from "@/lib/storage/expelledStudents";
 import { compareResultStudentRolls } from "@/lib/resultStudentOrder";
 import { formatResultToTwo } from "@/lib/resultRounding";
+import { sortCourseCodesBySyllabus } from "@/lib/resultCourseOrder";
 
 type ArchiveStudent = { studentId: string; rollNo: string; earnedCredit: number; gradePoints: number; sgpa: string; failedSubjects: string[]; registerAgain: string[] };
-type PreparedMark = { studentId: string; present: boolean; withheld: boolean; partA: string; partB: string; classTestAttendance: string; sessional?: string; internal?: string; external?: string; thesisViva?: string };
-type PreparedCourse = { examYear: string; academicYear: string; semester: string; courseId: string; students: PreparedMark[] };
+type PreparedMark = { studentId: string; rollNo?: string; present: boolean; withheld: boolean; partA: string; partB: string; classTestAttendance: string; sessional?: string; internal?: string; external?: string; thesisViva?: string };
+type PreparedCourse = { examYear: string; academicYear: string; semester: string; courseId: string; students: PreparedMark[]; published?: boolean };
 type EligibilityRecord = { examYear: string; academicYear: string; semester: string; courseId: string; students: Array<{ studentId: string; eligible: boolean }> };
 type VivaRecord = { examYear: string; academicYear: string; semester: string; students: Array<{ id: string; marks: string; present: boolean }> };
 type BacklogMark = { studentId: string; rollNo?: string; examYear: string; courseCode: string; marks: string; result?: "Pass" | "Fail" };
@@ -123,14 +124,17 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
   }, [selection.examYear, selection.academicYear, selection.semester]);
   const currentArchive = marksheets.find((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
   const committee = committees.find((item) => item.examType === "Regular" && item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester);
-  const examCourseIds = useMemo(() => { const stored = syllabusCoursesForExam(syllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"]); return (stored.length ? stored : syllabusCoursesForExam(defaultSyllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"])).map(course => course.id); }, [syllabuses, series, selection]);
+  const examCourses = useMemo(() => { const stored = syllabusCoursesForExam(syllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"]); return stored.length ? stored : syllabusCoursesForExam(defaultSyllabuses, series, selection.academicYear as SyllabusCourse["year"], selection.semester as SyllabusCourse["semester"]); }, [syllabuses, series, selection]);
+  const examCourseIds = useMemo(() => examCourses.map((course) => course.id), [examCourses]);
   const promotedOldStudents = useMemo(() => oldStudents
     .filter((student) => Boolean(oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")?.courseIds.length) && !fullyIneligibleForExam(student, oldStudents, oldStudentPromotionForExam(student, selection.examYear, selection.academicYear, selection.semester, "Regular")?.courseIds || [], eligibility, selection) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)))
     .sort((left, right) => compareResultStudentRolls(left.rollNo, right.rollNo, selection.examYear, selection.academicYear)), [oldStudents, selection, expelled, eligibility]);
   const cohort = useMemo(() => {
-    const appeared = new Set(currentArchive?.students.map((student) => student.studentId) || []);
+    const archivedStudents = currentArchive?.students || [];
+    const preparedStudents = prepared.filter((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester && examCourseIds.includes(record.courseId)).flatMap((record) => record.students);
+    const appeared = new Set((archivedStudents.length ? archivedStudents : preparedStudents).flatMap((student) => [`id:${"studentId" in student ? student.studentId : ""}`, `roll:${normalizedRoll(student.rollNo || "")}`]));
     const oldIdentityKeys = new Set(oldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalizedRoll(student.rollNo)}`]));
-    const matching = students.filter((student) => appeared.has(student.id) && isObeRoll(student.rollNo) && belongsToRegularExam(student, students, examCourseIds, prepared, selection) && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
+    const matching = students.filter((student) => (appeared.has(`id:${student.id}`) || appeared.has(`roll:${normalizedRoll(student.rollNo)}`)) && isObeRoll(student.rollNo) && belongsToRegularExam(student, students, examCourseIds, prepared, selection) && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
     const byRoll = new Map<string, StudentDirectoryRecord>();
     matching.forEach((student) => { const key = normalizedRoll(student.rollNo); if (!byRoll.has(key)) byRoll.set(key, student); });
     const regular = [...byRoll.values()];
@@ -140,7 +144,6 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
   }, [students, oldStudents, selection, currentArchive, expelled, examCourseIds, eligibility, prepared]);
 
   const summaryRows = useMemo<SummaryRow[]>(() => {
-    if (!currentArchive) return [];
     const prior = (item: MarkSheetArchive | ResultHistory) => {
       if (item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.semester === selection.semester) return false;
       if (Number(item.examYear) !== Number(selection.examYear)) return Number(item.examYear) < Number(selection.examYear);
@@ -149,7 +152,20 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
     };
     const clearedBacklogCodes = (studentId: string, rollNo: string) => new Set(backlogMarks.filter((mark) => Number(mark.examYear) < Number(selection.examYear) && (mark.studentId === studentId || normalizedRoll(mark.rollNo || "") === normalizedRoll(rollNo)) && mark.result !== "Fail" && numeric(mark.marks) >= 40).map((mark) => normalizedRoll(mark.courseCode)));
     const regularRows = cohort.map((student) => {
-      const current = currentArchive.students.find((item) => item.studentId === student.id);
+      const archivedCurrent = currentArchive?.students.find((item) => item.studentId === student.id || normalizedRoll(item.rollNo || "") === normalizedRoll(student.rollNo));
+      const vivaStudent = vivas.find((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester)?.students.find((item) => item.id === student.id);
+      const viva = vivaStudent?.present ? numeric(vivaStudent.marks) : 0;
+      const outcomes = examCourses.map((course) => {
+        const nonEligible = eligibility.find((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester && record.courseId === course.id)?.students.find((item) => item.studentId === student.id)?.eligible === false;
+        const mark = prepared.find((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester && record.courseId === course.id)?.students.find((item) => item.studentId === student.id || normalizedRoll(item.rollNo || "") === normalizedRoll(student.rollNo));
+        const theory = course.type === "Theory", thesis = course.type === "Thesis";
+        const total = mark ? Math.round(theory ? (mark.present ? numeric(mark.partA) + numeric(mark.partB) : 0) + numeric(mark.classTestAttendance) : thesis ? numeric(mark.internal) + numeric(mark.external) + numeric(mark.thesisViva) : numeric(mark.sessional) + viva) : 0;
+        const base = nonEligible ? "-" : letterGrade(total, mark, theory);
+        const letter = course.type === "Sessional" && base !== "W" && viva <= 0 ? "F" : base;
+        return { course, nonEligible, letter };
+      });
+      const calculatedCurrent = { earnedCredit: outcomes.reduce((sum, item) => sum + (!item.nonEligible && item.letter && item.letter !== "F" && item.letter !== "W" ? Number(item.course.credit) : 0), 0), gradePoints: outcomes.reduce((sum, item) => sum + (!item.nonEligible && item.letter && item.letter !== "F" && item.letter !== "W" ? Number(item.course.credit) * (gradePoints[item.letter] || 0) : 0), 0), failedSubjects: outcomes.filter((item) => item.letter === "F" || item.letter === "W").map((item) => item.course.code), registerAgain: outcomes.filter((item) => item.nonEligible || !item.letter).map((item) => item.course.code) };
+      const current = archivedCurrent || calculatedCurrent;
       const clearedCodes = clearedBacklogCodes(student.id, student.rollNo);
       const previousMarks = [...marksheets, ...backlogMarksheets].filter(prior).flatMap((archive) => { const item = archive.students.find((candidate) => candidate.studentId === student.id || normalizedRoll(candidate.rollNo || "") === normalizedRoll(student.rollNo)); return item ? [item] : []; });
       const previousResults = history.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
@@ -157,13 +173,14 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
       const previousEvenResult = selection.semester === "Odd" ? history.find((archive) => Number(archive.examYear) === Number(selection.examYear) - 1 && order[archive.academicYear] === previousAcademicOrder && archive.semester === "Even")?.students.find((item) => item.studentId === student.id) : undefined;
       const previousYearBacklog = selection.semester === "Odd" ? backlogMarksheets.filter((archive) => Number(archive.examYear) === Number(selection.examYear) - 1 && order[archive.academicYear] === previousAcademicOrder).flatMap((archive) => { const item = archive.students.find((candidate) => candidate.studentId === student.id || normalizedRoll(candidate.rollNo || "") === normalizedRoll(student.rollNo)); return item ? [item] : []; }) : [];
       const publishedCurrent = history.find((archive) => archive.examYear === selection.examYear && archive.academicYear === selection.academicYear && archive.semester === selection.semester)?.students.find((item) => item.studentId === student.id);
-      const missedCourses = missedRegistrationCourseCodes(student, selection, syllabuses, [...marksheets, ...backlogMarksheets]);
+      const missedCourses = missedRegistrationCourseCodes(student, selection, syllabuses, [...marksheets, ...backlogMarksheets], prepared);
       const semesterCredit = current?.earnedCredit || 0;
       const semesterPoints = current?.gradePoints || 0;
-      const previousCredit = previousEvenResult ? Number(previousEvenResult.totalEarnedCredit || 0) + previousYearBacklog.reduce((sum, item) => sum + Number(item.earnedCredit || 0), 0) : previousMarks.reduce((sum, item) => sum + item.earnedCredit, 0);
-      const previousPoints = previousEvenResult ? Number(previousEvenResult.totalGradePoints || 0) + previousYearBacklog.reduce((sum, item) => sum + Number(item.gradePoints || 0), 0) : previousMarks.reduce((sum, item) => sum + item.gradePoints, 0);
-      const totalCredit = publishedCurrent ? Number(publishedCurrent.totalEarnedCredit || 0) : previousCredit + semesterCredit;
-      const totalPoints = publishedCurrent ? Number(publishedCurrent.totalGradePoints || 0) : previousPoints + semesterPoints;
+      const archivedPreviousCredit = previousMarks.reduce((sum, item) => sum + item.earnedCredit, 0), archivedPreviousPoints = previousMarks.reduce((sum, item) => sum + item.gradePoints, 0);
+      const publishedPreviousCredit = previousEvenResult ? Number(previousEvenResult.totalEarnedCredit || 0) + previousYearBacklog.reduce((sum, item) => sum + Number(item.earnedCredit || 0), 0) : 0, publishedPreviousPoints = previousEvenResult ? Number(previousEvenResult.totalGradePoints || 0) + previousYearBacklog.reduce((sum, item) => sum + Number(item.gradePoints || 0), 0) : 0;
+      const previousCredit = Math.max(archivedPreviousCredit, publishedPreviousCredit), previousPoints = Math.max(archivedPreviousPoints, publishedPreviousPoints);
+      const totalCredit = Math.max(Number(publishedCurrent?.totalEarnedCredit || 0), previousCredit + semesterCredit);
+      const totalPoints = Math.max(Number(publishedCurrent?.totalGradePoints || 0), previousPoints + semesterPoints);
       return {
         student,
         degreeCredit: GRADUATION_CREDIT,
@@ -173,12 +190,12 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
         totalCredit,
         sgpa: semesterCredit ? semesterPoints / semesterCredit : 0,
         cgpa: totalCredit ? totalPoints / totalCredit : 0,
-        failed: current?.failedSubjects || [],
-        register: current?.registerAgain || [],
-        currentFailed: current?.failedSubjects || [],
-        currentRegister: current?.registerAgain || [],
-        historicalFailed: unique(previousResults.flatMap((item) => item.failedSubjects).concat(previousMarks.flatMap((item) => item.failedSubjects))).filter((code) => !clearedCodes.has(normalizedRoll(code))),
-        historicalRegister: unique(previousResults.flatMap((item) => item.registerAgain).concat(previousMarks.flatMap((item) => item.registerAgain), missedCourses)).filter((code) => !clearedCodes.has(normalizedRoll(code))),
+        failed: sortCourseCodesBySyllabus(current?.failedSubjects || [], syllabuses, student.series),
+        register: sortCourseCodesBySyllabus(current?.registerAgain || [], syllabuses, student.series),
+        currentFailed: sortCourseCodesBySyllabus(current?.failedSubjects || [], syllabuses, student.series),
+        currentRegister: sortCourseCodesBySyllabus(current?.registerAgain || [], syllabuses, student.series),
+        historicalFailed: sortCourseCodesBySyllabus(unique(previousResults.flatMap((item) => item.failedSubjects).concat(previousMarks.flatMap((item) => item.failedSubjects))).filter((code) => !clearedCodes.has(normalizedRoll(code))), syllabuses, student.series),
+        historicalRegister: sortCourseCodesBySyllabus(unique(previousResults.flatMap((item) => item.registerAgain).concat(previousMarks.flatMap((item) => item.registerAgain), missedCourses)).filter((code) => !clearedCodes.has(normalizedRoll(code))), syllabuses, student.series),
       };
     });
     const allCourses = syllabuses.flatMap((syllabus) => syllabus.courses);
@@ -221,16 +238,16 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
       outcomes.forEach((outcome) => { if (outcome.nonEligible) registerSet.add(outcome.course.code); else if (outcome.letter === "F" || outcome.letter === "W") failedSet.add(outcome.course.code); });
       const currentFailed = outcomes.filter((outcome) => outcome.letter === "F" || outcome.letter === "W").map((outcome) => outcome.course.code);
       const currentRegister = outcomes.filter((outcome) => outcome.nonEligible).map((outcome) => outcome.course.code);
-      const failed = graduated ? [] : [...failedSet];
-      const register = graduated ? [] : [...registerSet];
+      const failed = graduated ? [] : sortCourseCodesBySyllabus([...failedSet], syllabuses, oldStudent.series);
+      const register = graduated ? [] : sortCourseCodesBySyllabus([...registerSet], syllabuses, oldStudent.series);
       const student: StudentDirectoryRecord = { ...oldStudent, year: selection.academicYear, semester: selection.semester };
-      return { student, degreeCredit, semesterPoints, semesterCredit, totalPoints, totalCredit, sgpa: semesterCredit ? semesterPoints / semesterCredit : 0, cgpa: totalCredit ? totalPoints / totalCredit : 0, failed, register, currentFailed, currentRegister, historicalFailed: [], historicalRegister: [] };
+      return { student, degreeCredit, semesterPoints, semesterCredit, totalPoints, totalCredit, sgpa: semesterCredit ? semesterPoints / semesterCredit : 0, cgpa: totalCredit ? totalPoints / totalCredit : 0, failed, register, currentFailed: sortCourseCodesBySyllabus(currentFailed, syllabuses, oldStudent.series), currentRegister: sortCourseCodesBySyllabus(currentRegister, syllabuses, oldStudent.series), historicalFailed: [], historicalRegister: [] };
     });
     return [...regularRows, ...nonObeRows];
-  }, [cohort, promotedOldStudents, currentArchive, marksheets, backlogMarksheets, history, selection, syllabuses, prepared, eligibility, vivas, backlogMarks]);
+  }, [cohort, promotedOldStudents, currentArchive, marksheets, backlogMarksheets, history, selection, syllabuses, prepared, eligibility, vivas, backlogMarks, examCourses]);
 
   async function generate() {
-    if (!currentArchive) { setMessage("Generate the marksheet for this examination before generating the result sheet."); return; }
+    if (!cohort.length) { setMessage("No prepared marks or saved students were found for this examination."); return; }
     if (!committee) { setMessage("No matching examination committee record found."); return; }
     setBusy(true); setMessage("");
     const legacyFormat = usesLegacyResultFormat(committee.resultPublishDate);

@@ -5,7 +5,7 @@ import { isAdminAuthenticated, validateAdminPassword } from "@/lib/adminAuth";
 import { getPrisma } from "@/lib/prisma";
 import type { VivaCohort } from "@/lib/storage/vivaMarks";
 import { specialStudentPublicationWrites } from "@/lib/server/specialStudentPublication";
-import { backlogMarksheetPublicationData, regularMarksheetPublicationData } from "@/lib/server/backlogMarksheetPublication";
+import { backlogMarksheetPublicationData, regularMarksheetPublicationData, resultPublicationData } from "@/lib/server/backlogMarksheetPublication";
 
 const SECTION = "add-viva-marks";
 const PREPARED_SECTION = "prepare-result";
@@ -157,10 +157,14 @@ export async function PUT(request: Request) {
     if (!sendBack && parsed.data.examType === "Backlog") {
       const backlogArchive = await backlogMarksheetPublicationData(prisma, parsed.data);
       writes.push(prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES ('marks-sheet-backlog',CAST(${JSON.stringify(backlogArchive)} AS jsonb),NOW()) ON CONFLICT ("section") DO UPDATE SET "data"=EXCLUDED."data","updatedAt"=NOW()`));
+      const resultArchive = await resultPublicationData(prisma, parsed.data, "Backlog", backlogArchive);
+      writes.push(prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES (${resultArchive.section},CAST(${JSON.stringify(resultArchive.data)} AS jsonb),NOW()) ON CONFLICT ("section") DO UPDATE SET "data"=EXCLUDED."data","updatedAt"=NOW()`));
     }
     if (!sendBack && parsed.data.examType === "Regular") {
       const regularArchive = await regularMarksheetPublicationData(prisma, parsed.data);
       writes.push(prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES ('marks-sheet',CAST(${JSON.stringify(regularArchive)} AS jsonb),NOW()) ON CONFLICT ("section") DO UPDATE SET "data"=EXCLUDED."data","updatedAt"=NOW()`));
+      const resultArchive = await resultPublicationData(prisma, parsed.data, "Regular", regularArchive);
+      writes.push(prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES (${resultArchive.section},CAST(${JSON.stringify(resultArchive.data)} AS jsonb),NOW()) ON CONFLICT ("section") DO UPDATE SET "data"=EXCLUDED."data","updatedAt"=NOW()`));
     }
     await prisma.$transaction(writes);
 

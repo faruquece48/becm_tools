@@ -17,23 +17,26 @@ function coursesFor(syllabuses: SyllabusSegment[], series: string, academicYear:
   return syllabusCoursesForExam(defaultSyllabuses, fallbackSeries, academicYear, semester);
 }
 
-export function missedRegistrationCourseCodes(student: StudentDirectoryRecord, selection: ExamSelection, syllabuses: SyllabusSegment[], archives: ExamArchive[]) {
+export function missedRegistrationCourseCodes(student: StudentDirectoryRecord, selection: ExamSelection, syllabuses: SyllabusSegment[], archives: ExamArchive[], preparedExams: ExamArchive[] = []) {
   const codes = new Set<string>();
+  const sameStudent = (candidate: ArchiveStudent) => candidate.studentId === student.id || Boolean(candidate.rollNo) && normalize(candidate.rollNo || "") === normalize(student.rollNo);
+  const hasRegistration = (academicYear: string, semester: string) => [...archives, ...preparedExams].some((archive) => archive.academicYear === academicYear && archive.semester === semester && archive.students.some(sameStudent));
   const addSemester = (series: string, academicYear: typeof years[number], semester: typeof terms[number]) => {
     coursesFor(syllabuses, series, academicYear, semester).forEach((course: SyllabusCourse) => codes.add(course.code));
   };
 
   (student.obeBatchPlacements || []).forEach((placement) =>
-    (placement.missedSemesters || []).forEach((missed) => addSemester(placement.series, missed.academicYear, missed.semester)),
+    (placement.missedSemesters || []).forEach((missed) => {
+      if (!hasRegistration(missed.academicYear, missed.semester)) addSemester(placement.series, missed.academicYear, missed.semester);
+    }),
   );
 
   const currentPosition = position(selection.academicYear, selection.semester);
   if (currentPosition < 0) return [...codes];
-  const sameStudent = (candidate: ArchiveStudent) => candidate.studentId === student.id || Boolean(candidate.rollNo) && normalize(candidate.rollNo || "") === normalize(student.rollNo);
   for (const academicYear of years) {
     for (const semester of terms) {
       if (position(academicYear, semester) >= currentPosition) continue;
-      const registered = archives.some((archive) => archive.academicYear === academicYear && archive.semester === semester && archive.students.some(sameStudent));
+      const registered = hasRegistration(academicYear, semester);
       if (!registered) addSemester(student.series, academicYear, semester);
     }
   }

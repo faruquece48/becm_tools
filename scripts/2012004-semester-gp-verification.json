@@ -279,10 +279,46 @@
       "totalEarnedCredit": 80.5,
       "totalGradePoints": 254.75,
       "cgpa": "3.16",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2024/3rd/Odd",
+      "totalEarnedCredit": 97,
+      "totalGradePoints": 300.875,
+      "cgpa": "3.10",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2024/3rd/Even",
+      "totalEarnedCredit": 118,
+      "totalGradePoints": 360.875,
+      "cgpa": "3.06",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2024/3rd/Backlog",
+      "totalEarnedCredit": 118,
+      "totalGradePoints": 360.875,
+      "cgpa": "3.06",
       "savedResultExists": false
     }
   ],
-  "changes": [],
-  "verifiedInNeon": true,
-  "checkedAt": "2026-09-06T04:14:57.430Z"
+  "changes": [
+    {
+      "section": "result-sheet",
+      "exam": "2024/3rd/Odd",
+      "before": {
+        "totalEarnedCredit": 80.5,
+        "totalGradePoints": 254.75,
+        "cgpa": "3.16"
+      },
+      "after": {
+        "totalEarnedCredit": 97,
+        "totalGradePoints": 300.875,
+        "cgpa": "3.10"
+      }
+    }
+  ],
+  "verifiedInNeon": false,
+  "checkedAt": "2026-09-06T17:30:24.513Z"
 }

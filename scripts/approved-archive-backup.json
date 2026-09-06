@@ -1,0 +1,437 @@
+{
+  "createdAt": "2026-09-06T17:15:00.984Z",
+  "marksSheet": [
+    {
+      "series": "2022",
+      "examYear": "2023",
+      "semester": "Even",
+      "students": [],
+      "updatedAt": "2026-09-06T16:19:37.671Z",
+      "academicYear": "1st",
+      "formatVersion": "legacy"
+    }
+  ],
+  "backlogMarksSheet": [
+    {
+      "series": "",
+      "examYear": "2021",
+      "semester": "",
+      "students": [
+        {
+          "sgpa": "2.00",
+          "rollNo": "2012008",
+          "studentId": "5ef49c0e-f00c-48fd-a61a-9a5d7ee43202",
+          "gradePoints": 6,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "CE 1125",
+            "EEE 1147"
+          ]
+        },
+        {
+          "sgpa": "2.17",
+          "rollNo": "2012019",
+          "studentId": "2f8af61f-a03f-488e-8c01-d5b348bd8ef5",
+          "gradePoints": 19.5,
+          "earnedCredit": 9,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.50",
+          "rollNo": "2012025",
+          "studentId": "8cd2a9e7-e2dd-46b6-bdef-ae7472478bb7",
+          "gradePoints": 15,
+          "earnedCredit": 6,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2012029",
+          "studentId": "b6da05eb-9ba3-4192-8082-4fe06bca9a75",
+          "gradePoints": 6.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        }
+      ],
+      "updatedAt": "2026-09-03T03:22:15.868Z",
+      "academicYear": "1st"
+    },
+    {
+      "series": "",
+      "examYear": "2022",
+      "semester": "",
+      "students": [
+        {
+          "sgpa": "2.20",
+          "rollNo": "1712020",
+          "studentId": "1b73b53e-22bc-43e7-9f56-a19fde0c43ce",
+          "gradePoints": 11,
+          "earnedCredit": 5,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 2225"
+          ]
+        },
+        {
+          "sgpa": "2.00",
+          "rollNo": "2012008",
+          "studentId": "5ef49c0e-f00c-48fd-a61a-9a5d7ee43202",
+          "gradePoints": 6,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 2225",
+            "BECM 2231"
+          ]
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2012019",
+          "studentId": "2f8af61f-a03f-488e-8c01-d5b348bd8ef5",
+          "gradePoints": 6.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 2203",
+            "BECM 2225"
+          ]
+        },
+        {
+          "sgpa": "2.75",
+          "rollNo": "2012024",
+          "studentId": "08e98b86-d420-47f1-a9da-8450aa563702",
+          "gradePoints": 8.25,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2012025",
+          "studentId": "8cd2a9e7-e2dd-46b6-bdef-ae7472478bb7",
+          "gradePoints": 18,
+          "earnedCredit": 8,
+          "registerAgain": [],
+          "failedSubjects": []
+        }
+      ],
+      "updatedAt": "2026-09-02T08:15:43.035Z",
+      "academicYear": "2nd"
+    },
+    {
+      "series": "",
+      "examYear": "2023",
+      "semester": "",
+      "students": [
+        {
+          "sgpa": "0.00",
+          "rollNo": "1712020",
+          "studentId": "1b73b53e-22bc-43e7-9f56-a19fde0c43ce",
+          "gradePoints": 0,
+          "earnedCredit": 0,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3171",
+            "BECM 3173",
+            "BECM 3271",
+            "BECM 3273",
+            "BECM 3241"
+          ]
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2012002",
+          "studentId": "b5b4fc60-39fb-42da-95fb-170b7453dedc",
+          "gradePoints": 6.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2012005",
+          "studentId": "b76e78df-145e-4c46-a2aa-cf7d26199698",
+          "gradePoints": 6.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "3.00",
+          "rollNo": "2012006",
+          "studentId": "a3de2a68-61c7-42e0-8197-cf1345f154dd",
+          "gradePoints": 9,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.00",
+          "rollNo": "2012008",
+          "studentId": "5ef49c0e-f00c-48fd-a61a-9a5d7ee43202",
+          "gradePoints": 6,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3171",
+            "BECM 3173",
+            "BECM 3271",
+            "BECM 3273"
+          ]
+        },
+        {
+          "sgpa": "3.00",
+          "rollNo": "2012013",
+          "studentId": "82000179-413e-44e6-a0a9-97c3644b1309",
+          "gradePoints": 9,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.00",
+          "rollNo": "2012017",
+          "studentId": "433d84d6-c3db-454e-ada7-7ad1fbd3685c",
+          "gradePoints": 6,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3173"
+          ]
+        },
+        {
+          "sgpa": "2.13",
+          "rollNo": "2012019",
+          "studentId": "2f8af61f-a03f-488e-8c01-d5b348bd8ef5",
+          "gradePoints": 25.5,
+          "earnedCredit": 12,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3173"
+          ]
+        },
+        {
+          "sgpa": "2.63",
+          "rollNo": "2012021",
+          "studentId": "6be64e1f-4ad5-4037-91ce-4449fd53cd9c",
+          "gradePoints": 15.75,
+          "earnedCredit": 6,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2012024",
+          "studentId": "08e98b86-d420-47f1-a9da-8450aa563702",
+          "gradePoints": 13.5,
+          "earnedCredit": 6,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.50",
+          "rollNo": "2012025",
+          "studentId": "8cd2a9e7-e2dd-46b6-bdef-ae7472478bb7",
+          "gradePoints": 7.5,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.50",
+          "rollNo": "2012030",
+          "studentId": "7e238228-20d3-4b5b-9e64-dd3c4a1f2d6a",
+          "gradePoints": 7.5,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        }
+      ],
+      "updatedAt": "2026-09-03T00:10:36.613Z",
+      "academicYear": "3rd"
+    },
+    {
+      "series": "2021",
+      "examYear": "2023",
+      "semester": "",
+      "students": [
+        {
+          "sgpa": "2.50",
+          "rollNo": "2112006",
+          "studentId": "student-2112006",
+          "gradePoints": 7.5,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "3.25",
+          "rollNo": "2112015",
+          "studentId": "student-2112014",
+          "gradePoints": 9.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.00",
+          "rollNo": "2112021",
+          "studentId": "9e75d3a4-d510-4d11-ab2d-ab3a72b2390a",
+          "gradePoints": 4,
+          "earnedCredit": 2,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "3.00",
+          "rollNo": "2112029",
+          "studentId": "student-2112028",
+          "gradePoints": 9,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        }
+      ],
+      "updatedAt": "2026-09-06T06:34:27.935Z",
+      "academicYear": "2nd"
+    },
+    {
+      "series": "",
+      "examYear": "2024",
+      "semester": "",
+      "students": [
+        {
+          "sgpa": "2.38",
+          "rollNo": "2112004",
+          "studentId": "student-2112004",
+          "gradePoints": 14.25,
+          "earnedCredit": 6,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.17",
+          "rollNo": "2112006",
+          "studentId": "student-2112006",
+          "gradePoints": 19.5,
+          "earnedCredit": 9,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3173",
+            "BECM 3241"
+          ]
+        },
+        {
+          "sgpa": "2.00",
+          "rollNo": "2112012",
+          "studentId": "student-2112011",
+          "gradePoints": 6,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.88",
+          "rollNo": "2112013",
+          "studentId": "student-2112012",
+          "gradePoints": 17.25,
+          "earnedCredit": 6,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "3.00",
+          "rollNo": "2112015",
+          "studentId": "student-2112014",
+          "gradePoints": 9,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2112017",
+          "studentId": "student-2112016",
+          "gradePoints": 20.25,
+          "earnedCredit": 9,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.00",
+          "rollNo": "2112019",
+          "studentId": "student-2112018",
+          "gradePoints": 6,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3241"
+          ]
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2112021",
+          "studentId": "9e75d3a4-d510-4d11-ab2d-ab3a72b2390a",
+          "gradePoints": 6.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3173",
+            "BECM 3141",
+            "BECM 3271",
+            "BECM 3241"
+          ]
+        },
+        {
+          "sgpa": "2.25",
+          "rollNo": "2112022",
+          "studentId": "student-2112020",
+          "gradePoints": 6.75,
+          "earnedCredit": 3,
+          "registerAgain": [],
+          "failedSubjects": []
+        },
+        {
+          "sgpa": "2.38",
+          "rollNo": "2112029",
+          "studentId": "student-2112028",
+          "gradePoints": 14.25,
+          "earnedCredit": 6,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3173",
+            "BECM 3271"
+          ]
+        },
+        {
+          "sgpa": "2.08",
+          "rollNo": "2112030",
+          "studentId": "student-2112029",
+          "gradePoints": 18.75,
+          "earnedCredit": 9,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3173"
+          ]
+        },
+        {
+          "sgpa": "0.00",
+          "rollNo": "2012004",
+          "studentId": "student-2112030",
+          "gradePoints": 0,
+          "earnedCredit": 0,
+          "registerAgain": [],
+          "failedSubjects": [
+            "BECM 3171"
+          ]
+        }
+      ],
+      "updatedAt": "2026-09-06T16:57:51.188Z",
+      "academicYear": "3rd"
+    }
+  ]
+}
