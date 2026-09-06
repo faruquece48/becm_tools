@@ -5,6 +5,7 @@ import { FileDown } from "lucide-react";
 import { academicYears, departmentName, oldStudentPromotionForExam, semesters, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import { cohortSeries } from "@/lib/storage/studentEligibility";
 import type { SyllabusSegment } from "@/lib/storage/syllabuses";
+import { missedRegistrationCourseCodes } from "@/lib/missedRegistrationCourses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
 import { formatTabulatorDate } from "@/lib/storage/tabulators";
 import { loadExamCommittees, type ExamCommitteeRecord } from "@/lib/storage/examCommittees";
@@ -130,7 +131,7 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
   const cohort = useMemo(() => {
     const appeared = new Set(currentArchive?.students.map((student) => student.studentId) || []);
     const oldIdentityKeys = new Set(promotedOldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalizedRoll(student.rollNo)}`]));
-    const matching = students.filter((student) => appeared.has(student.id) && Number(student.series) >= 2020 && Number(student.series) <= Number(series) && student.year === selection.academicYear && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
+    const matching = students.filter((student) => appeared.has(student.id) && Number(student.series) >= 2020 && Number(student.series) <= Number(series) && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
     const byRoll = new Map<string, StudentDirectoryRecord>();
     matching.forEach((student) => { const key = normalizedRoll(student.rollNo); if (!byRoll.has(key)) byRoll.set(key, student); });
     const regular = [...byRoll.values()];
@@ -153,6 +154,7 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
       const clearedCodes = clearedBacklogCodes(student.id, student.rollNo);
       const previousMarks = [...marksheets, ...backlogMarksheets].filter(prior).flatMap((archive) => { const item = archive.students.find((candidate) => candidate.studentId === student.id || normalizedRoll(candidate.rollNo || "") === normalizedRoll(student.rollNo)); return item ? [item] : []; });
       const previousResults = history.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
+      const missedCourses = missedRegistrationCourseCodes(student, selection, syllabuses, [...marksheets, ...backlogMarksheets]);
       const semesterCredit = current?.earnedCredit || 0;
       const semesterPoints = current?.gradePoints || 0;
       const previousCredit = previousMarks.reduce((sum, item) => sum + item.earnedCredit, 0);
@@ -173,7 +175,7 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
         currentFailed: current?.failedSubjects || [],
         currentRegister: current?.registerAgain || [],
         historicalFailed: unique(previousResults.flatMap((item) => item.failedSubjects).concat(previousMarks.flatMap((item) => item.failedSubjects))).filter((code) => !clearedCodes.has(normalizedRoll(code))),
-        historicalRegister: unique(previousResults.flatMap((item) => item.registerAgain).concat(previousMarks.flatMap((item) => item.registerAgain))).filter((code) => !clearedCodes.has(normalizedRoll(code))),
+        historicalRegister: unique(previousResults.flatMap((item) => item.registerAgain).concat(previousMarks.flatMap((item) => item.registerAgain), missedCourses)).filter((code) => !clearedCodes.has(normalizedRoll(code))),
       };
     });
     const allCourses = syllabuses.flatMap((syllabus) => syllabus.courses);

@@ -8,6 +8,7 @@ export type ObeBatchPlacement = {
   effectiveExamYear: string;
   reason: string;
   assignedAt: string;
+  missedSemesters?: Array<{ academicYear: "1st" | "2nd" | "3rd" | "4th"; semester: "Odd" | "Even" }>;
 };
 
 export type StudentDirectoryRecord = {

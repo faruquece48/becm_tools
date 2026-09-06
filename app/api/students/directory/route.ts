@@ -11,7 +11,8 @@ const PREPARED_SECTION = "prepare-result";
 const academicYearNumber: Record<string, number> = { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 };
 const backlogEligibilitySchema = z.object({ examYear: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd", "4th"]), semester: z.enum(["Odd", "Even"]), createdAt: z.string().datetime() });
 const promotionSourceSchema = z.object({ examYear: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd"]), semester: z.literal("Even"), promotedAt: z.string().datetime() });
-const obeBatchPlacementSchema = z.object({ id: z.string().min(1), series: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd", "4th"]), semester: z.enum(["Odd", "Even", "Short Semester"]), effectiveExamYear: z.string().regex(/^\d{4}$/), reason: z.string().max(500), assignedAt: z.string().datetime() });
+const missedSemesterSchema = z.object({ academicYear: z.enum(["1st", "2nd", "3rd", "4th"]), semester: z.enum(["Odd", "Even"]) });
+const obeBatchPlacementSchema = z.object({ id: z.string().min(1), series: z.string().regex(/^\d{4}$/), academicYear: z.enum(["1st", "2nd", "3rd", "4th"]), semester: z.enum(["Odd", "Even", "Short Semester"]), effectiveExamYear: z.string().regex(/^\d{4}$/), reason: z.string().max(500), assignedAt: z.string().datetime(), missedSemesters: z.array(missedSemesterSchema).max(8).optional() });
 const recordSchema = z.object({
   id: z.string().trim().min(1).max(100),
   department: z.string().trim().min(1).max(150),

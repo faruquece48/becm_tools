@@ -12,7 +12,10 @@ import {
 
 const currentYear = String(new Date().getFullYear());
 const field = "h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500";
-const emptyAssignment = { series: "", academicYear: "1st", semester: "Odd", effectiveExamYear: currentYear, reason: "" };
+type MissedSemester = NonNullable<ObeBatchPlacement["missedSemesters"]>[number];
+const semesterOptions: MissedSemester[] = academicYears.flatMap((academicYear) => (["Odd", "Even"] as const).map((semester) => ({ academicYear: academicYear as MissedSemester["academicYear"], semester })));
+const semesterKey = (item: MissedSemester) => `${item.academicYear}-${item.semester}`;
+const emptyAssignment = { series: "", academicYear: "1st", semester: "Odd", effectiveExamYear: currentYear, reason: "", missedSemesters: [] as MissedSemester[] };
 
 export default function ObeStudentManager() {
   const [records, setRecords] = useState<StudentDirectoryRecord[]>([]);
@@ -55,6 +58,7 @@ export default function ObeStudentManager() {
       semester: student.semester,
       effectiveExamYear: student.placementExamYear || currentYear,
       reason: "",
+      missedSemesters: [],
     } : emptyAssignment);
     setMessage("");
   }
@@ -77,6 +81,7 @@ export default function ObeStudentManager() {
       effectiveExamYear: assignment.effectiveExamYear,
       reason: assignment.reason.trim(),
       assignedAt: new Date().toISOString(),
+      missedSemesters: assignment.missedSemesters,
     };
     const updated: StudentDirectoryRecord = {
       ...selectedStudent,
@@ -99,7 +104,7 @@ export default function ObeStudentManager() {
       if (!response.ok) throw new Error(body.error);
       setRecords(body.records || []);
       setMessage(updated.name + " is now a regular student of Series " + updated.series + ", " + updated.year + " Year " + updated.semester + " Semester.");
-      setAssignment({ ...assignment, reason: "" });
+      setAssignment({ ...assignment, reason: "", missedSemesters: [] });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to assign the student");
     } finally {
@@ -109,8 +114,8 @@ export default function ObeStudentManager() {
 
   return <section className="min-h-screen bg-[#f7f9fd] p-4 sm:p-6">
     <header className="border-t border-[#082f57] bg-white p-5 shadow-sm">
-      <h1 className="text-2xl font-bold text-[#102555]">OBE Student Batch Placement</h1>
-      <p className="mt-1 max-w-4xl text-sm text-slate-600">Assign a dropped or continuing OBE student to any junior batch and semester. The current student directory is updated, so the student is treated as a regular student of the selected series, year and semester. Every reassignment remains in the placement history.</p>
+      <h1 className="text-2xl font-bold text-[#102555]">OBE Special Student</h1>
+      <p className="mt-1 max-w-4xl text-sm text-slate-600">Assign a dropped, re-added, or continuing OBE student to any batch and semester. Select every earlier semester whose courses the student never registered. Multiple placements can be saved for repeated drops, and all missed semesters remain cumulative.</p>
     </header>
 
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(300px,0.8fr)_minmax(520px,1.2fr)]">
@@ -131,6 +136,7 @@ export default function ObeStudentManager() {
           <label className="text-sm font-semibold">Effective Examination Year<input required inputMode="numeric" pattern="\d{4}" value={assignment.effectiveExamYear} onChange={(event) => setAssignment({ ...assignment, effectiveExamYear: event.target.value })} className={field + " mt-1"} /></label>
           <label className="text-sm font-semibold">Academic Year<select value={assignment.academicYear} onChange={(event) => setAssignment({ ...assignment, academicYear: event.target.value })} className={field + " mt-1"}>{academicYears.map((year) => <option key={year}>{year}</option>)}</select></label>
           <label className="text-sm font-semibold">Semester<select value={assignment.semester} onChange={(event) => setAssignment({ ...assignment, semester: event.target.value })} className={field + " mt-1"}>{semesters.map((semester) => <option key={semester}>{semester}</option>)}</select></label>
+          <fieldset className="rounded-md border border-slate-300 p-3 md:col-span-2"><legend className="px-1 text-sm font-semibold">Never Registered / Missed Semesters</legend><p className="mb-3 text-xs text-slate-500">Select all applicable semesters. Their courses will appear cumulatively under Need to Register Again in later result sheets.</p><div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">{semesterOptions.map((item) => { const key = semesterKey(item), checked = assignment.missedSemesters.some((selected) => semesterKey(selected) === key); return <label key={key} className="flex items-center gap-2 rounded bg-slate-50 p-2 text-sm"><input type="checkbox" checked={checked} onChange={(event) => setAssignment({ ...assignment, missedSemesters: event.target.checked ? [...assignment.missedSemesters, item] : assignment.missedSemesters.filter((selected) => semesterKey(selected) !== key) })} />{item.academicYear} {item.semester}</label>; })}</div></fieldset>
           <label className="text-sm font-semibold md:col-span-2">Reason / Placement Note<textarea required maxLength={500} rows={3} value={assignment.reason} onChange={(event) => setAssignment({ ...assignment, reason: event.target.value })} placeholder="Example: Dropped to 2022 series from 3rd Year Even; will continue as a regular student from 2nd Year Odd." className="mt-1 w-full rounded-md border border-slate-300 p-3 text-sm outline-none focus:border-blue-500" /></label>
         </div>
         <div className="flex items-center justify-between gap-3 border-t p-5"><p className="text-xs text-slate-500">Roll and registration numbers remain unchanged.</p><button disabled={!selectedStudent || saving} className="rounded bg-green-600 px-5 py-2.5 font-bold text-white disabled:opacity-50"><Save className="mr-1 inline h-4 w-4" />{saving ? "Saving..." : "Save Placement"}</button></div>
@@ -140,8 +146,8 @@ export default function ObeStudentManager() {
     {message && <p role="status" className={"mt-5 rounded p-3 font-semibold " + (message.includes("now a regular") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>{message}</p>}
 
     <section className="mt-5 overflow-hidden rounded-lg border bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b p-5"><ArrowRightLeft className="h-5 w-5" /><h2 className="font-bold">OBE Placement History</h2></div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[950px] text-sm"><thead className="bg-[#082f57] text-white"><tr>{["Student","Current Regular Assignment","Previous Placements","Last Reason","Last Assigned"].map((heading) => <th key={heading} className="p-3 text-left">{heading}</th>)}</tr></thead><tbody>{assignedStudents.map((student) => { const history = student.obeBatchPlacements || []; const last = history[history.length - 1]; return <tr key={student.id} className="border-b align-top odd:bg-white even:bg-slate-50"><td className="p-3"><strong>{student.name}</strong><span className="block text-slate-500">{student.rollNo}</span></td><td className="p-3">Series {student.series}, {student.year} {student.semester}<span className="block text-slate-500">Exam {student.placementExamYear || "-"}</span></td><td className="p-3">{history.map((item, index) => <span key={item.id} className="block">{index + 1}. Series {item.series}, {item.academicYear} {item.semester}, Exam {item.effectiveExamYear}</span>)}</td><td className="max-w-sm p-3">{last?.reason || "-"}</td><td className="p-3">{last ? new Date(last.assignedAt).toLocaleString() : "-"}</td></tr>})}{!assignedStudents.length && <tr><td colSpan={5} className="p-10 text-center text-slate-500">No OBE batch placements saved yet.</td></tr>}</tbody></table></div>
+      <div className="flex items-center gap-2 border-b p-5"><ArrowRightLeft className="h-5 w-5" /><h2 className="font-bold">OBE Special Student Placement History</h2></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[1100px] text-sm"><thead className="bg-[#082f57] text-white"><tr>{["Student","Current Regular Assignment","Placement / Drop History","Never Registered Semesters","Last Reason","Last Assigned"].map((heading) => <th key={heading} className="p-3 text-left">{heading}</th>)}</tr></thead><tbody>{assignedStudents.map((student) => { const history = student.obeBatchPlacements || []; const last = history[history.length - 1], missed = Array.from(new Map(history.flatMap((item) => item.missedSemesters || []).map((item) => [semesterKey(item), item])).values()); return <tr key={student.id} className="border-b align-top odd:bg-white even:bg-slate-50"><td className="p-3"><strong>{student.name}</strong><span className="block text-slate-500">{student.rollNo}</span></td><td className="p-3">Series {student.series}, {student.year} {student.semester}<span className="block text-slate-500">Exam {student.placementExamYear || "-"}</span></td><td className="p-3">{history.map((item, index) => <span key={item.id} className="block">{index + 1}. Series {item.series}, {item.academicYear} {item.semester}, Exam {item.effectiveExamYear}</span>)}</td><td className="p-3">{missed.map((item) => `${item.academicYear} ${item.semester}`).join(", ") || "-"}</td><td className="max-w-sm p-3">{last?.reason || "-"}</td><td className="p-3">{last ? new Date(last.assignedAt).toLocaleString() : "-"}</td></tr>})}{!assignedStudents.length && <tr><td colSpan={6} className="p-10 text-center text-slate-500">No OBE special-student placements saved yet.</td></tr>}</tbody></table></div>
     </section>
   </section>;
 }
