@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
       { source: "/result/:path*", destination: "/teacher/result/:path*", permanent: true },
     ];
   },
-  outputFileTracingIncludes: {
-    "/api/downloader-helper/*": ["./app/Downloader/**/*"],
-  },
   images: {
     remotePatterns: [
       {
