@@ -156,13 +156,17 @@ export default function AcademicResultSheet({ title, examType, onExamTypeChange 
       const clearedCodes = clearedBacklogCodes(student.id, student.rollNo);
       const previousMarks = [...marksheets, ...backlogMarksheets].filter(prior).flatMap((archive) => { const item = archive.students.find((candidate) => candidate.studentId === student.id || normalizedRoll(candidate.rollNo || "") === normalizedRoll(student.rollNo)); return item ? [item] : []; });
       const previousResults = history.filter(prior).flatMap((archive) => archive.students.filter((item) => item.studentId === student.id));
+      const previousAcademicOrder = order[selection.academicYear] - 1;
+      const previousEvenResult = selection.semester === "Odd" ? history.find((archive) => Number(archive.examYear) === Number(selection.examYear) - 1 && order[archive.academicYear] === previousAcademicOrder && archive.semester === "Even")?.students.find((item) => item.studentId === student.id) : undefined;
+      const previousYearBacklog = selection.semester === "Odd" ? backlogMarksheets.filter((archive) => Number(archive.examYear) === Number(selection.examYear) - 1 && order[archive.academicYear] === previousAcademicOrder).flatMap((archive) => { const item = archive.students.find((candidate) => candidate.studentId === student.id || normalizedRoll(candidate.rollNo || "") === normalizedRoll(student.rollNo)); return item ? [item] : []; }) : [];
+      const publishedCurrent = history.find((archive) => archive.examYear === selection.examYear && archive.academicYear === selection.academicYear && archive.semester === selection.semester)?.students.find((item) => item.studentId === student.id);
       const missedCourses = missedRegistrationCourseCodes(student, selection, syllabuses, [...marksheets, ...backlogMarksheets]);
       const semesterCredit = current?.earnedCredit || 0;
       const semesterPoints = current?.gradePoints || 0;
-      const previousCredit = previousMarks.reduce((sum, item) => sum + item.earnedCredit, 0);
-      const previousPoints = previousMarks.reduce((sum, item) => sum + item.gradePoints, 0);
-      const totalCredit = previousCredit + semesterCredit;
-      const totalPoints = previousPoints + semesterPoints;
+      const previousCredit = previousEvenResult ? Number(previousEvenResult.totalEarnedCredit || 0) + previousYearBacklog.reduce((sum, item) => sum + Number(item.earnedCredit || 0), 0) : previousMarks.reduce((sum, item) => sum + item.earnedCredit, 0);
+      const previousPoints = previousEvenResult ? Number(previousEvenResult.totalGradePoints || 0) + previousYearBacklog.reduce((sum, item) => sum + Number(item.gradePoints || 0), 0) : previousMarks.reduce((sum, item) => sum + item.gradePoints, 0);
+      const totalCredit = publishedCurrent ? Number(publishedCurrent.totalEarnedCredit || 0) : previousCredit + semesterCredit;
+      const totalPoints = publishedCurrent ? Number(publishedCurrent.totalGradePoints || 0) : previousPoints + semesterPoints;
       return {
         student,
         degreeCredit: GRADUATION_CREDIT,

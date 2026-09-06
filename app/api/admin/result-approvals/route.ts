@@ -5,6 +5,7 @@ import { isAdminAuthenticated, validateAdminPassword } from "@/lib/adminAuth";
 import { getPrisma } from "@/lib/prisma";
 import type { VivaCohort } from "@/lib/storage/vivaMarks";
 import { specialStudentPublicationWrites } from "@/lib/server/specialStudentPublication";
+import { backlogMarksheetPublicationData, regularMarksheetPublicationData } from "@/lib/server/backlogMarksheetPublication";
 
 const SECTION = "add-viva-marks";
 const PREPARED_SECTION = "prepare-result";
@@ -153,6 +154,14 @@ export async function PUT(request: Request) {
     }
 
     writes.push(...await specialStudentPublicationWrites(prisma, { examType: parsed.data.examType, examYear: parsed.data.examYear, academicYear: parsed.data.academicYear, semester: parsed.data.semester }, sendBack ? "send-back" : "accept"));
+    if (!sendBack && parsed.data.examType === "Backlog") {
+      const backlogArchive = await backlogMarksheetPublicationData(prisma, parsed.data);
+      writes.push(prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES ('marks-sheet-backlog',CAST(${JSON.stringify(backlogArchive)} AS jsonb),NOW()) ON CONFLICT ("section") DO UPDATE SET "data"=EXCLUDED."data","updatedAt"=NOW()`));
+    }
+    if (!sendBack && parsed.data.examType === "Regular") {
+      const regularArchive = await regularMarksheetPublicationData(prisma, parsed.data);
+      writes.push(prisma.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES ('marks-sheet',CAST(${JSON.stringify(regularArchive)} AS jsonb),NOW()) ON CONFLICT ("section") DO UPDATE SET "data"=EXCLUDED."data","updatedAt"=NOW()`));
+    }
     await prisma.$transaction(writes);
 
     return NextResponse.json({ result: results[index], specialStudentsUpdated: !sendBack });

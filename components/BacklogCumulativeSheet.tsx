@@ -72,11 +72,16 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
   const committee = committees.find((item) => item.examType === "Backlog" && item.examYear === selection.examYear && item.academicYear === selection.academicYear);
   function summary(student: StudentDirectoryRecord) {
     const rows = courses.map((course) => { const mark = current.find((item) => (item.studentId === student.id || norm(item.rollNo) === norm(student.rollNo)) && item.semester === course.semester && norm(item.courseCode) === norm(course.code)); return { course, mark, grade: mark ? mark.result === "Fail" ? "F" : letter(Number(mark.marks) || 0) : "" }; });
-    const passed = rows.filter((row) => row.mark && row.grade !== "F"), currentCredit = passed.reduce((sum, row) => sum + Number(row.course.credit), 0), currentGp = passed.reduce((sum, row) => sum + points[row.grade] * Number(row.course.credit), 0);
     const currentExamRank = Number(selection.examYear) * 100 + (order[selection.academicYear] || 0) * 3 + 2;
     const priorArchives = [...regular, ...backlogArchives].filter((archive) => examRank(archive) < currentExamRank);
     const identityIds = new Set(students.filter((candidate) => norm(candidate.rollNo) === norm(student.rollNo)).map((candidate) => candidate.id));
     const sameStudent = (item: ArchiveStudent) => identityIds.has(item.studentId) || Boolean(item.rollNo && norm(item.rollNo) === norm(student.rollNo));
+    const passed = rows.filter((row) => row.mark && row.grade !== "F");
+    const recalculatedCurrentCredit = passed.reduce((sum, row) => sum + Number(row.course.credit), 0);
+    const recalculatedCurrentGp = passed.reduce((sum, row) => sum + points[row.grade] * Number(row.course.credit), 0);
+    const currentBacklogStudent = backlogArchives.find((archive) => archive.examYear === selection.examYear && archive.academicYear === selection.academicYear)?.students.find(sameStudent);
+    const currentCredit = currentBacklogStudent ? Number(currentBacklogStudent.earnedCredit || 0) : recalculatedCurrentCredit;
+    const currentGp = currentBacklogStudent ? Number(currentBacklogStudent.gradePoints || 0) : recalculatedCurrentGp;
     // A historical archive can contain duplicate rows for the same roll. Each exam
     // contributes at most once to the cumulative totals.
     const previous = priorArchives.map((archive) => archive.students.find(sameStudent)).filter((item): item is ArchiveStudent => Boolean(item));
@@ -85,11 +90,13 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
     const latestPrior = priorArchives.sort((left, right) => examRank(right) - examRank(left)).map((archive) => archive.students.find(sameStudent)).find(Boolean);
     const sameResultStudent = (item: ResultStudent) => identityIds.has(item.studentId) || Boolean(item.rollNo && norm(item.rollNo) === norm(student.rollNo));
     const latestPublished = [...regularResults, ...resultArchives].filter((result) => examRank(result) < currentExamRank).sort((left, right) => examRank(right) - examRank(left)).map((result) => result.students.find(sameResultStudent)).find(Boolean);
-    // Published regular result totals may contain legacy duplicate rows and may
-    // omit credits earned in an earlier backlog. Rebuild the numeric cumulative
-    // values from one student row per archived examination instead.
-    const previousCredit = previous.reduce((sum, item) => sum + Number(item.earnedCredit || 0), 0);
-    const previousGp = previous.reduce((sum, item) => sum + Number(item.gradePoints || 0), 0);
+    // The latest published result is the authoritative cumulative baseline and
+    // already includes earlier regular and backlog examinations. Fall back to
+    // semester archives only when no published cumulative result is available.
+    const archivedPreviousCredit = previous.reduce((sum, item) => sum + Number(item.earnedCredit || 0), 0);
+    const archivedPreviousGp = previous.reduce((sum, item) => sum + Number(item.gradePoints || 0), 0);
+    const previousCredit = latestPublished ? Number(latestPublished.totalEarnedCredit || 0) : archivedPreviousCredit;
+    const previousGp = latestPublished ? Number(latestPublished.totalGradePoints || 0) : archivedPreviousGp;
     const totalCredit = previousCredit + currentCredit, totalGp = previousGp + currentGp;
     const outstandingSource = latestPublished || latestPrior;
     const failedSet = new Map((outstandingSource?.failedSubjects || []).map((code) => [norm(code), code]));
