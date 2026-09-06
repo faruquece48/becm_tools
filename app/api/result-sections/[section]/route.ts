@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
+import { propagateSemesterCorrections, type SemesterArchive, type CumulativeArchive } from "@/lib/server/cumulativeCorrections";
 
 const sectionSchema = z.enum(["add-viva-marks", "prepare-result", "prepare-result-backlog", "marks-sheet", "marks-sheet-backlog", "grade-sheet", "result-sheet", "result-sheet-backlog", "tabulation-sheet", "tabulation-sheet-backlog"]);
 
@@ -37,6 +38,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ sect
   try { serialized = JSON.stringify(body.data); } catch { return NextResponse.json({ error: "Result data must be valid JSON" }, { status: 400 }); }
   if (serialized.length > 5_000_000) return NextResponse.json({ error: "Result data is too large" }, { status: 413 });
   try {
+    if (section.data === "marks-sheet" || section.data === "marks-sheet-backlog") {
+      if (!Array.isArray(body.data)) return NextResponse.json({ error: "Marksheet data must be an array" }, { status: 400 });
+      const saved = await prisma.$transaction(async tx => {
+        await tx.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section", "data", "updatedAt") VALUES (${section.data}, '[]'::jsonb, NOW()) ON CONFLICT ("section") DO NOTHING`);
+        const stored = await tx.$queryRaw<Array<{ section: string; data: Prisma.JsonValue }>>(Prisma.sql`SELECT "section", "data" FROM "ResultSectionStore" WHERE "section" IN (${section.data}, 'result-sheet', 'result-sheet-backlog', 'student-directory') ORDER BY "section" FOR UPDATE`);
+        const arrays = new Map(stored.map(row => [row.section, Array.isArray(row.data) ? row.data : []]));
+        for (const resultSection of ["result-sheet", "result-sheet-backlog"]) {
+          const previous = (arrays.get(resultSection) || []) as CumulativeArchive[];
+          const corrected = propagateSemesterCorrections((arrays.get(section.data) || []) as SemesterArchive[], body.data as SemesterArchive[], previous, (arrays.get("student-directory") || []) as Array<{ id: string; rollNo: string }>, section.data === "marks-sheet-backlog", resultSection === "result-sheet-backlog");
+          if (JSON.stringify(corrected) !== JSON.stringify(previous)) await tx.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${JSON.stringify(corrected)} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${resultSection}`);
+        }
+        const rows = await tx.$queryRaw<Array<{ data: Prisma.JsonValue; updatedAt: Date }>>(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${serialized} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${section.data} RETURNING "data", "updatedAt"`);
+        return rows[0];
+      });
+      return NextResponse.json({ data: saved.data, updatedAt: saved.updatedAt });
+    }
     if (section.data === "prepare-result" || section.data === "prepare-result-backlog") {
       const stored = await prisma.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = ${section.data} LIMIT 1`);
       const existing = Array.isArray(stored[0]?.data) ? stored[0].data as Array<Record<string, unknown>> : [];

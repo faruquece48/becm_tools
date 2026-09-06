@@ -1,0 +1,170 @@
+{
+  "roll": "2012004",
+  "sourceExam": "2022/1st/Odd",
+  "courseResults": [
+    {
+      "course": "CE 1125",
+      "credit": 3,
+      "total": 59,
+      "gp": 2.75,
+      "status": "passed"
+    },
+    {
+      "course": "Chem 1107",
+      "credit": 3,
+      "total": 55,
+      "gp": 2.75,
+      "status": "passed"
+    },
+    {
+      "course": "Phy 1107",
+      "credit": 3,
+      "total": 71,
+      "gp": 3.5,
+      "status": "passed"
+    },
+    {
+      "course": "Math 1107",
+      "credit": 3,
+      "total": 72,
+      "gp": 3.5,
+      "status": "passed"
+    },
+    {
+      "course": "EEE 1147",
+      "credit": 3,
+      "total": 70,
+      "gp": 3.5,
+      "status": "passed"
+    },
+    {
+      "course": "BECM 1100",
+      "credit": 1.5,
+      "total": 69,
+      "gp": 3.25,
+      "status": "passed"
+    },
+    {
+      "course": "BECM 1102",
+      "credit": 1.5,
+      "total": 69,
+      "gp": 3.25,
+      "status": "passed"
+    },
+    {
+      "course": "Phy 1108",
+      "credit": 1.5,
+      "total": 64,
+      "gp": 3,
+      "status": "passed"
+    },
+    {
+      "course": "EEE 1148",
+      "credit": 1.5,
+      "total": 73,
+      "gp": 3.5,
+      "status": "passed"
+    }
+  ],
+  "semesterTotals": {
+    "earnedCredit": 21,
+    "gradePoints": 67.5,
+    "sgpa": "3.21",
+    "failedSubjects": [],
+    "registerAgain": []
+  },
+  "totals": [
+    {
+      "exam": "2022/1st/Odd",
+      "totalEarnedCredit": 21,
+      "totalGradePoints": 67.5,
+      "cgpa": "3.21",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2022/1st/Even",
+      "totalEarnedCredit": 41,
+      "totalGradePoints": 134.625,
+      "cgpa": "3.28",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2023/2nd/Odd",
+      "totalEarnedCredit": 60.5,
+      "totalGradePoints": 192.75,
+      "cgpa": "3.19",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2023/2nd/Even",
+      "totalEarnedCredit": 80.5,
+      "totalGradePoints": 254.75,
+      "cgpa": "3.16",
+      "savedResultExists": false
+    }
+  ],
+  "changes": [
+    {
+      "section": "marks-sheet",
+      "exam": "2022/1st/Odd",
+      "before": {
+        "earnedCredit": 21,
+        "gradePoints": 71.25,
+        "sgpa": "3.39",
+        "failedSubjects": [],
+        "registerAgain": []
+      },
+      "after": {
+        "earnedCredit": 21,
+        "gradePoints": 67.5,
+        "sgpa": "3.21",
+        "failedSubjects": [],
+        "registerAgain": []
+      }
+    },
+    {
+      "section": "result-sheet",
+      "exam": "2022/1st/Odd",
+      "before": {
+        "totalEarnedCredit": 21,
+        "totalGradePoints": 71.25,
+        "cgpa": "3.39"
+      },
+      "after": {
+        "totalEarnedCredit": 21,
+        "totalGradePoints": 67.5,
+        "cgpa": "3.21"
+      }
+    },
+    {
+      "section": "result-sheet",
+      "exam": "2022/1st/Even",
+      "before": {
+        "totalEarnedCredit": 41,
+        "totalGradePoints": 138.375,
+        "cgpa": "3.38"
+      },
+      "after": {
+        "totalEarnedCredit": 41,
+        "totalGradePoints": 134.625,
+        "cgpa": "3.28"
+      }
+    },
+    {
+      "section": "result-sheet",
+      "exam": "2023/2nd/Odd",
+      "before": {
+        "totalEarnedCredit": 60.5,
+        "totalGradePoints": 196.5,
+        "cgpa": "3.25"
+      },
+      "after": {
+        "totalEarnedCredit": 60.5,
+        "totalGradePoints": 192.75,
+        "cgpa": "3.19"
+      }
+    }
+  ],
+  "verifiedInNeon": true,
+  "checkedAt": "2026-09-06T04:10:11.534Z"
+}

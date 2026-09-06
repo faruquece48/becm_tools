@@ -125,6 +125,19 @@ export default function ExcelResultInput(){
     await saveResultSection("prepare-result",[...prepared.filter(x=>!(x.examYear===examYear&&x.academicYear===academicYear&&x.semester===semester&&courses.some(c=>c.id===x.courseId))),...records]);
     const vivas=await loadResultSection<VivaCohort[]>("add-viva-marks"),existing=vivas.find(x=>((x.examType||"Regular")==="Regular"&&x.examYear===examYear&&x.academicYear===academicYear&&x.semester===semester)),cohort:VivaCohort={...existing,department:departmentName,examType:"Regular",examYear,academicYear,semester,students:rows.map(r=>({id:r.id,name:r.name,registrationNo:r.registration,rollNo:r.roll,registrationType:r.specialCourseIds?"Non-OBE":"Regular",marks:r.boardViva,present:true})),finalized:finalize||Boolean(existing?.finalized),submitted:finalize?false:Boolean(existing?.submitted),updatedAt:stamp,published:Boolean(existing?.published)};
     await saveResultSection("add-viva-marks",[...vivas.filter(x=>!((x.examType||"Regular")==="Regular"&&x.examYear===examYear&&x.academicYear===academicYear&&x.semester===semester)),cohort]);
+    // Refresh existing semester summaries so corrected marks carry forward into
+    // saved cumulative results in the same marksheet API transaction.
+    const archives=await loadResultSection<MarkSheetArchive[]>("marks-sheet");
+    const refreshed=archives.map(archive=>{
+      if(archive.examYear!==examYear||archive.academicYear!==academicYear||archive.semester!==semester)return archive;
+      return {...archive,students:archive.students.map(student=>{
+        const row=rows.find(row=>!row.specialCourseIds&&(row.identityIds.has(student.studentId)||norm(row.roll)===norm(student.rollNo)));
+        if(!row)return student;
+        const totals=currentTotals(row),regular=courses.filter(course=>regularCourseIds.has(course.id));
+        return {...student,earnedCredit:totals.credit,gradePoints:Number(totals.gp.toFixed(3)),sgpa:(Math.round(((totals.credit?totals.gp/totals.credit:0)+Number.EPSILON)*100)/100).toFixed(2),failedSubjects:regular.filter(course=>enabled(row,course)&&grade(row.cells[key(course)],course,row.boardViva)==="F").map(course=>course.code),registerAgain:regular.filter(course=>!enabled(row,course)).map(course=>course.code)};
+      })};
+    });
+    if(JSON.stringify(refreshed)!==JSON.stringify(archives))await saveResultSection("marks-sheet",refreshed);
    }else{
     const selections=rows.map(r=>({studentId:r.id,courses:courses.filter(c=>r.registered[key(c)]).map(c=>({courseCode:c.code,semester:c.semester as "Odd"|"Even"}))}));
     const response=await fetch("/api/backlog-registrations",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({examYear,academicYear,selections})}),body=await response.json();

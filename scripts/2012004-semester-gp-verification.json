@@ -1,0 +1,288 @@
+{
+  "roll": "2012004",
+  "semesters": [
+    {
+      "exam": "2022/1st/Odd",
+      "courseResults": [
+        {
+          "course": "CE 1125",
+          "credit": 3,
+          "total": 59,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 8.25
+        },
+        {
+          "course": "Chem 1107",
+          "credit": 3,
+          "total": 55,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 8.25
+        },
+        {
+          "course": "Phy 1107",
+          "credit": 3,
+          "total": 71,
+          "gp": 3.5,
+          "status": "passed",
+          "earnedGp": 10.5
+        },
+        {
+          "course": "Math 1107",
+          "credit": 3,
+          "total": 72,
+          "gp": 3.5,
+          "status": "passed",
+          "earnedGp": 10.5
+        },
+        {
+          "course": "EEE 1147",
+          "credit": 3,
+          "total": 70,
+          "gp": 3.5,
+          "status": "passed",
+          "earnedGp": 10.5
+        },
+        {
+          "course": "BECM 1100",
+          "credit": 1.5,
+          "total": 69,
+          "gp": 3.25,
+          "status": "passed",
+          "earnedGp": 4.875
+        },
+        {
+          "course": "BECM 1102",
+          "credit": 1.5,
+          "total": 69,
+          "gp": 3.25,
+          "status": "passed",
+          "earnedGp": 4.875
+        },
+        {
+          "course": "Phy 1108",
+          "credit": 1.5,
+          "total": 64,
+          "gp": 3,
+          "status": "passed",
+          "earnedGp": 4.5
+        },
+        {
+          "course": "EEE 1148",
+          "credit": 1.5,
+          "total": 73,
+          "gp": 3.5,
+          "status": "passed",
+          "earnedGp": 5.25
+        }
+      ],
+      "earnedCredit": 21,
+      "gradePoints": 67.5,
+      "sgpa": "3.21",
+      "failedSubjects": [],
+      "registerAgain": [],
+      "displayedGp": "67.50",
+      "expected": "67.50",
+      "matchesExpected": true
+    },
+    {
+      "exam": "2022/1st/Even",
+      "courseResults": [
+        {
+          "course": "BECM 1223",
+          "credit": 3,
+          "total": 65,
+          "gp": 3.25,
+          "status": "passed",
+          "earnedGp": 9.75
+        },
+        {
+          "course": "BECM 1201",
+          "credit": 3,
+          "total": 56,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 8.25
+        },
+        {
+          "course": "Phy 1207",
+          "credit": 3,
+          "total": 69,
+          "gp": 3.25,
+          "status": "passed",
+          "earnedGp": 9.75
+        },
+        {
+          "course": "Math 1207",
+          "credit": 3,
+          "total": 79,
+          "gp": 3.75,
+          "status": "passed",
+          "earnedGp": 11.25
+        },
+        {
+          "course": "Hum 1205",
+          "credit": 2,
+          "total": 75,
+          "gp": 3.75,
+          "status": "passed",
+          "earnedGp": 7.5
+        },
+        {
+          "course": "BECM 1202",
+          "credit": 1.5,
+          "total": 59,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 4.125
+        },
+        {
+          "course": "Hum 1206",
+          "credit": 1.5,
+          "total": 81,
+          "gp": 4,
+          "status": "passed",
+          "earnedGp": 6
+        },
+        {
+          "course": "CE 1226",
+          "credit": 1.5,
+          "total": 68,
+          "gp": 3.25,
+          "status": "passed",
+          "earnedGp": 4.875
+        },
+        {
+          "course": "Chem 1208",
+          "credit": 1.5,
+          "total": 76,
+          "gp": 3.75,
+          "status": "passed",
+          "earnedGp": 5.625
+        }
+      ],
+      "earnedCredit": 20,
+      "gradePoints": 67.125,
+      "sgpa": "3.36",
+      "failedSubjects": [],
+      "registerAgain": [],
+      "displayedGp": "67.13",
+      "expected": "67.13",
+      "matchesExpected": true
+    },
+    {
+      "exam": "2023/2nd/Odd",
+      "courseResults": [
+        {
+          "course": "BECM 2101",
+          "credit": 3,
+          "total": 57,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 8.25
+        },
+        {
+          "course": "BECM 2131",
+          "credit": 3,
+          "total": 54,
+          "gp": 2.5,
+          "status": "passed",
+          "earnedGp": 7.5
+        },
+        {
+          "course": "BECM 2125",
+          "credit": 3,
+          "total": 52,
+          "gp": 2.5,
+          "status": "passed",
+          "earnedGp": 7.5
+        },
+        {
+          "course": "Math 2107",
+          "credit": 3,
+          "total": 75,
+          "gp": 3.75,
+          "status": "passed",
+          "earnedGp": 11.25
+        },
+        {
+          "course": "Hum 2109",
+          "credit": 3,
+          "total": 69,
+          "gp": 3.25,
+          "status": "passed",
+          "earnedGp": 9.75
+        },
+        {
+          "course": "BECM 2100",
+          "credit": 1.5,
+          "total": 75,
+          "gp": 3.75,
+          "status": "passed",
+          "earnedGp": 5.625
+        },
+        {
+          "course": "BECM 2132",
+          "credit": 1.5,
+          "total": 56,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 4.125
+        },
+        {
+          "course": "BECM 2104",
+          "credit": 1.5,
+          "total": 56,
+          "gp": 2.75,
+          "status": "passed",
+          "earnedGp": 4.125
+        }
+      ],
+      "earnedCredit": 19.5,
+      "gradePoints": 58.125,
+      "sgpa": "2.98",
+      "failedSubjects": [],
+      "registerAgain": [],
+      "displayedGp": "58.13",
+      "expected": "58.13",
+      "matchesExpected": true
+    }
+  ],
+  "exactTotalGp": 192.75,
+  "displayedCumulativeGp": "192.75",
+  "sumOfDisplayedGp": 192.76,
+  "totals": [
+    {
+      "exam": "2022/1st/Odd",
+      "totalEarnedCredit": 21,
+      "totalGradePoints": 67.5,
+      "cgpa": "3.21",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2022/1st/Even",
+      "totalEarnedCredit": 41,
+      "totalGradePoints": 134.625,
+      "cgpa": "3.28",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2023/2nd/Odd",
+      "totalEarnedCredit": 60.5,
+      "totalGradePoints": 192.75,
+      "cgpa": "3.19",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2023/2nd/Even",
+      "totalEarnedCredit": 80.5,
+      "totalGradePoints": 254.75,
+      "cgpa": "3.16",
+      "savedResultExists": false
+    }
+  ],
+  "changes": [],
+  "verifiedInNeon": true,
+  "checkedAt": "2026-09-06T04:14:57.430Z"
+}

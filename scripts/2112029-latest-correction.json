@@ -1,0 +1,109 @@
+{
+  "roll": "2112029",
+  "sourceExam": "2022/1st/Odd",
+  "courseResults": [
+    {
+      "course": "CE 1125",
+      "credit": 3,
+      "total": 45,
+      "gp": 2.25,
+      "status": "passed"
+    },
+    {
+      "course": "Chem 1107",
+      "credit": 3,
+      "total": 50,
+      "gp": 2.5,
+      "status": "passed"
+    },
+    {
+      "course": "Phy 1107",
+      "credit": 3,
+      "total": 50,
+      "gp": 2.5,
+      "status": "passed"
+    },
+    {
+      "course": "Math 1107",
+      "credit": 3,
+      "total": 46,
+      "gp": 2.25,
+      "status": "passed"
+    },
+    {
+      "course": "EEE 1147",
+      "credit": 3,
+      "total": 62,
+      "gp": 3,
+      "status": "passed"
+    },
+    {
+      "course": "BECM 1100",
+      "credit": 1.5,
+      "total": 67,
+      "gp": 3.25,
+      "status": "passed"
+    },
+    {
+      "course": "BECM 1102",
+      "credit": 1.5,
+      "total": 74,
+      "gp": 3.5,
+      "status": "passed"
+    },
+    {
+      "course": "Phy 1108",
+      "credit": 1.5,
+      "total": 68,
+      "gp": 3.25,
+      "status": "passed"
+    },
+    {
+      "course": "EEE 1148",
+      "credit": 1.5,
+      "total": 72,
+      "gp": 3.5,
+      "status": "passed"
+    }
+  ],
+  "semesterTotals": {
+    "earnedCredit": 21,
+    "gradePoints": 57.75,
+    "sgpa": "2.75",
+    "failedSubjects": [],
+    "registerAgain": []
+  },
+  "totals": [
+    {
+      "exam": "2022/1st/Odd",
+      "totalEarnedCredit": 21,
+      "totalGradePoints": 57.75,
+      "cgpa": "2.75",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2022/1st/Even",
+      "totalEarnedCredit": 38,
+      "totalGradePoints": 111.375,
+      "cgpa": "2.93",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2023/2nd/Odd",
+      "totalEarnedCredit": 57.5,
+      "totalGradePoints": 169.5,
+      "cgpa": "2.95",
+      "savedResultExists": true
+    },
+    {
+      "exam": "2023/2nd/Even",
+      "totalEarnedCredit": 77.5,
+      "totalGradePoints": 231.375,
+      "cgpa": "2.99",
+      "savedResultExists": false
+    }
+  ],
+  "changes": [],
+  "verifiedInNeon": true,
+  "checkedAt": "2026-09-06T04:03:05.087Z"
+}
