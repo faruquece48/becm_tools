@@ -8,6 +8,8 @@ import type { VivaCohort, VivaStudent } from "@/lib/storage/vivaMarks";
 const VIVA_SECTION = "add-viva-marks";
 const RESULT_SECTION = "result-sheet";
 const BACKLOG_RESULT_SECTION = "result-sheet-backlog";
+const PREPARED_SECTION = "prepare-result";
+const BACKLOG_PREPARED_SECTION = "prepare-result-backlog";
 const selectionSchema = z.object({
   department: z.string().min(1).max(150),
   examType: z.enum(["Regular", "Backlog"]).default("Regular"),
@@ -25,6 +27,8 @@ type ResultHistory = {
   semester: string;
   students?: Array<{ studentId: string }>;
 };
+type PreparedRegular = ResultHistory;
+type PreparedBacklog = { examYear: string; academicYear: string; studentId: string };
 
 async function teacherContext() {
   const id = (await cookies()).get("becm-portal-account")?.value;
@@ -109,29 +113,36 @@ export async function PUT(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid result selection" }, { status: 400 });
 
   try {
-    const [results, histories, backlogHistories] = await Promise.all([
+    const [results, histories, backlogHistories, preparedRegular, preparedBacklog] = await Promise.all([
       sectionData<VivaCohort>(context.prisma, VIVA_SECTION),
       sectionData<ResultHistory>(context.prisma, RESULT_SECTION),
       sectionData<ResultHistory>(context.prisma, BACKLOG_RESULT_SECTION),
+      sectionData<PreparedRegular>(context.prisma, PREPARED_SECTION),
+      sectionData<PreparedBacklog>(context.prisma, BACKLOG_PREPARED_SECTION),
     ]);
     const history = (parsed.data.examType === "Backlog" ? backlogHistories : histories).find((item) => same({ ...item, examType: parsed.data.examType }, parsed.data));
+    const preparedStudents = parsed.data.examType === "Regular"
+      ? preparedRegular.filter((item) => item.examYear === parsed.data.examYear && item.academicYear === parsed.data.academicYear && item.semester === parsed.data.semester).flatMap((item) => item.students || [])
+      : preparedBacklog.filter((item) => item.examYear === parsed.data.examYear && item.academicYear === parsed.data.academicYear).map((item) => ({ studentId: item.studentId }));
+    const prepared = preparedStudents.length ? { ...parsed.data, students: [...new Map(preparedStudents.map((student) => [student.studentId, student])).values()] } : undefined;
     let index = results.findIndex((cohort) => same(cohort, parsed.data));
 
-    if (index < 0 && !history) {
+    if (index < 0 && !history && !prepared) {
       return NextResponse.json(
-        { error: "Generate the result sheet for this examination before requesting publication." },
+        { error: "Save marks or generate the result sheet for this examination before requesting publication." },
         { status: 409 },
       );
     }
-    if (index < 0 && history) {
+    if (index < 0 && (history || prepared)) {
+      const source = history || prepared!;
       results.push({
         ...parsed.data,
-        students: placeholderStudents(history).map((student) => ({ ...student, registrationType: parsed.data.examType })),
+        students: placeholderStudents(source).map((student) => ({ ...student, registrationType: parsed.data.examType })),
         finalized: true,
       });
       index = results.length - 1;
     }
-    if (!results[index].finalized && !history) {
+    if (!results[index].finalized && !history && !prepared) {
       return NextResponse.json({ error: "This result has not been finalized" }, { status: 409 });
     }
 
