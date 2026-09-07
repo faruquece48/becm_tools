@@ -45,6 +45,7 @@ export type OldStudentPromotion = {
   promotedAt: string;
 };
 export type OldStudentRecord = Omit<StudentDirectoryRecord, "year" | "semester" | "backlogEligibility" | "promotionSource"> & {
+  specialPromotions?: SpecialPromotion[];
   earnedCredit: number;
   gradePoints: number;
   degreeCredit?: number;
@@ -52,6 +53,12 @@ export type OldStudentRecord = Omit<StudentDirectoryRecord, "year" | "semester" 
   promotions: OldStudentPromotion[];
   createdAt: string;
   updatedAt: string;
+};
+export type SpecialPromotion = {
+  id: string; examYear: string; academicYear: "1st" | "2nd" | "3rd" | "4th";
+  semester: "Odd" | "Even" | "Short Semester" | "Backlog"; examType: OldStudentExamType;
+  gradePoints: number; earnedCredit: number; recordedAt: string;
+  courses: Array<{ courseId: string; code: string; credit: number; before: OldStudentCourseStatus }>;
 };
 export function oldStudentPromotionForExam(student: OldStudentRecord, examYear: string, academicYear: string, semester: string, examType?: OldStudentExamType) {
   return student.promotions.find((promotion) => promotion.examYear === examYear && promotion.academicYear === academicYear && promotion.semester === semester && (!examType || promotion.examType === examType));
