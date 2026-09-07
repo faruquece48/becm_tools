@@ -27,7 +27,7 @@ export function missedRegistrationCourseCodes(student: StudentDirectoryRecord, s
 
   (student.obeBatchPlacements || []).forEach((placement) =>
     (placement.missedSemesters || []).forEach((missed) => {
-      if (!hasRegistration(missed.academicYear, missed.semester)) addSemester(placement.series, missed.academicYear, missed.semester);
+      addSemester(placement.series, missed.academicYear, missed.semester);
     }),
   );
 

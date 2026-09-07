@@ -13,6 +13,7 @@ import { completionStatus, GRADUATION_CREDIT, usesLegacyResultFormat } from "@/l
 import SyncedHorizontalScroll from "@/components/SyncedHorizontalScroll";
 import { formatResultToTwo } from "@/lib/resultRounding";
 import { sortCourseCodesBySyllabus } from "@/lib/resultCourseOrder";
+import { missedRegistrationCourseCodes } from "@/lib/missedRegistrationCourses";
 
 type BacklogMark = { studentId: string; rollNo: string; examYear: string; academicYear: string; semester: "Odd" | "Even"; courseCode: string; courseTitle: string; marks: string; result: "Pass" | "Fail" };
 type ArchiveStudent = { studentId: string; rollNo?: string; earnedCredit: number; gradePoints: number; failedSubjects?: string[]; registerAgain?: string[] };
@@ -102,6 +103,7 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     const outstandingSource = latestPublished || latestPrior;
     const failedSet = new Map((outstandingSource?.failedSubjects || []).map((code) => [norm(code), code]));
     const registerSet = new Map((outstandingSource?.registerAgain || []).map((code) => [norm(code), code]));
+    missedRegistrationCourseCodes(student, { academicYear: selection.academicYear, semester: "Even" }, syllabuses, [...regular, ...backlogArchives]).forEach((code) => registerSet.set(norm(code), code));
     rows.forEach((row) => {
       if (!row.mark) return;
       const code = norm(row.course.code);
