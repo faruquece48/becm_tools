@@ -13,7 +13,8 @@ export function applySpecialPromotion(student: OldStudentRecord, input: Input, c
     return { courseId: id, code: course.code, credit, before: outstanding.status };
   });
   const earnedCredit = cleared.reduce((sum, item) => sum + item.credit, 0);
-  if (!Number.isFinite(input.gradePoints) || input.gradePoints < earnedCredit * 2 - .001 || input.gradePoints > earnedCredit * 4 + .001) throw Error(`Grade points for ${earnedCredit} cleared credits must be between ${earnedCredit * 2} and ${earnedCredit * 4}.`);
+  const maximumPoint = input.examType === "Backlog" || input.semester === "Short Semester" ? 3.25 : 4;
+  if (!Number.isFinite(input.gradePoints) || input.gradePoints < earnedCredit * 2 - .001 || input.gradePoints > earnedCredit * maximumPoint + .001) throw Error(`Grade points for ${earnedCredit} cleared credits must be between ${earnedCredit * 2} and ${earnedCredit * maximumPoint}.`);
   const entry: SpecialPromotion = { ...input, courses: cleared, earnedCredit, recordedAt: new Date().toISOString() };
   return { ...student, earnedCredit: Number((student.earnedCredit + earnedCredit).toFixed(3)), gradePoints: Number((student.gradePoints + input.gradePoints).toFixed(3)), outstandingCourses: student.outstandingCourses.filter(item => !input.courseIds.includes(item.courseId)), specialPromotions: [...history, entry], updatedAt: entry.recordedAt };
 }

@@ -68,7 +68,7 @@ export async function specialStudentPublicationWrites(prisma: PrismaClient, sele
           else if (row) {
             const vivaStudent = viva?.students.find((item) => item.id === student.id), vivaMarks = vivaStudent?.present ? numberValue(vivaStudent.marks) : 0, theory = course.type === "Theory";
             const score = Math.round(theory ? (row.present ? numberValue(row.partA) + numberValue(row.partB) : 0) + numberValue(row.classTestAttendance) : numberValue(row.sessional) + vivaMarks);
-            letter = row.withheld ? "W" : !row.present || (theory && numberValue(row.partA) + numberValue(row.partB) < 15) ? "F" : grade(score); after = letter === "F" || letter === "W" ? "failed" : null;
+            letter = row.withheld ? "W" : !row.present || (theory && numberValue(row.partA) + numberValue(row.partB) < 15) ? "F" : selection.semester === "Short Semester" ? backlogGrade(score) : grade(score); after = letter === "F" || letter === "W" ? "failed" : null;
           }
         } else {
           const row = (prepared as PreparedBacklog[]).find((record) => record.studentId === student.id && record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.courseId === courseId);

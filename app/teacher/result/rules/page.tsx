@@ -8,7 +8,7 @@ const rules = [
   { title: "Odd semester", text: "The semester result uses the latest cumulative credit and grade points available before the Odd examination. A passed backlog course updates that carried total before the next academic year's Odd-semester calculation." },
   { title: "Even semester", text: "The Even-semester result continues from the same academic year's Odd-semester result and adds the eligible Even-semester courses, credits, and grade points." },
   { title: "Backlog examination", text: "Only students registered and eligible for the selected exam year and academic year are included. A passing backlog result is capped at B+ (3.25), even when the mark is above 65. Scores from 40 through 64 retain the normal D through B bands." },
-  { title: "Short semester", text: "Short-semester courses follow the registered course list for the selected examination. Only registered and eligible students and subjects are included in preparation and publication." },
+  { title: "Short semester", text: "Short-semester courses follow the registered course list for the selected examination. Only registered and eligible students and subjects are included, and passing grades are capped at B+ (3.25)." },
   { title: "Re-add", text: "A re-added student is included according to the student's saved promotion and course assignment for the selected exam. Courses that still require registration remain separate from failed courses." },
   { title: "Non-OBE", text: "A Non-OBE student is included only when a matching promotion or registration exists for the selected exam year, academic year, semester, and course. Marks and tabulation documents place the Non-OBE table after the OBE table; the result sheet uses one continuous student table." },
   { title: "Result statistics", text: "Backlogged students are students with a failed or status subject in that semester. Need to Register Again counts only students with registration-pending subjects. Cleared All Subjects equals appeared students minus the union of those two groups." },
@@ -37,11 +37,11 @@ export default function ResultRulesPage() {
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 p-5">
             <h2 className="text-xl font-bold text-[#102555]">Grading system</h2>
-            <p className="mt-1 text-sm text-slate-600">The regular scale applies to Odd, Even, Short Semester, and other regular examinations. Backlog grades have a B+ ceiling.</p>
+            <p className="mt-1 text-sm text-slate-600">The regular scale applies to Odd and Even examinations. Backlog and Short Semester grades have a B+ ceiling.</p>
           </div>
           <div className="grid gap-0 lg:grid-cols-2">
             <GradeTable title="Regular examination" rows={regularGrades} />
-            <GradeTable title="Backlog examination" rows={[["65 and above", "B+", "3.25"], ...regularGrades.slice(4)]} />
+            <GradeTable title="Backlog / Short Semester" rows={[["65 and above", "B+", "3.25"], ...regularGrades.slice(4)]} />
           </div>
           <p className="border-t border-slate-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">For a theory course, absence or a combined Part A and Part B score below 15 produces an F. A score below 40 also produces an F.</p>
         </section>
