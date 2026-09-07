@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
 import type { StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import { DuplicateStudentError, mergeStudentDirectory } from "@/lib/studentDirectoryMerge";
 
 const SECTION = "student-directory";
 const ARCHIVE_SECTION = "student-directory-archive";
@@ -59,11 +60,6 @@ function isSameStudent(left: StudentDirectoryRecord, right: StudentDirectoryReco
   const rightRoll = normalizedIdentity(right.rollNo);
   if (leftRoll && leftRoll === rightRoll) return true;
   return false;
-}
-
-async function save(prisma: NonNullable<ReturnType<typeof getPrisma>>, records: StudentDirectoryRecord[]) {
-  const serialized = JSON.stringify(records);
-  await prisma.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${serialized} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${SECTION}`);
 }
 
 export async function GET(request: Request) {
@@ -146,13 +142,17 @@ export async function PUT(request: Request) {
   const parsed = payloadSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid student data" }, { status: 400 });
   try {
-    const current = await load(prisma);
-    const next = [...current];
-    for (const record of parsed.data.records) {
-      const duplicate = next.findIndex((item) => item.id === record.id || normalizedIdentity(item.rollNo) === normalizedIdentity(record.rollNo));
-      if (duplicate >= 0) next[duplicate] = record; else next.push(record);
-    }
-    await save(prisma, next);
+    const next = await prisma.$transaction(async tx => {
+      await tx.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section", "data", "updatedAt") VALUES (${SECTION}, '[]'::jsonb, NOW()) ON CONFLICT ("section") DO NOTHING`);
+      const rows = await tx.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = ${SECTION} FOR UPDATE`);
+      const current = Array.isArray(rows[0]?.data) ? rows[0].data as unknown as StudentDirectoryRecord[] : [];
+      const merged = mergeStudentDirectory(current, parsed.data.records);
+      await tx.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${JSON.stringify(merged)} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${SECTION}`);
+      return merged;
+    });
     return NextResponse.json({ records: next });
-  } catch (error) { console.error("Unable to save students", error); return NextResponse.json({ error: "Unable to save students" }, { status: 503 }); }
+  } catch (error) {
+    if (error instanceof DuplicateStudentError) return NextResponse.json({ error: error.message }, { status: 409 });
+    console.error("Unable to save students", error); return NextResponse.json({ error: "Unable to save students" }, { status: 503 });
+  }
 }
