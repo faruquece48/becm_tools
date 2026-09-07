@@ -1,5 +1,5 @@
 "use client";
-import { backlogFailedSubjects, fullyIneligibleForExam, belongsToRegularExam, countsAsSemesterBacklogged, countsAsSemesterUncleared, isObeRoll } from "@/lib/resultEligibility";
+import { backlogFailedSubjects, fullyIneligibleForExam, belongsToRegularExam, countsAsSemesterBacklogged, countsAsSemesterUncleared, isObeStudent } from "@/lib/resultEligibility";
 const roundSgpa=(value:number)=>(Math.round((value+Number.EPSILON)*100)/100).toFixed(2);
 import { useEffect, useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
@@ -134,7 +134,7 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
     const preparedStudents = prepared.filter((record) => record.examYear === selection.examYear && record.academicYear === selection.academicYear && record.semester === selection.semester && examCourseIds.includes(record.courseId)).flatMap((record) => record.students);
     const appeared = new Set((archivedStudents.length ? archivedStudents : preparedStudents).flatMap((student) => [`id:${"studentId" in student ? student.studentId : ""}`, `roll:${normalizedRoll(student.rollNo || "")}`]));
     const oldIdentityKeys = new Set(oldStudents.flatMap((student) => [`id:${student.id}`, `roll:${normalizedRoll(student.rollNo)}`]));
-    const matching = students.filter((student) => (appeared.has(`id:${student.id}`) || appeared.has(`roll:${normalizedRoll(student.rollNo)}`)) && isObeRoll(student.rollNo) && belongsToRegularExam(student, students, examCourseIds, prepared, selection) && !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
+    const matching = students.filter((student) => (appeared.has(`id:${student.id}`) || appeared.has(`roll:${normalizedRoll(student.rollNo)}`)) && isObeStudent(student) && belongsToRegularExam(student, students, examCourseIds, prepared, selection) && (Boolean(student.obeBatchPlacements?.length) || !oldIdentityKeys.has(`id:${student.id}`) && !oldIdentityKeys.has(`roll:${normalizedRoll(student.rollNo)}`)) && !expelled.some((record) => isExpelledStudentIdentity(record, student) && isStudentSuspendedForExam(record, selection.examYear, selection.academicYear, selection.semester)));
     const byRoll = new Map<string, StudentDirectoryRecord>();
     matching.forEach((student) => { const key = normalizedRoll(student.rollNo); if (!byRoll.has(key)) byRoll.set(key, student); });
     const regular = [...byRoll.values()];

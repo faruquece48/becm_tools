@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fullyIneligibleForExam, backlogFailedSubjects, belongsToRegularExam, countsAsSemesterBacklogged, countsAsSemesterUncleared, isObeRoll } from "../lib/resultEligibility.ts";
+import { fullyIneligibleForExam, backlogFailedSubjects, belongsToRegularExam, countsAsSemesterBacklogged, countsAsSemesterUncleared, isObeRoll, isObeStudent } from "../lib/resultEligibility.ts";
 
 const exam = { examYear: "2023", academicYear: "2nd", semester: "Odd" };
 const student = { id: "current", rollNo: "2012004" };
@@ -11,6 +11,8 @@ test("roll cohort determines OBE classification even when stored series was reas
   assert.equal(isObeRoll("1612027"), false);
   assert.equal(isObeRoll("2012004"), true);
   assert.equal(isObeRoll("20 12004"), true);
+  assert.equal(isObeStudent({ id: "special", rollNo: "1712020", obeBatchPlacements: [{}] }), true);
+  assert.equal(isObeStudent({ id: "old", rollNo: "1712020" }), false);
 });
 
 test("semester backlog count ignores students who only need to register", () => {

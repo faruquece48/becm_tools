@@ -1,11 +1,16 @@
 type Exam = { examYear: string; academicYear: string; semester: string };
 type Eligibility = Exam & { courseId: string; students: Array<{ studentId: string; eligible: boolean }> };
 type Student = { id: string; rollNo: string };
+type ObeStudent = Student & { obeBatchPlacements?: unknown[] };
 const normalize = (value: string) => value.replace(/\s/g, "").toLowerCase();
 
 export function isObeRoll(rollNo: string) {
   const prefix = Number(rollNo.replace(/\D/g, "").slice(0, 2));
   return prefix >= 20;
+}
+
+export function isObeStudent(student: ObeStudent) {
+  return isObeRoll(student.rollNo) || Boolean(student.obeBatchPlacements?.length);
 }
 
 export function countsAsSemesterBacklogged(row: { currentFailed: string[] }) {
