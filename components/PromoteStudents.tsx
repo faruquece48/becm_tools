@@ -165,7 +165,7 @@ export default function PromoteStudents() {
       return { ...student, year: target.year, semester: target.semester, placementExamYear: target.examYear, section: sections[student.id] || "A", backlogEligibility: [...existingEligibility, ...addedEligibility], promotionSource };
     });
     try {
-      const response = await fetch("/api/students/directory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ records: promoted }), signal: AbortSignal.timeout(30000) });
+      const response = await fetch("/api/students/directory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ records: promoted, promotion: true }), signal: AbortSignal.timeout(30000) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Unable to promote students");
       const savedRecords = (body.records || []).map((student: StudentDirectoryRecord) => ({ ...student, section: student.section || "A" }));

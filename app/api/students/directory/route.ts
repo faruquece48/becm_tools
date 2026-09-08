@@ -34,7 +34,7 @@ const recordSchema = z.object({
   placementExamYear: z.string().regex(/^\d{4}$/).optional(),
   obeBatchPlacements: z.array(obeBatchPlacementSchema).max(100).optional(),
 });
-const payloadSchema = z.object({ records: z.array(recordSchema).min(1).max(1000) });
+const payloadSchema = z.object({ promotion: z.boolean().optional(), records: z.array(recordSchema).min(1).max(1000) });
 const placementMutationSchema = z.object({ studentId: z.string().min(1), placementId: z.string().min(1), password: z.string().min(1), action: z.enum(["edit", "delete"]), placement: obeBatchPlacementSchema.optional() });
 
 async function teacherPrisma() {
@@ -148,6 +148,14 @@ export async function PUT(request: Request) {
       const rows = await tx.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = ${SECTION} FOR UPDATE`);
       const current = Array.isArray(rows[0]?.data) ? rows[0].data as unknown as StudentDirectoryRecord[] : [];
       const merged = mergeStudentDirectory(current, parsed.data.records);
+      if (parsed.data.promotion) {
+        await tx.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section","data","updatedAt") VALUES ('student-promotion-history','[]'::jsonb,NOW()) ON CONFLICT ("section") DO NOTHING`);
+        const historyRows=await tx.$queryRaw<Array<{data:Prisma.JsonValue}>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section"='student-promotion-history' FOR UPDATE`);
+        const history=Array.isArray(historyRows[0]?.data)?historyRows[0].data:[];
+        for(const after of parsed.data.records){const before=current.find(item=>item.id===after.id);if(before&&(before.year!==after.year||before.semester!==after.semester||before.placementExamYear!==after.placementExamYear))history.push(JSON.parse(JSON.stringify({id:crypto.randomUUID(),studentId:after.id,name:after.name,rollNo:after.rollNo,series:after.series,promotedAt:new Date().toISOString(),before,after})));}
+        await tx.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data"=CAST(${JSON.stringify(history)} AS jsonb),"updatedAt"=NOW() WHERE "section"='student-promotion-history'`);
+      }
+
       await tx.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${JSON.stringify(merged)} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${SECTION}`);
       return merged;
     });

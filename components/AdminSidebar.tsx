@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/teachers", label: "Teacher Accounts", icon: GraduationCap },
   { href: "/admin/staff", label: "Staff Accounts", icon: BriefcaseBusiness },
   { href: "/admin/rental-library", label: "Rental Library", icon: BookOpenText },
+  { href: "/admin/student-promotion", label: "Student promotion", icon: GraduationCap },
   { href: "/admin/results", label: "Result Approval", icon: ClipboardCheck },
   { href: "/admin/expelled-students", label: "Expelled Students", icon: ShieldAlert },
   { href: "/admin/permanent-delete", label: "Permanent Delete", icon: Trash2 },
