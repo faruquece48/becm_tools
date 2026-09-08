@@ -7,3 +7,6 @@ export function compareResultStudentRolls(leftRoll: string, rightRoll: string, e
   const group = Number(leftSeries !== expectedPrefix) - Number(rightSeries !== expectedPrefix);
   return group || rightSeries - leftSeries || leftRoll.localeCompare(rightRoll, undefined, { numeric: true });
 }
+export function compareResultStudentGroups(leftRoll: string, rightRoll: string, leftNonObe: boolean, rightNonObe: boolean, examYear: string, academicYear: string) {
+  return Number(leftNonObe) - Number(rightNonObe) || compareResultStudentRolls(leftRoll, rightRoll, examYear, academicYear);
+}

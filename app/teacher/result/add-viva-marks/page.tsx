@@ -1,5 +1,6 @@
 "use client";
 
+import {compareResultStudentGroups} from "@/lib/resultStudentOrder";
 import { useState } from "react";
 import type { VivaStudent } from "@/lib/storage/vivaMarks";
 
@@ -27,7 +28,7 @@ export default function AddVivaMarksPage() {
     if (!response) { setMessage("Unable to connect to the Viva Marks service."); return; }
     const payload = await response.json().catch(() => null) as { students?: VivaStudent[]; published?: boolean; error?: string } | null;
     if (!response.ok || !payload?.students) { setMessage(payload?.error || "Unable to search students."); return; }
-    setStudents(payload.students); setPublished(Boolean(payload.published));
+    setStudents([...payload.students].sort((a,b)=>compareResultStudentGroups(a.rollNo,b.rollNo,a.registrationType==="Non-OBE",b.registrationType==="Non-OBE",examYear,academicYear))); setPublished(Boolean(payload.published));
     if (payload.published) setMessage("Result Already Published. No Change Allowed.");
   };
 
@@ -40,7 +41,7 @@ export default function AddVivaMarksPage() {
     if (!response) { setMessage("Unable to connect to the Viva Marks service."); return; }
     const payload = await response.json().catch(() => null) as { students?: VivaStudent[]; error?: string } | null;
     if (!response.ok) { if (response.status === 409) setPublished(true); setMessage(payload?.error || "Unable to save viva marks."); return; }
-    if (payload?.students) setStudents(payload.students);
+    if (payload?.students) setStudents([...payload.students].sort((a,b)=>compareResultStudentGroups(a.rollNo,b.rollNo,a.registrationType==="Non-OBE",b.registrationType==="Non-OBE",examYear,academicYear)));
     setMessage("Viva marks saved successfully in Neon.");
   };
 

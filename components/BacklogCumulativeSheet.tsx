@@ -1,4 +1,5 @@
 "use client";
+import {priorYearlyCredit} from "@/lib/yearlyEarnedCredit";
 const roundSgpa=(value:number)=>(Math.round((value+Number.EPSILON)*100)/100).toFixed(2);
 
 import { useEffect, useMemo, useState } from "react";
@@ -87,7 +88,7 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     // A historical archive can contain duplicate rows for the same roll. Each exam
     // contributes at most once to the cumulative totals.
     const previous = priorArchives.map((archive) => archive.students.find(sameStudent)).filter((item): item is ArchiveStudent => Boolean(item));
-    const currentYearRegularCredit = regular.filter((archive) => archive.academicYear === selection.academicYear && examRank(archive) < currentExamRank).reduce((sum, archive) => sum + Number(archive.students.find(sameStudent)?.earnedCredit || 0), 0);
+    const currentYearRegularCredit = priorYearlyCredit(student, {...selection,semester:"Backlog",examType:"Backlog"}, regular, backlogArchives, [...regularResults,...resultArchives.map(item=>({...item,examType:"Backlog"}))]);
     const yearlyCredit = currentYearRegularCredit + currentCredit;
     const latestPrior = priorArchives.sort((left, right) => examRank(right) - examRank(left)).map((archive) => archive.students.find(sameStudent)).find(Boolean);
     const sameResultStudent = (item: ResultStudent) => identityIds.has(item.studentId) || Boolean(item.rollNo && norm(item.rollNo) === norm(student.rollNo));

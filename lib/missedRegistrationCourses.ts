@@ -17,7 +17,7 @@ function coursesFor(syllabuses: SyllabusSegment[], series: string, academicYear:
   return syllabusCoursesForExam(defaultSyllabuses, fallbackSeries, academicYear, semester);
 }
 
-export function missedRegistrationCourseCodes(student: StudentDirectoryRecord, selection: ExamSelection, syllabuses: SyllabusSegment[], archives: ExamArchive[], preparedExams: ExamArchive[] = []) {
+export function missedRegistrationCourseCodes(student: StudentDirectoryRecord, selection: ExamSelection, syllabuses: SyllabusSegment[], archives: ExamArchive[], preparedExams: ExamArchive[] = [], inferMissingSemesters = true) {
   const codes = new Set<string>();
   const sameStudent = (candidate: ArchiveStudent) => candidate.studentId === student.id || Boolean(candidate.rollNo) && normalize(candidate.rollNo || "") === normalize(student.rollNo);
   const hasRegistration = (academicYear: string, semester: string) => [...archives, ...preparedExams].some((archive) => archive.academicYear === academicYear && archive.semester === semester && archive.students.some(sameStudent));
@@ -30,6 +30,8 @@ export function missedRegistrationCourseCodes(student: StudentDirectoryRecord, s
       addSemester(placement.series, missed.academicYear, missed.semester);
     }),
   );
+
+  if (!inferMissingSemesters) return [...codes];
 
   const currentPosition = position(selection.academicYear, selection.semester);
   if (currentPosition < 0) return [...codes];
