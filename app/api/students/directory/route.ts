@@ -35,6 +35,7 @@ const recordSchema = z.object({
   obeBatchPlacements: z.array(obeBatchPlacementSchema).max(100).optional(),
 });
 const payloadSchema = z.object({ records: z.array(recordSchema).min(1).max(1000) });
+const placementMutationSchema = z.object({ studentId: z.string().min(1), placementId: z.string().min(1), password: z.string().min(1), action: z.enum(["edit", "delete"]), placement: obeBatchPlacementSchema.optional() });
 
 async function teacherPrisma() {
   const id = (await cookies()).get("becm-portal-account")?.value;
@@ -154,5 +155,36 @@ export async function PUT(request: Request) {
   } catch (error) {
     if (error instanceof DuplicateStudentError) return NextResponse.json({ error: error.message }, { status: 409 });
     console.error("Unable to save students", error); return NextResponse.json({ error: "Unable to save students" }, { status: 503 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const prisma = await teacherPrisma();
+  if (!prisma) return NextResponse.json({ error: "Teacher login required" }, { status: 401 });
+  const parsed = placementMutationSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid placement change" }, { status: 400 });
+  if (parsed.data.password !== "123456") return NextResponse.json({ error: "Incorrect password" }, { status: 403 });
+  if (parsed.data.action === "edit" && !parsed.data.placement) return NextResponse.json({ error: "Updated placement is required" }, { status: 400 });
+  try {
+    const records = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(Prisma.sql`INSERT INTO "ResultSectionStore" ("section", "data", "updatedAt") VALUES (${SECTION}, '[]'::jsonb, NOW()) ON CONFLICT ("section") DO NOTHING`);
+      const rows = await tx.$queryRaw<Array<{ data: Prisma.JsonValue }>>(Prisma.sql`SELECT "data" FROM "ResultSectionStore" WHERE "section" = ${SECTION} FOR UPDATE`);
+      const current = Array.isArray(rows[0]?.data) ? rows[0].data as unknown as StudentDirectoryRecord[] : [];
+      const studentIndex = current.findIndex((student) => student.id === parsed.data.studentId);
+      if (studentIndex < 0) throw new Error("STUDENT_NOT_FOUND");
+      const student = current[studentIndex], placements = student.obeBatchPlacements || [];
+      if (!placements.some((placement) => placement.id === parsed.data.placementId)) throw new Error("PLACEMENT_NOT_FOUND");
+      const nextPlacements = parsed.data.action === "delete" ? placements.filter((placement) => placement.id !== parsed.data.placementId) : placements.map((placement) => placement.id === parsed.data.placementId ? { ...parsed.data.placement!, id: placement.id, assignedAt: placement.assignedAt } : placement);
+      const latest = [...nextPlacements].sort((left, right) => new Date(right.assignedAt).getTime() - new Date(left.assignedAt).getTime())[0];
+      current[studentIndex] = { ...student, ...(latest ? { series: latest.series, year: latest.academicYear, semester: latest.semester, placementExamYear: latest.effectiveExamYear } : {}), obeBatchPlacements: nextPlacements };
+      await tx.$executeRaw(Prisma.sql`UPDATE "ResultSectionStore" SET "data" = CAST(${JSON.stringify(current)} AS jsonb), "updatedAt" = NOW() WHERE "section" = ${SECTION}`);
+      return current;
+    });
+    return NextResponse.json({ records });
+  } catch (error) {
+    if (error instanceof Error && error.message === "STUDENT_NOT_FOUND") return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    if (error instanceof Error && error.message === "PLACEMENT_NOT_FOUND") return NextResponse.json({ error: "Placement not found" }, { status: 404 });
+    console.error("Unable to change OBE placement", error);
+    return NextResponse.json({ error: "Unable to change OBE placement" }, { status: 503 });
   }
 }
