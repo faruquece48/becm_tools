@@ -1,3 +1,4 @@
+import { promotedBacklogCourses } from "@/lib/promotedBacklogCourses";
 import { cookies } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
@@ -41,7 +42,7 @@ async function candidates(prisma:NonNullable<ReturnType<typeof getPrisma>>):Prom
 }
  for(const student of oldStudents)for(const promotion of student.promotions){
   if(promotion.examType!=="Backlog"||backlogResultPublished(publications,promotion.examYear,promotion.academicYear))continue;
-  const courses=promotion.courseIds.flatMap(id=>{const course=courseById.get(id);if(!course||course.semester==="Short Semester")return[];return[{courseCode:course.code,courseTitle:course.title,semester:course.semester==="Even"?"Even" as const:"Odd" as const}]});
+  const courses=promotedBacklogCourses(promotion.courseIds,syllabuses);
   const candidate:Candidate={studentId:student.id,studentName:student.name,rollNo:student.rollNo,registrationNo:student.registrationNo,series:student.series,specialStudent:true,examYear:promotion.examYear,academicYear:promotion.academicYear,courses};
   const index=output.findIndex(item=>item.studentId===student.id&&item.examYear===promotion.examYear&&item.academicYear===promotion.academicYear);
   if(courses.length){if(index<0)output.push(candidate);else output[index]=candidate}
