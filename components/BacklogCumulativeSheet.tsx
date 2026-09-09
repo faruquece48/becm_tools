@@ -2,10 +2,11 @@
 import {priorYearlyCredit} from "@/lib/yearlyEarnedCredit";
 const roundSgpa=(value:number)=>(Math.round((value+Number.EPSILON)*100)/100).toFixed(2);
 
+import { buildFourthYearSheet } from "@/lib/fourthYearExamData";
 import FourthYearExamSheet from "@/components/FourthYearExamSheet";
 import { useEffect, useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
-import { academicYears, departmentName, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
+import { academicYears, departmentName, type OldStudentRecord, type StudentDirectoryRecord } from "@/lib/storage/studentDirectory";
 import { type SyllabusCourse, type SyllabusSegment } from "@/lib/storage/syllabuses";
 import { loadResultSection, saveResultSection } from "@/lib/storage/resultSections";
 import { backlogGrade } from "@/lib/backlogGrading";
@@ -37,6 +38,7 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
   const currentYear = String(new Date().getFullYear());
   const years = Array.from({ length: Math.max(1, Number(currentYear) - 2018 + 1) }, (_, index) => String(Number(currentYear) - index));
   const [students, setStudents] = useState<StudentDirectoryRecord[]>([]);
+  const [oldStudents, setOldStudents] = useState<OldStudentRecord[]>([]);
   const [marks, setMarks] = useState<BacklogMark[]>([]);
   const [regular, setRegular] = useState<Archive[]>([]);
   const [backlogArchives, setBacklogArchives] = useState<Archive[]>([]);
@@ -54,7 +56,9 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
     loadResultSection<BacklogMark[]>("prepare-result-backlog"), loadResultSection<Archive[]>("marks-sheet"),
     loadResultSection<Archive[]>("marks-sheet-backlog"), loadResultSection<ResultArchive[]>("result-sheet"), loadResultSection<ResultArchive[]>("result-sheet-backlog"), loadTabulators(), loadExamCommittees(), fetch("/api/backlog-registrations", { cache: "no-store" }).then((response) => response.json()),
-  ]).then(([studentBody, syllabusBody, savedMarks, regularMarks, backlogMarks, publishedRegularResults, results, tabulatorRows, committeeRows, registrationBody]) => {
+    fetch("/api/students/old", { cache: "no-store" }).then(async response => { const body = await response.json(); if (!response.ok) throw new Error(body.error || "Unable to load re-added students."); return body; }),
+  ]).then(([studentBody, syllabusBody, savedMarks, regularMarks, backlogMarks, publishedRegularResults, results, tabulatorRows, committeeRows, registrationBody, oldStudentBody]) => {
+    setOldStudents(oldStudentBody.records || []);
     setStudents(studentBody.records || []); setSyllabuses(syllabusBody.syllabuses || []); setMarks(savedMarks || []);
     setRegular(regularMarks || []); setBacklogArchives(backlogMarks || []); setRegularResults(publishedRegularResults || []); setResultArchives(results || []); setTabulators(tabulatorRows); setCommittees(committeeRows); setRegistrations(registrationBody.registrations || []);
   }).catch(() => setMessage(`Unable to load backlog ${mode} data from Neon.`)); }, [mode]);
@@ -71,10 +75,29 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     })).values()];
     return resolved;
   }, [current, syllabuses, selection]);
-  const cohort = useMemo(() => { const registered = registrations.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.courses.length > 0), ids = new Set([...registered.map((item) => item.studentId), ...current.map((item) => item.studentId)]), byRoll = new Map<string, StudentDirectoryRecord>(); students.filter((student) => ids.has(student.id) || registered.some((item) => norm(item.rollNo) === norm(student.rollNo)) || current.some((item) => norm(item.rollNo) === norm(student.rollNo))).forEach((student) => { const key = norm(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); }); const resolved = [...byRoll.values()], seriesCounts = new Map<string, number>(), rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((a, b) => (seriesCounts.get(rollSeries(b.rollNo)) || 0) - (seriesCounts.get(rollSeries(a.rollNo)) || 0) || a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true })); }, [students, registrations, selection, current]);
+  const fourthYearResult = useMemo(() => selection.academicYear === "4th" && mode === "result" ? buildFourthYearSheet({
+    syllabuses, "student-directory": students, "old-student-directory": oldStudents,
+    "prepare-result-backlog": marks, "marks-sheet": regular, "marks-sheet-backlog": backlogArchives,
+    "result-sheet": regularResults, "result-sheet-backlog": resultArchives,
+  }, registrations, selection.examYear, "Backlog") : null, [selection, mode, syllabuses, students, oldStudents, marks, regular, backlogArchives, regularResults, resultArchives, registrations]);
+  const cohort = useMemo(() => {
+    if (fourthYearResult) return fourthYearResult.rows.flatMap(row => {
+      const old = oldStudents.find(student => student.id === row.id || norm(student.rollNo) === norm(row.roll));
+      const student = old || students.find(student => student.id === row.id || norm(student.rollNo) === norm(row.roll));
+      return student ? [{ ...student, year: "4th", semester: "Backlog", degreeCredit: row.degreeCredit }] : [];
+    });
+    const registered = registrations.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear && item.courses.length > 0), ids = new Set([...registered.map((item) => item.studentId), ...current.map((item) => item.studentId)]), byRoll = new Map<string, StudentDirectoryRecord>(); students.filter((student) => ids.has(student.id) || registered.some((item) => norm(item.rollNo) === norm(student.rollNo)) || current.some((item) => norm(item.rollNo) === norm(student.rollNo))).forEach((student) => { const key = norm(student.rollNo), saved = byRoll.get(key); if (!saved || studentDetailScore(student) > studentDetailScore(saved)) byRoll.set(key, student); }); const resolved = [...byRoll.values()], seriesCounts = new Map<string, number>(), rollSeries = (rollNo: string) => rollNo.replace(/\D/g, "").slice(0, 2); resolved.forEach((student) => { const series = rollSeries(student.rollNo); seriesCounts.set(series, (seriesCounts.get(series) || 0) + 1); }); return resolved.sort((a, b) => (seriesCounts.get(rollSeries(b.rollNo)) || 0) - (seriesCounts.get(rollSeries(a.rollNo)) || 0) || a.rollNo.localeCompare(b.rollNo, undefined, { numeric: true })); }, [students, oldStudents, fourthYearResult, registrations, selection, current]);
   const tabulator = tabulators.find((item) => item.examType === "Backlog" && item.examYear === selection.examYear && item.academicYear === selection.academicYear);
   const committee = committees.find((item) => item.examType === "Backlog" && item.examYear === selection.examYear && item.academicYear === selection.academicYear);
   function summary(student: StudentDirectoryRecord) {
+    const restored = fourthYearResult?.rows.find(row => row.id === student.id || norm(row.roll) === norm(student.rollNo));
+    if (restored && fourthYearResult) return {
+      rows: fourthYearResult.courses.map(course => ({ course, grade: restored.results[course.id]?.grade || "" })),
+      currentCredit: restored.earned, currentGp: restored.gp, sgpa: restored.gpa, yearlyCredit: restored.yearlyCredit,
+      previousCredit: restored.previousCredit, previousGp: restored.previousGp, totalCredit: restored.totalCredit,
+      totalGp: restored.totalGp, cgpa: restored.cgpa, failed: restored.failed, register: restored.register,
+      currentFailed: fourthYearResult.courses.filter(course => restored.results[course.id]?.grade === "F").map(course => course.code),
+    };
     const rows = courses.map((course) => { const mark = current.find((item) => (item.studentId === student.id || norm(item.rollNo) === norm(student.rollNo)) && item.semester === course.semester && norm(item.courseCode) === norm(course.code)); return { course, mark, grade: mark ? mark.result === "Fail" ? "F" : letter(Number(mark.marks) || 0) : "" }; });
     const currentExamRank = Number(selection.examYear) * 100 + (order[selection.academicYear] || 0) * 3 + 2;
     const priorArchives = [...regular, ...backlogArchives].filter((archive) => examRank(archive) < currentExamRank);
