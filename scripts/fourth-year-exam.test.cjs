@@ -19,6 +19,20 @@ const special = { id: 'old', rollNo: '1912001', name: 'Re-admitted Student', reg
 const mark = { studentId: student.id, rollNo: student.rollNo, examYear: '2024', academicYear: '4th', semester: course.semester, courseId: course.id, courseCode: course.code, courseTitle: course.title, present: true, partA: '22.5', partB: '23', classTestAttendance: '15', marks: '61', result: 'Pass' };
 const data = { syllabuses: defaultSyllabuses, 'student-directory': [student], 'old-student-directory': [special], 'prepare-result-backlog': [mark, { ...mark, studentId: special.id, rollNo: special.rollNo, courseId: historical.id }] };
 
+test('Non-OBE total outranks an incomplete published snapshot and excludes the current ledger change', () => {
+  const oldStudent = { ...special, earnedCredit: 158, gradePoints: 440.115, outstandingCourses: [{ courseId: historical.id, status: 'failed' }] };
+  const model = buildFourthYearSheet({
+    ...data,
+    'old-student-directory': [oldStudent],
+    'result-sheet': [{ examYear: '2024', academicYear: '1st', semester: 'Even', students: [{ studentId: oldStudent.id, totalEarnedCredit: 24.5, totalGradePoints: 70.375, failedSubjects: [historical.code], registerAgain: [] }] }],
+    'old-student-result-updates': [{ examYear: '2024', academicYear: '1st', semester: 'Odd', examType: 'Regular', applied: true, students: [{ studentId: oldStudent.id, credit: 10, quality: 29.25 }] }, { examYear: '2024', academicYear: '1st', semester: 'Even', examType: 'Regular', applied: true, students: [{ studentId: oldStudent.id, credit: 14.5, quality: 41.125 }] }, { examYear: '2024', academicYear: '4th', semester: 'Backlog', examType: 'Backlog', applied: true, students: [{ studentId: oldStudent.id, credit: 3, quality: 8.25 }] }],
+  }, [{ studentId: oldStudent.id, rollNo: oldStudent.rollNo, examYear: '2024', academicYear: '4th', courses: [{ courseId: historical.id, courseCode: historical.code, semester: historical.semester }] }], '2024', 'Backlog');
+  const row = model.rows.find(item => item.roll === oldStudent.rollNo);
+  assert.equal(row.previousCredit, 155);
+  assert.equal(row.previousGp, 431.865);
+  assert.equal(row.yearlyCredit, 27.5);
+  assert.equal(row.failed.length, 0);
+});
 test('wide layout is restricted to the two fourth-year exams and never result sheets', () => {
   for (const exam of ['Backlog', 'Short Semester']) {
     for (const year of ['1st', '2nd', '3rd']) assert.equal(usesWideExamTable(year, exam, 'marks'), false);
@@ -62,7 +76,7 @@ test('render backlog and full-syllabus short semester with repeated identity on 
   fs.mkdirSync('.next/fourth-year-pdf-qa', { recursive: true });
   const source = buildFourthYearSheet(data, [], '2024', 'Backlog');
   const tabulator = { chairman: 'Dr. Example Chairman', member1: 'Mr. First Tabulator', member2: 'Mr. Second Tabulator', reportingDate: '2026-09-09' };
-  const committee = { examDate: '2026-08-01', resultPublishDate: '2026-09-09', member1: 'Dr. First Member', member2: 'Dr. Second Member', member3: 'Dr. Third Member', member4: 'Dr. External Member' };
+  const committee = { examDate: '2026-08-01', resultPublishDate: '2026-09-09', member1: 'Dr. First Member', member2: 'Dr. Second Member', member3: 'Dr. Third Member', member4: 'Dr. External Member', member5: 'Dr. Additional Member' };
   for (const examType of ['Backlog', 'Short Semester']) for (const kind of ['marks', 'tabulation']) {
     const courses = examType === 'Backlog' ? obe.courses.filter(course => course.type === 'Theory').slice(0, 40) : [...obe.courses, ...old.courses];
     assert.ok(examType !== 'Backlog' || courses.length === 40);

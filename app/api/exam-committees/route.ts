@@ -6,7 +6,7 @@ import { getPrisma } from "@/lib/prisma";
 import { defaultExamCommitteeRecords } from "@/lib/storage/examCommittees";
 
 const STORE_ID = "shared";
-const recordSchema = z.object({ id: z.string().min(1).max(100), examType: z.enum(["Regular", "Backlog"]), examYear: z.string().max(20), academicYear: z.string().max(20), semester: z.enum(["Odd", "Even", ""]), chairman: z.string().max(200), member1: z.string().max(200), member2: z.string().max(200), member3: z.string().max(200), member4: z.string().max(200), examDate: z.string().max(20), resultPublishDate: z.string().max(20), memoNo: z.string().max(100), memoDate: z.string().max(20), resultNote: z.string().max(2000) });
+const recordSchema = z.object({ id: z.string().min(1).max(100), examType: z.enum(["Regular", "Backlog"]), examYear: z.string().max(20), academicYear: z.string().max(20), semester: z.enum(["Odd", "Even", ""]), chairman: z.string().max(200), member1: z.string().max(200), member2: z.string().max(200), member3: z.string().max(200), member4: z.string().max(200), member5: z.string().max(200).optional().default(""), examDate: z.string().max(20), resultPublishDate: z.string().max(20), memoNo: z.string().max(100), memoDate: z.string().max(20), resultNote: z.string().max(2000) });
 const recordsSchema = z.array(recordSchema).max(1000);
 
 async function teacherPrisma() {

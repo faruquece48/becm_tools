@@ -19,6 +19,7 @@ type Mark = { studentId: string; rollNo?: string; name?: string; studentName?: s
 type Prepared = Mark & { students: Mark[] };
 type Registration = { studentId: string; rollNo: string; studentName?: string; registrationNo?: string; examYear: string; academicYear?: string; courses: { courseId?: string; courseCode: string; courseTitle?: string; semester: string }[] };
 type ArchiveStudent = { studentId: string; rollNo?: string; earnedCredit?: number; gradePoints?: number; totalEarnedCredit?: number; totalGradePoints?: number; failedSubjects?: string[]; registerAgain?: string[] };
+type NonObeLedger = { examYear: string; academicYear: string; semester: string; examType: "Regular" | "Backlog"; applied?: boolean; students: Array<{ studentId: string; credit: number; quality: number }> };
 type Archive = { examYear: string; academicYear: string; semester: string; students: ArchiveStudent[] };
 const norm = (value = "") => value.replace(/\s/g, "").toLowerCase();
 const num = (value: unknown) => Number(value) || 0;
@@ -48,7 +49,7 @@ export function buildFourthYearSheet(data: Record<string, unknown>, registration
   marks.forEach(item => include(item.studentId, item.rollNo, item.name || item.studentName, item.registrationNo));
   special.filter(student => promotion(student)?.courseIds.length).forEach(student => include(student.id, student.rollNo));
   const courseMap = new Map<string, SyllabusCourse>(), rowData: FourthYearRow[] = [];
-  const regularArchives = list<Archive>("marks-sheet"), backlogArchives = list<Archive>("marks-sheet-backlog"), regularResults = list<Archive>("result-sheet"), backlogResults = list<Archive>("result-sheet-backlog");
+  const regularArchives = list<Archive>("marks-sheet"), backlogArchives = list<Archive>("marks-sheet-backlog"), regularResults = list<Archive>("result-sheet"), backlogResults = list<Archive>("result-sheet-backlog"), nonObeHistory = list<NonObeLedger>("old-student-result-updates");
   const currentRank = rank({ examYear, academicYear: "4th", semester: isShort ? "Short Semester" : "Backlog" });
   for (const person of people.values()) {
     const sameStudent = (item: { studentId: string; rollNo?: string }) => item.studentId === person.id || item.studentId === person.directory?.id || Boolean(item.rollNo && norm(item.rollNo) === norm(person.rollNo));
@@ -87,14 +88,30 @@ export function buildFourthYearSheet(data: Record<string, unknown>, registration
     const histories = [...regularResults.map(item => ({ item, backlog: false })), ...backlogResults.map(item => ({ item, backlog: true }))].filter(({ item, backlog }) => rank(item, backlog) < currentRank).sort((a, b) => rank(b.item, b.backlog) - rank(a.item, a.backlog));
     const latest = histories.map(({ item }) => item.students.find(sameStudent)).find(Boolean);
     const prior = [...regularArchives.map(item => ({ item, backlog: false })), ...backlogArchives.map(item => ({ item, backlog: true }))].filter(({ item, backlog }) => rank(item, backlog) < currentRank).map(({ item }) => item.students.find(sameStudent)).filter((item): item is ArchiveStudent => Boolean(item));
-    const previousCredit = latest ? num(latest.totalEarnedCredit) : person.old ? num(person.old.earnedCredit) : prior.reduce((sum, item) => sum + num(item.earnedCredit), 0);
-    const previousGp = latest ? num(latest.totalGradePoints) : person.old ? num(person.old.gradePoints) : prior.reduce((sum, item) => sum + num(item.gradePoints), 0);
-    const historicalFailed = latest?.failedSubjects || person.old?.outstandingCourses.filter(item => item.status === "failed").map(item => allCourses.find(course => course.id === item.courseId)?.code || item.courseId) || [];
-    const historicalRegister = latest?.registerAgain || person.old?.outstandingCourses.filter(item => item.status === "need-register").map(item => allCourses.find(course => course.id === item.courseId)?.code || item.courseId) || [];
+    const archivedCredit = prior.reduce((sum, item) => sum + num(item.earnedCredit), 0), archivedGp = prior.reduce((sum, item) => sum + num(item.gradePoints), 0);
+    const currentAndLater = nonObeHistory.filter(entry => entry.applied && rank(entry, entry.examType === "Backlog") >= currentRank).flatMap(entry => entry.students).filter(sameStudent);
+    const oldCredit = person.old ? Math.max(0, num(person.old.earnedCredit) - currentAndLater.reduce((sum, item) => sum + num(item.credit), 0)) : 0;
+    const oldGp = person.old ? Math.max(0, num(person.old.gradePoints) - currentAndLater.reduce((sum, item) => sum + num(item.quality), 0)) : 0;
+    const publishedCredit = num(latest?.totalEarnedCredit), useOld = Boolean(person.old) && oldCredit >= archivedCredit && oldCredit >= publishedCredit;
+    const usePublished = Boolean(latest) && publishedCredit >= archivedCredit;
+    const previousCredit = useOld ? oldCredit : usePublished ? publishedCredit : archivedCredit;
+    const previousGp = useOld ? oldGp : usePublished ? num(latest?.totalGradePoints) : archivedGp;
+    const historicalFailed = useOld ? person.old!.outstandingCourses.filter(item => item.status === "failed").map(item => allCourses.find(course => course.id === item.courseId)?.code || item.courseId) : latest?.failedSubjects || [];
+    const historicalRegister = useOld ? person.old!.outstandingCourses.filter(item => item.status === "need-register").map(item => allCourses.find(course => course.id === item.courseId)?.code || item.courseId) : latest?.registerAgain || [];
+    const yearlyHistory = new Map<string, number>();
+    const yearlyKey = (entry: { examType: string; academicYear: string; semester: string }) => [entry.examType, entry.academicYear, entry.examType === "Backlog" ? "Backlog" : entry.semester].join("|");
+    [...regularArchives.map(item => ({ item, examType: "Regular" })), ...backlogArchives.map(item => ({ item, examType: "Backlog" }))]
+      .filter(({ item, examType }) => item.examYear === examYear && rank(item, examType === "Backlog") < currentRank)
+      .forEach(({ item, examType }) => { const archived = item.students.find(sameStudent); if (archived) yearlyHistory.set(yearlyKey({ examType, academicYear: item.academicYear, semester: item.semester }), num(archived.earnedCredit)); });
+    nonObeHistory.filter(entry => entry.applied && entry.examYear === examYear && rank(entry, entry.examType === "Backlog") < currentRank).forEach(entry => { const change = entry.students.find(sameStudent); if (change) yearlyHistory.set(yearlyKey(entry), num(change.credit)); });
+    person.old?.specialPromotions?.filter(entry => entry.examYear === examYear && rank(entry, entry.examType === "Backlog") < currentRank).forEach(entry => yearlyHistory.set(yearlyKey(entry), num(entry.earnedCredit)));
+    const currentHistoryArchive = (isShort ? regularArchives : backlogArchives).find(item => item.examYear === examYear && item.academicYear === "4th" && (isShort ? item.semester === "Short Semester" : true))?.students.find(sameStudent);
+    const archivedCurrentCredit = num(currentHistoryArchive?.earnedCredit);
+    const currentYearlyCredit = person.old && archivedCurrentCredit > 0 ? archivedCurrentCredit : earned;
     const passed = new Set([...registered.values()].filter(course => points[results[course.id]?.grade]).map(course => norm(course.code)));
     const totalCredit = previousCredit + earned, totalGp = previousGp + gp;
     rowData.push({ id: person.id, roll: person.rollNo, name: person.name, fatherName: person.old?.fatherName || person.directory?.fatherName || "", gender: person.old?.gender || person.directory?.gender || "", registration: person.registrationNo, session: `${person.series}-${num(person.series) + 1}`, nonObe: person.nonObe, degreeCredit: graduationCreditForStudent(person.old || person.directory || { series: person.series }), results, earned, gp, gpa: earned ? gp / earned : 0,
-      yearlyCredit: earned + priorYearlyCredit({ id: person.id, rollNo: person.rollNo }, { examYear, academicYear: "4th", semester: isShort ? "Short Semester" : "Backlog", examType: isShort ? "Regular" : "Backlog" }, regularArchives.map(item => ({ ...item, students: item.students.map(student => ({ ...student, earnedCredit: num(student.earnedCredit) })) })), backlogArchives.map(item => ({ ...item, students: item.students.map(student => ({ ...student, earnedCredit: num(student.earnedCredit) })) })), [...regularResults, ...backlogResults.map(item => ({ ...item, examType: "Backlog" }))]),
+      yearlyCredit: currentYearlyCredit + (person.old ? [...yearlyHistory.values()].reduce((sum, credit) => sum + credit, 0) : priorYearlyCredit({ id: person.id, rollNo: person.rollNo }, { examYear, academicYear: "4th", semester: isShort ? "Short Semester" : "Backlog", examType: isShort ? "Regular" : "Backlog" }, regularArchives.map(item => ({ ...item, students: item.students.map(student => ({ ...student, earnedCredit: num(student.earnedCredit) })) })), backlogArchives.map(item => ({ ...item, students: item.students.map(student => ({ ...student, earnedCredit: num(student.earnedCredit) })) })), [...regularResults, ...backlogResults.map(item => ({ ...item, examType: "Backlog" }))])),
       previousCredit, previousGp, totalCredit, totalGp, cgpa: totalCredit ? totalGp / totalCredit : 0,
       failed: [...new Set([...historicalFailed, ...failed])].filter(code => !passed.has(norm(code))), register: [...new Set([...historicalRegister, ...register])].filter(code => !passed.has(norm(code))) });
   }

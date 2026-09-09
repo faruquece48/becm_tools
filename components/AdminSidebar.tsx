@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpenText, BriefcaseBusiness, ClipboardCheck, GraduationCap, Grid2X2, LogOut, ShieldAlert, ShieldCheck, Trash2, UsersRound } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, ClipboardCheck, GraduationCap, Grid2X2, History, LogOut, RotateCcw, ShieldAlert, ShieldCheck, Trash2, UsersRound } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Overview", icon: Grid2X2 },
@@ -13,6 +13,9 @@ const links = [
   { href: "/admin/rental-library", label: "Rental Library", icon: BookOpenText },
   { href: "/admin/student-promotion", label: "Student promotion", icon: GraduationCap },
   { href: "/admin/results", label: "Result Approval", icon: ClipboardCheck },
+  { href: "/admin/examination-committee", label: "Examination Committee", icon: ClipboardCheck },
+  { href: "/admin/non-obe-history", label: "Non OBE History", icon: History },
+  { href: "/admin/re-add-students", label: "Re-Add Student Data", icon: RotateCcw },
   { href: "/admin/expelled-students", label: "Expelled Students", icon: ShieldAlert },
   { href: "/admin/permanent-delete", label: "Permanent Delete", icon: Trash2 },
 ];

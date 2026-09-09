@@ -9,6 +9,7 @@ export type ExamCommitteeRecord = {
   member2: string;
   member3: string;
   member4: string;
+  member5: string;
   examDate: string;
   resultPublishDate: string;
   memoNo: string;
@@ -54,7 +55,7 @@ const seeds: Seed[] = [
   ["34","Regular","2025","3rd","Odd","Mrs. Shayla Sharmin","Mr. Faruque Abdullah","Mr. Md. Ashraful Islam","Mr. Nur Alam Riad","Dr. Md. Shafiqul Islam","2026-06-24","2026-08-23","123","2026-08-23"],
 ];
 
-export const defaultExamCommitteeRecords: ExamCommitteeRecord[] = seeds.map(([id, examType, examYear, academicYear, semester, chairman, member1, member2, member3, member4, examDate, resultPublishDate, memoNo, memoDate, resultNote = ""]) => ({ id, examType, examYear, academicYear, semester, chairman, member1, member2, member3, member4, examDate, resultPublishDate, memoNo, memoDate, resultNote }));
+export const defaultExamCommitteeRecords: ExamCommitteeRecord[] = seeds.map(([id, examType, examYear, academicYear, semester, chairman, member1, member2, member3, member4, examDate, resultPublishDate, memoNo, memoDate, resultNote = ""]) => ({ id, examType, examYear, academicYear, semester, chairman, member1, member2, member3, member4, member5: "", examDate, resultPublishDate, memoNo, memoDate, resultNote }));
 
 export async function loadExamCommittees(): Promise<ExamCommitteeRecord[]> {
   const response = await fetch("/api/exam-committees", { cache: "no-store" });

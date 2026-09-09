@@ -27,7 +27,7 @@ export default function FourthYearExamSheet({ kind, examType, initialExamYear, o
       const get = async (url: string) => { const response = await fetch(url, { cache: "no-store" }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "Unable to load examination data."); return body; };
       const [bundle, registrationBody, tabulators, committees] = await Promise.all([
         get("/api/excel-result-input"), get(examType === "Backlog" ? "/api/backlog-registrations" : "/api/short-semester-registrations"),
-        kind === "tabulation" ? loadTabulators() : Promise.resolve([]), kind === "tabulation" ? loadExamCommittees() : Promise.resolve([]),
+        kind === "tabulation" ? loadTabulators() : Promise.resolve([]), loadExamCommittees(),
       ]);
       const model = buildFourthYearSheet(bundle.data || {}, registrationBody.registrations || [], examYear, examType);
       if (!model.rows.length || !model.courses.length) throw new Error("No registered subjects or saved marks found for this examination.");

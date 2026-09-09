@@ -6,7 +6,7 @@ import { getPrisma } from "@/lib/prisma";
 const sections = [
   "student-directory", "syllabuses", "student-eligibility", "prepare-result",
   "prepare-result-backlog", "add-viva-marks", "old-student-directory",
-  "marks-sheet", "marks-sheet-backlog", "result-sheet", "result-sheet-backlog",
+  "marks-sheet", "marks-sheet-backlog", "result-sheet", "result-sheet-backlog", "old-student-result-updates",
 ] as const;
 
 export async function GET() {

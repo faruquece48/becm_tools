@@ -1,4 +1,4 @@
-export const LEGACY_RESULT_FORMAT_CUTOFF = "2026-07-17";
+export const LEGACY_RESULT_FORMAT_CUTOFF = "2026-08-17";
 export const OBE_GRADUATION_CREDIT = 163.5;
 export const NON_OBE_GRADUATION_CREDIT = 161;
 export const GRADUATION_CREDIT = OBE_GRADUATION_CREDIT;
@@ -22,8 +22,8 @@ function comparableDate(value?: string) {
   return "";
 }
 
-export function usesLegacyResultFormat(resultPublishDate?: string) {
-  const date = comparableDate(resultPublishDate);
+export function usesLegacyResultFormat(examDate?: string) {
+  const date = comparableDate(examDate);
   return !date || date <= LEGACY_RESULT_FORMAT_CUTOFF;
 }
 
@@ -58,4 +58,8 @@ export function ordinalRank(rank: number) {
 export function rankedPassedStatus(cgpa: number, ranks: Map<number, number>) {
   const rank = ranks.get(roundedCgpaHundredths(cgpa));
   return rank ? `Passed (${ordinalRank(rank)})` : "Passed";
+}
+
+export function statusInsteadOfFailedSubjects(failedSubjects: readonly string[]) {
+  return failedSubjects.join(", ");
 }

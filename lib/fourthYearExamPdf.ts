@@ -13,7 +13,7 @@ const fixed = (value: number) => value.toFixed(2);
 const rounded = (value: number) => (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
 const date = (value = "") => { const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/); return match ? `${match[3]}/${match[2]}/${match[1]}` : value; };
 
-export function fourthYearPdfColumns(sheet: FourthYearSheet, kind: Kind, resultPublishDate?: string) {
+export function fourthYearPdfColumns(sheet: FourthYearSheet, kind: Kind, examDate?: string) {
   const identity: Column[] = kind === "marks" ? [{ id: "roll", title: "Roll No.", width: 16, value: row => row.roll }] : [
     { id: "registration", title: "Reg. No.\n& Session", width: 16, value: row => `${row.registration}\n${row.session}` },
     { id: "roll", title: "Roll No.", width: 13, value: row => row.roll },
@@ -34,9 +34,10 @@ export function fourthYearPdfColumns(sheet: FourthYearSheet, kind: Kind, resultP
     ["totalCredit", "Total Credits\nEarned", 16, row => row.totalCredit], ["cgpa", "CGPA", 12, row => row.cgpa],
   ];
   numeric.forEach(([id, title, width, value]) => groups.push({ id, title, width, columns: [{ id, title, width, value: row => id === "gpa" || id === "cgpa" ? rounded(value(row)) : fixed(value(row)) }] }));
+  const legacy = usesLegacyResultFormat(examDate), currentFailed = (row: FourthYearRow) => sheet.courses.filter(course => ["F", "W"].includes(row.results[course.id]?.grade)).map(course => course.code), currentRegister = (row: FourthYearRow) => sheet.courses.filter(course => row.results[course.id]?.grade === "-").map(course => course.code);
   const remarks: Column[] = [
-    { id: "failed", title: kind === "tabulation" && !usesLegacyResultFormat(resultPublishDate) ? "Status" : "Failed Subjects", width: 36, value: row => kind === "tabulation" && row.totalCredit >= row.degreeCredit ? completionStatus(row.cgpa, usesLegacyResultFormat(resultPublishDate)) : (kind === "marks" ? sheet.courses.filter(course => ["F", "W"].includes(row.results[course.id]?.grade)).map(course => course.code) : row.failed).join(", ") },
-    { id: "register", title: "Need to Register\nAgain", width: 32, value: row => kind === "tabulation" && row.totalCredit >= row.degreeCredit ? "" : row.register.join(", ") },
+    { id: "failed", title: legacy ? "Failed Subjects" : "Status", width: 36, value: row => { const failed = kind === "marks" ? currentFailed(row) : row.failed; return kind === "tabulation" && row.totalCredit >= row.degreeCredit ? completionStatus(row.cgpa, legacy) : failed.join(", "); } },
+    { id: "register", title: "Need to Register\nAgain", width: 32, value: row => kind === "marks" ? currentRegister(row).join(", ") : row.totalCredit >= row.degreeCredit ? "" : row.register.join(", ") },
   ];
   groups.push({ id: "remarks", title: "Remarks", width: 68, columns: remarks });
   return { identity, groups };
@@ -47,7 +48,7 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), L = kind === "marks" ? 12 : 14, R = W - L;
   const committee = metadata.committee, tabulator = metadata.tabulator;
   if (kind === "tabulation" && (!committee || !tabulator)) throw new Error("Matching backlog tabulator and examination committee records are required.");
-  const { identity, groups } = fourthYearPdfColumns(sheet, kind, committee?.resultPublishDate);
+  const { identity, groups } = fourthYearPdfColumns(sheet, kind, committee?.examDate);
   const fontSize = 7.3, lineHeight = 2.8;
   const textLines = (value: string, width: number, size = fontSize): string[] => { doc.setFont("FreeSerif", "normal"); doc.setFontSize(size); return doc.splitTextToSize(value || "", width - 1.6); };
   function cell(x: number, y: number, width: number, height: number, value: string, bold = false, size = fontSize, align: "left" | "center" | "right" = "center") {
@@ -84,8 +85,8 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
     const x = L + 99;
     sig(x, y + 2, 27, 12, ""); sig(x + 27, y + 2, 68, 12, "EXAMINATION\nCOMMITTEE", true); sig(x + 95, y + 2, 28, 12, "SIGNATURE", true);
     let yy = y + 14;
-    [["Chairman", "Head, BECM"], ["Member", committee.member1], ["Member", committee.member2], ["Member", committee.member3], ["Member\n(External)", committee.member4], ["Date", signedDate]].forEach(([role, name], index) => { const height = index === 4 ? 11 : 8; sig(x, yy, 27, height, role); sig(x + 27, yy, 68, height, name, false, "left"); sig(x + 95, yy, 28, height, ""); yy += height; });
-    doc.setFont("FreeSerif", "bolditalic"); doc.setFontSize(9.36); doc.text("Controller of Examinations", x + 127, y + 43);
+    [["Chairman", "Head, BECM"], ["Member", committee.member1], ["Member", committee.member2], ["Member", committee.member3], ...(committee.member5 ? [["Member", committee.member4], ["Member\n(External)", committee.member5]] : [["Member\n(External)", committee.member4]]), ["Date", signedDate]].forEach(([role, name]) => { const height = role.includes("External") ? 9 : 7; sig(x, yy, 27, height, role); sig(x + 27, yy, 68, height, name, false, "left"); sig(x + 95, yy, 28, height, ""); yy += height; });
+    doc.setFont("FreeSerif", "bolditalic"); doc.setFontSize(9.36); doc.text("Controller of Examinations", x + 127, y + 59);
   }
   let pages = 0;
   function begin() { if (pages++) doc.addPage("a4", "landscape"); header(); }
@@ -137,11 +138,10 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
     const blocks: Fragment[][] = []; let block: Fragment[] = [], used = 0;
     for (const fragment of fragments) { const available = budget; if (block.length && used + fragment.height > available) { blocks.push(block); block = []; used = 0; } block.push(fragment); used += fragment.height; }
     if (block.length) blocks.push(block);
-    for (const items of blocks) for (const [part, slice] of sectionSlices.entries()) {
+    for (const items of blocks) for (const slice of sectionSlices) {
       const tableHeaderY = headerY;
       begin();
       doc.setFont("FreeSerif", "bold"); doc.setFontSize(8); doc.text(nonObe ? "Non-OBE:" : "OBE:", L, tableHeaderY - 2);
-      if (kind === "tabulation" && sectionSlices.length > 1) { doc.setFont("FreeSerif", "normal"); doc.text(`Table part ${part + 1} of ${sectionSlices.length}`, R, tableHeaderY - 2, { align: "right" }); }
       let x = L;
       identity.forEach(column => { cell(x, tableHeaderY, column.width, headerHeight, column.title, true); x += column.width; });
       for (const group of slice) {

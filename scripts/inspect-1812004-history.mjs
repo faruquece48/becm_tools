@@ -1,0 +1,15 @@
+import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
+const prisma = new PrismaClient({ adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }) });
+const load = async section => (await prisma.$queryRawUnsafe('SELECT "data" FROM "ResultSectionStore" WHERE "section"=$1', section))[0]?.data || [];
+const norm = value => String(value || "").replace(/\s/g, "").toLowerCase();
+const roll = "1812004";
+const names = ["student-directory","old-student-directory","marks-sheet","marks-sheet-backlog","result-sheet","result-sheet-backlog","prepare-result-backlog","backlog-registrations","short-semester-registrations","old-student-result-updates","syllabuses"];
+const values = await Promise.all(names.map(load)); const data = Object.fromEntries(names.map((name,index)=>[name,values[index]]));
+const people = [...data["student-directory"], ...data["old-student-directory"]].filter(student => norm(student.rollNo) === roll); const ids = new Set(people.map(student => student.id));
+const exams = section => data[section].flatMap(exam => { const students = (exam.students || []).filter(student => ids.has(student.studentId) || norm(student.rollNo) === roll); return students.length ? [{ examYear: exam.examYear, academicYear: exam.academicYear, semester: exam.semester, students }] : []; });
+const marks = data["prepare-result-backlog"].filter(mark => ids.has(mark.studentId) || norm(mark.rollNo) === roll);
+const registrations = [...data["backlog-registrations"], ...data["short-semester-registrations"]].filter(item => ids.has(item.studentId) || norm(item.rollNo) === roll);
+const ledger = data["old-student-result-updates"].flatMap(entry => { const students = (entry.students || []).filter(student => ids.has(student.studentId)); return students.length ? [{ key: entry.key, examYear: entry.examYear, academicYear: entry.academicYear, semester: entry.semester, examType: entry.examType, applied: entry.applied, students }] : []; });
+console.log(JSON.stringify({ people, ids:[...ids], regularMarks:exams("marks-sheet"), backlogMarks:exams("marks-sheet-backlog"), regularResults:exams("result-sheet"), backlogResults:exams("result-sheet-backlog"), preparedBacklog:marks, registrations, ledger }, null, 2));
+await prisma.$disconnect();
