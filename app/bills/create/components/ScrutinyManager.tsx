@@ -19,6 +19,7 @@ const designationList: Designation[] = [
 ];
 
 interface Props {
+  sectionNumber?: number;
   evaluationSystem: "obe" | "mixed";
   defaultStudentCount: string;
   scrutinies: { obe: ScrutinyTeacher[]; nonObe: ScrutinyTeacher[] };
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export default function ScrutinyManager({
+  sectionNumber = 6,
   evaluationSystem,
   defaultStudentCount,
   scrutinies,
@@ -176,18 +178,18 @@ export default function ScrutinyManager({
   return (
     <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
       <h2 className="text-xl font-bold">
-        6. List of Teachers Associated with Scrutiny
+        {sectionNumber}. List of Teachers Associated with Scrutiny
       </h2>
       {evaluationSystem === "obe" ? (
         renderTeachers("obe")
       ) : (
         <div className="space-y-8">
           <div className="rounded-lg border p-5 space-y-6">
-            <h3 className="text-lg font-bold">6.1 OBE (New Syllabus)</h3>
+            <h3 className="text-lg font-bold">{sectionNumber}.1 OBE (New Syllabus)</h3>
             {renderTeachers("obe")}
           </div>
           <div className="rounded-lg border p-5 space-y-6">
-            <h3 className="text-lg font-bold">6.2 Non OBE (Old Syllabus)</h3>
+            <h3 className="text-lg font-bold">{sectionNumber}.2 Non OBE (Old Syllabus)</h3>
             {renderTeachers("nonObe")}
           </div>
         </div>

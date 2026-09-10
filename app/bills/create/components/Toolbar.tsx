@@ -35,6 +35,7 @@ export default function Toolbar({
           href="/downloads/bills-create.html"
           download="bills-create.html"
           data-offline-download
+          suppressHydrationWarning
           className="inline-flex h-8 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-gray-100"
         >
           <Download className="h-4 w-4" />

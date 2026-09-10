@@ -76,8 +76,11 @@ export default function Home() {
     billData.billInfo.year === "1st Year" &&
     billData.billInfo.semester === "Even";
   const isBacklog = billData.billInfo.examType === "backlog";
+  const questionSectionNumber = isBacklog ? 4 : 5;
+  const scrutinySectionNumber = isBacklog ? 5 : 6;
+  const tabulationSectionNumber = isBacklog ? 6 : 7;
 
-  let sectionCounter = 9;
+  let sectionCounter = isBacklog ? 7 : 9;
   const thesisSectionNumber = sectionCounter;
   if (isThesisApplicable) sectionCounter++;
   const verificationSectionNumber = sectionCounter;
@@ -249,6 +252,7 @@ export default function Home() {
           )}
 
           <QuestionWorkManager
+            sectionNumber={questionSectionNumber}
             questionWorks={billData.questionWorks}
             totalQuestions={billData.questionWorkTotal}
             setTotalQuestions={(value) =>
@@ -260,6 +264,7 @@ export default function Home() {
           />
 
           <ScrutinyManager
+            sectionNumber={scrutinySectionNumber}
             evaluationSystem={billData.billInfo.evaluationSystem}
             defaultStudentCount={billData.billInfo.totalStudents}
             scrutinies={billData.scrutinies}
@@ -269,6 +274,7 @@ export default function Home() {
           />
 
           <StudentDutyManager
+            title={`${tabulationSectionNumber}. List of Teachers Associated with Tabulation`}
             studentDuties={billData.studentDuties}
             totalStudents={billData.tabulationStudentCount}
             setTotalStudents={(value) =>

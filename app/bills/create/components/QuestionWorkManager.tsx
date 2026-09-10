@@ -19,6 +19,7 @@ const designationList: Designation[] = [
 ];
 
 interface Props {
+  sectionNumber?: number;
   questionWorks: QuestionTeacher[];
   setQuestionWorks: (data: QuestionTeacher[]) => void;
   totalQuestions: string;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export default function QuestionWorkManager({
+  sectionNumber = 5,
   questionWorks,
   setQuestionWorks,
   totalQuestions,
@@ -72,7 +74,7 @@ export default function QuestionWorkManager({
   return (
     <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
       <h2 className="text-xl font-bold">
-        5. List of Teachers Associated with Question Typing, Sketching,
+        {sectionNumber}. List of Teachers Associated with Question Typing, Sketching,
         Comparing & Printing
       </h2>
       <div className="flex flex-wrap items-end gap-4">
