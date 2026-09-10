@@ -53,7 +53,8 @@ export default function BacklogCumulativeSheet({ mode, examType, onExamTypeChang
   const [selection, setSelection] = useState({ examYear: currentYear, academicYear: "" });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { Promise.all([
+  const [refreshing, setRefreshing] = useState(true);
+  useEffect(() => { setRefreshing(true); Promise.all([
 fetch("/api/students/directory", { cache: "no-store" }).then((response) => response.json()),
     fetch("/api/syllabuses", { cache: "no-store" }).then((response) => response.json()),
     loadResultSection<BacklogMark[]>("prepare-result-backlog"), loadResultSection<Archive[]>("marks-sheet"),
@@ -64,7 +65,7 @@ fetch("/api/students/directory", { cache: "no-store" }).then((response) => respo
     setOldStudents(oldStudentBody.records || []); setNonObeHistory(historyBody.records || []);
     setStudents(studentBody.records || []); setSyllabuses(syllabusBody.syllabuses || []); setMarks(savedMarks || []);
     setRegular(regularMarks || []); setBacklogArchives(backlogMarks || []); setRegularResults(publishedRegularResults || []); setResultArchives(results || []); setTabulators(tabulatorRows); setCommittees(committeeRows); setRegistrations(registrationBody.registrations || []);
-  }).catch(() => setMessage(`Unable to load backlog ${mode} data from Neon.`)); }, [mode]);
+  }).catch(() => setMessage(`Unable to load backlog ${mode} data from Neon.`)).finally(() => setRefreshing(false)); }, [mode]);
   const current = useMemo(() => marks.filter((item) => item.examYear === selection.examYear && item.academicYear === selection.academicYear), [marks, selection]);
   const courses = useMemo(() => {
     const series = Number(selection.examYear) - (order[selection.academicYear] || 1);
