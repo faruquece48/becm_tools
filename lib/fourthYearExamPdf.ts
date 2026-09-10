@@ -91,12 +91,14 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
   let pages = 0;
   function begin() { if (pages++) doc.addPage("a4", "landscape"); header(); }
   if (kind === "tabulation") {
+    const nonObeCourseIds = new Set(sheet.rows.filter(row => row.nonObe).flatMap(row => Object.keys(row.results)));
     begin(); doc.rect(33, 78, W - 66, 25); doc.setFont("FreeSerif", "bold"); doc.setFontSize(16); doc.text(`4TH YEAR ${sheet.examType.toUpperCase()} EXAMINATION, ${sheet.examYear}`, W / 2, 93, { align: "center" }); signatures();
     const legendRows = sheet.courses.flatMap(course => {
-      const lines = textLines(course.title, 94, 10), fragments = [];
+      const courseCode = `${course.code}${nonObeCourseIds.has(course.id) ? " (Non-OBE)" : ""}`;
+      const lines = textLines(course.title, 94, 10), codeLines = textLines(courseCode, 25, 10), fragments = [];
       for (let start = 0; start < lines.length; start += 15) {
         const title = lines.slice(start, start + 15);
-        fragments.push({ course: { ...course, title: title.join("\n") }, height: Math.max(6, title.length * 3.6 + 1) });
+        fragments.push({ course: { ...course, code: courseCode, title: title.join("\n") }, height: Math.max(6, title.length * 3.6 + 1, codeLines.length * 3.6 + 1) });
       }
       return fragments;
     });
@@ -122,7 +124,7 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
   for (const nonObe of [false, true]) {
     const rows = sheet.rows.filter(row => row.nonObe === nonObe);
     if (!rows.length) continue;
-    const sectionGroups = kind === "marks" ? groups.filter(group => !group.course || rows.some(row => Object.hasOwn(row.results, group.id))) : groups;
+    const sectionGroups = groups.filter(group => !group.course || rows.some(row => Object.hasOwn(row.results, group.id)));
     const sectionSlices = paginateExamColumns(sectionGroups, R - L, identity.reduce((sum, column) => sum + column.width, 0));
     maximumParts = Math.max(maximumParts, sectionSlices.length);
     const allColumns = [...identity, ...sectionGroups.flatMap(group => group.columns)];
@@ -147,12 +149,27 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
       for (const group of slice) {
         if (kind === "tabulation" && group.course) {
           cell(x, tableHeaderY, group.width, headerHeight, ""); doc.setFont("FreeSerif", "bold"); doc.setFontSize(8);
-          const code = group.columns[0].title, textWidth = doc.getTextWidth(code);
-          if (textWidth > headerHeight - 7) doc.setFontSize(8 * (headerHeight - 7) / textWidth);
-          doc.text(code, x + group.width / 2 + 1, tableHeaderY + headerHeight - 5, { angle: 90 });
+          const code = group.columns[0].title;
+          if (nonObe) {
+            const match = code.match(/^(.*) \(([^)]+)\)$/), courseLabel = `${match?.[1] || code} (Non-OBE)`, creditLabel = match ? `(${match[2]})` : "";
+            const verticalText = (text: string, lineX: number, centered: boolean) => {
+              doc.setFontSize(8);
+              const availableHeight = headerHeight - 2, originalWidth = doc.getTextWidth(text);
+              if (originalWidth > availableHeight) doc.setFontSize(8 * availableHeight / originalWidth);
+              const renderedWidth = doc.getTextWidth(text), textY = centered ? tableHeaderY + (headerHeight + renderedWidth) / 2 : tableHeaderY + headerHeight - 1;
+              doc.text(text, lineX, textY, { angle: 90 });
+            };
+            verticalText(courseLabel, x + group.width * .32, false);
+            verticalText(creditLabel, x + group.width * .72, true);
+          } else {
+            const textWidth = doc.getTextWidth(code);
+            if (textWidth > headerHeight - 7) doc.setFontSize(8 * (headerHeight - 7) / textWidth);
+            doc.text(code, x + group.width / 2 + 1, tableHeaderY + headerHeight - 5, { angle: 90 });
+          }
           x += group.width;
         } else if (group.columns.length > 1) {
-          cell(x, tableHeaderY, group.width, 10, group.title, true);
+          const groupTitle = nonObe && group.course ? group.title.replace("\n", " (Non-OBE)\n") : group.title;
+          cell(x, tableHeaderY, group.width, 10, groupTitle, true);
           group.columns.forEach(column => { cell(x, tableHeaderY + 10, column.width, headerHeight - 10, column.title, true); x += column.width; });
         } else { cell(x, tableHeaderY, group.width, headerHeight, group.title, true); x += group.width; }
       }

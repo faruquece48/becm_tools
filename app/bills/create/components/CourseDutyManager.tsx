@@ -53,6 +53,7 @@ export default function CourseDutyManager({
   setCourseDuties,
 }: Props) {
   const isShortSemester = examType === "short";
+  const isBacklog = examType === "backlog";
   const [minimizedCourses, setMinimizedCourses] = useState<Set<string>>(
     () => new Set()
   );
@@ -116,9 +117,9 @@ export default function CourseDutyManager({
           department: "Dept. of BECM, RUET",
           duties: {
             ...defaultDuty,
-            classTest: !isShortSemester,
-            assignment: isShortSemester || type === "nonObe" ? false : defaultDuty.assignment,
-            courseFile: isShortSemester || type === "nonObe" ? false : defaultDuty.courseFile,
+            classTest: !isShortSemester && !isBacklog,
+            assignment: isShortSemester || isBacklog || type === "nonObe" ? false : defaultDuty.assignment,
+            courseFile: isShortSemester || isBacklog || type === "nonObe" ? false : defaultDuty.courseFile,
           },
           students: { ...initialStudents },
           additionalTeachers: [],
@@ -408,6 +409,7 @@ export default function CourseDutyManager({
                   <h4 className="text-sm font-medium mb-2">Duty Selection</h4>
                   <div className="grid md:grid-cols-3 gap-3">
                     {(Object.keys(part.duties) as (keyof DutyOption)[])
+                      .filter((key) => !isBacklog || key === "paperSetter" || key === "examiner")
                       .filter((key) => !isShortSemester || (key !== "assignment" && key !== "courseFile"))
                       .filter(
                         (key) =>
@@ -587,6 +589,7 @@ export default function CourseDutyManager({
                             part.additionalTeachers[0].duties
                           ) as (keyof DutyOption)[]
                         )
+                          .filter((d) => !isBacklog || d === "paperSetter" || d === "examiner")
                           .filter((d) => !isShortSemester || (d !== "assignment" && d !== "courseFile" && d !== "classTest"))
                           .filter(
                             (d) =>

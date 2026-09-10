@@ -75,6 +75,7 @@ export default function Home() {
     billData.billInfo.examType === "semester" &&
     billData.billInfo.year === "1st Year" &&
     billData.billInfo.semester === "Even";
+  const isBacklog = billData.billInfo.examType === "backlog";
 
   let sectionCounter = 9;
   const thesisSectionNumber = sectionCounter;
@@ -223,6 +224,7 @@ export default function Home() {
             }
           />
 
+          {!isBacklog && (
           <SessionalDutyManager
             examType={billData.billInfo.examType}
             evaluationSystem={billData.sessionalEvaluationSystem}
@@ -235,13 +237,16 @@ export default function Home() {
               setBillData((prev) => ({ ...prev, sessionalDuties: data }))
             }
           />
+          )}
 
+          {!isBacklog && (
           <VivaBoardTeacherManager
             teachers={billData.vivaBoardTeachers}
             setTeachers={(teachers) =>
               setBillData((prev) => ({ ...prev, vivaBoardTeachers: teachers }))
             }
           />
+          )}
 
           <QuestionWorkManager
             questionWorks={billData.questionWorks}
@@ -274,6 +279,7 @@ export default function Home() {
             }
           />
 
+          {!isBacklog && (
           <CourseAdviserManager
             courseAdvisers={billData.courseAdvisers}
             totalStudents={billData.courseAdviserStudentCount}
@@ -284,6 +290,7 @@ export default function Home() {
               setBillData((prev) => ({ ...prev, courseAdvisers: data }))
             }
           />
+          )}
 
           {isThesisApplicable && (
             <ThesisManager

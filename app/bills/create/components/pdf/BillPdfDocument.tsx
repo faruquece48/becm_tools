@@ -595,9 +595,9 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       breakAfterKey: "scrutinyObe",
       hasData: allScrutiny.length > 0,
       includeInBacklog: true,
-      content: (
+      content: (sectionNumber) => (
         <View>
-          {isMixedEvaluation && <Text style={styles.subSectionTitle}>7.1 OBE (New Syllabus)</Text>}
+          {isMixedEvaluation && <Text style={styles.subSectionTitle}>{sectionNumber}.1 OBE (New Syllabus)</Text>}
           <SimpleTable
             columns={[
               { key: "sl", label: "Sl. No.", width: lw.scrutinyObe.sl ?? 7, align: "center" },
@@ -611,7 +611,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
           />
           {isMixedEvaluation && (
             <View break={Boolean(bill.pageBreakAfter?.scrutinyNonObe)}>
-              <Text style={styles.subSectionTitle}>7.2 Non-OBE (Old Syllabus)</Text>
+              <Text style={styles.subSectionTitle}>{sectionNumber}.2 Non-OBE (Old Syllabus)</Text>
               <SimpleTable
                 columns={[
                   { key: "sl", label: "Sl. No.", width: lw.scrutinyNonObe.sl ?? 7, align: "center" },
@@ -684,7 +684,7 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       title: "List of Teachers Associated with Board Viva",
       breakAfterKey: "boardViva",
       hasData: boardVivaRows.length > 0,
-      includeInBacklog: true,
+      includeInBacklog: false,
       content: (
         <MergedColumnTable
           columns={[
