@@ -102,7 +102,7 @@ export function renderFourthYearExamPdf(doc: jsPDF, sheet: FourthYearSheet, kind
       }
       return fragments;
     });
-    const grades = [["65% and above", "B+", "3.25"], ["60% to less than 65%", "B", "3.00"], ["55% to less than 60%", "B-", "2.75"], ["50% to less than 55%", "C+", "2.50"], ["45% to less than 50%", "C", "2.25"], ["40% to less than 45%", "D", "2.00"], ["Less than 40%", "F", "0.00"], ["Incomplete", "I", "-"], ["Need to Register Again", "-", "-"]];
+    const grades = [["80% and above", "A+", "4.00"], ["75% to less than 80%", "A", "3.75"], ["70% to less than 75%", "A-", "3.50"], ["65% to less than 70%", "B+", "3.25"], ["60% to less than 65%", "B", "3.00"], ["55% to less than 60%", "B-", "2.75"], ["50% to less than 55%", "C+", "2.50"], ["45% to less than 50%", "C", "2.25"], ["40% to less than 45%", "D", "2.00"], ["Less than 40%", "F", "0.00"], ["Incomplete", "I", "-"], ["Need to Register Again", "-", "-"]];
     let offset = 0;
     while (offset < legendRows.length) {
       begin(); cell(L, 36, 134, 10, "OFFERED COURSES AND CREDIT", true, 15); cell(L + 135, 36, 134, 10, "MARKS AND GRADE", true, 15);
