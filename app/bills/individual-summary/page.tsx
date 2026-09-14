@@ -7,7 +7,8 @@ import type { ColumnWidths, ExaminationBillData } from "../create/components/typ
 import CombinedBillPdfPreview from "../combined/CombinedBillPdfPreview";
 
 
-import { defaultIndividualBillLayout } from "../individual/IndividualLayoutEditor";
+import IndividualLayoutEditor, { defaultIndividualBillLayout } from "../individual/IndividualLayoutEditor";
+import ColumnWidthEditor from "../preview/components/ColumnWidthEditor";
 import { loadAllIndividualTeacherInformation, type SavedIndividualTeacherInformation } from "@/lib/storage/individualTeacher";
 import { normalizeImportedBill, teachersForBill, type ImportedSummaryBill } from "../summary/summaryData";
 import IndividualSummaryPdfDocument from "./IndividualSummaryPdfDocument";
@@ -158,6 +159,11 @@ export default function IndividualSummaryBillPage() {
   const taxAmount = totalBillAmount * 0.2;
   const remainingAmount = totalBillAmount * 0.8;
 
+  const updatePageLayout = (
+    id: string,
+    changes: Partial<Pick<IndividualSummaryPage, "metaWidths" | "tableWidths" | "layoutSettings">>,
+  ) => setPages((current) => current.map((page) => page.id === id ? { ...page, ...changes } : page));
+
   const importFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     const information = Object.keys(teacherInformation).length ? teacherInformation : loadAllIndividualTeacherInformation();
@@ -295,7 +301,7 @@ export default function IndividualSummaryBillPage() {
       {message && <p className="mb-4 rounded-md border bg-white px-3 py-2 text-sm text-slate-600">{message}</p>}
 
       <div className="grid items-start gap-5 lg:grid-cols-[430px_minmax(0,1fr)]">
-        <aside className="rounded-xl border bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col">
+        <aside className="rounded-xl border bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <div className="shrink-0"><h2 className="font-semibold">Select teacher</h2><p className="text-xs text-slate-500">The preview and PDF include only the selected teacher.</p></div>
           <label className="mt-3 block shrink-0 text-xs font-medium text-slate-600">
             Department
@@ -346,6 +352,40 @@ export default function IndividualSummaryBillPage() {
             {emailMessage && <p role="status" className="mt-2 text-xs text-slate-700">{emailMessage}</p>}
           </div>
 
+          <section className="mt-4 border-t pt-4" aria-label="Customize individual bills">
+            <h2 className="font-semibold">Customize bills</h2>
+            <p className="mt-1 text-xs text-slate-500">Adjust each bill separately. Changes appear in the preview, downloaded PDF, and individual email attachments.</p>
+            <div className="mt-3 space-y-3">
+              {selectedPages.map((page, index) => (
+                <details key={page.id} className="rounded-lg border bg-white">
+                  <summary className="cursor-pointer break-words px-3 py-3 text-sm font-semibold text-slate-800">
+                    Bill {index + 1}: {page.fileName}
+                    <span className="mt-1 block text-xs font-normal text-slate-500">Bill no. {page.bill.billInfo.billNo || "—"} · {page.bill.billInfo.year} · {page.bill.billInfo.examYear} · {page.bill.billInfo.examType}</span>
+                  </summary>
+                  <div className="space-y-4 border-t p-3">
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold">Information table widths</h3>
+                      <ColumnWidthEditor widths={page.metaWidths} setWidths={(metaWidths) => updatePageLayout(page.id, { metaWidths })} labels={{ qualifications: "Qualifications", examination: "Examination", billNumber: "Bill number" }} />
+                    </div>
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold">Remuneration table widths</h3>
+                      <ColumnWidthEditor widths={page.tableWidths} setWidths={(tableWidths) => updatePageLayout(page.id, { tableWidths })} labels={{ serial: "Serial", descriptionGroup: "Description", description: "Individual description", course: "Course", quantity: "Scripts/students", courseCount: "Courses", classTestCount: "Class tests", rate: "Rate", amount: "Amount" }} />
+                    </div>
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold">Font sizes and spacing</h3>
+                      <IndividualLayoutEditor settings={page.layoutSettings} setSettings={(layoutSettings) => updatePageLayout(page.id, { layoutSettings })} />
+                    </div>
+                    <button type="button" onClick={() => updatePageLayout(page.id, {
+                      metaWidths: { ...defaultMetaWidths },
+                      tableWidths: { ...defaultTableWidths },
+                      layoutSettings: { fontSizes: { ...defaultIndividualBillLayout.fontSizes }, sectionGaps: { ...defaultIndividualBillLayout.sectionGaps } },
+                    })} className="rounded-md border px-3 py-2 text-xs font-semibold hover:bg-slate-50">Reset this bill’s layout</button>
+                  </div>
+                </details>
+              ))}
+              {!selectedPages.length && <p className="text-xs text-slate-500">Select a teacher to customize their bills.</p>}
+            </div>
+          </section>
         </aside>
 
         <section className="min-w-0 rounded-xl bg-slate-300 p-5">

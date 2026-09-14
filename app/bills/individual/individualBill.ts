@@ -162,6 +162,7 @@ export function deriveTeacherRows(
 ): IndividualBillRow[] {
   bill = currentEvaluationData(bill);
   if (!teacherName) return [];
+  const isBacklog = bill.billInfo.examType === "backlog";
   let sequence = 0;
   const rows: IndividualBillRow[] = [];
   const add = (row: Omit<IndividualBillRow, "id">) =>
@@ -223,7 +224,7 @@ export function deriveTeacherRows(
         if (entry.duties.examiner && Number(entry.students.examiner) > 0)
           add({ description: "সেমিস্টার ফাইনাল", course: course.courseCode, quantity: entry.students.examiner, courseCount: "1", classTestCount: "", rate: "120", minimumAmount: 1000 });
         if (
-          entry.duties.classTest &&
+          !isBacklog && entry.duties.classTest &&
           (bill.billInfo.examType !== "short" ||
             (shortSemesterClassTestTeacher !== undefined &&
               sameTeacher(entry.name, shortSemesterClassTestTeacher))) &&
@@ -231,7 +232,7 @@ export function deriveTeacherRows(
           (Number(entry.students.classTestCount) > 0 || bill.billInfo.examType === "short")
         )
           add({ description: "ক্লাস টেস্ট", course: course.courseCode, quantity: String(classTestStudents || ""), courseCount: "1", classTestCount: String(entry.students.classTestCount || (bill.billInfo.examType === "short" ? 4 : 2)), rate: "50" });
-        if (entry.duties.assignment && !isNonObe && bill.billInfo.examType !== "short") {
+        if (!isBacklog && entry.duties.assignment && !isNonObe && bill.billInfo.examType !== "short") {
           add({
             description: "এসাইনমেন্ট / প্রেজেন্টেশন",
             course: course.courseCode,
@@ -241,7 +242,7 @@ export function deriveTeacherRows(
             rate: "50",
           });
         }
-        if (entry.duties.courseFile && !isNonObe && bill.billInfo.examType !== "short")
+        if (!isBacklog && entry.duties.courseFile && !isNonObe && bill.billInfo.examType !== "short")
           add({ description: "কোর্স ফাইল প্রস্তুতকরণ", course: course.courseCode, quantity: "", courseCount: "1/2", classTestCount: "", rate: "6000" });
       });
     });
@@ -267,7 +268,7 @@ export function deriveTeacherRows(
           classTestCount: "",
           rate: "400",
         });
-        add({
+        if (!isBacklog) add({
           description: "কোর্স ফাইল প্রস্তুতকরণ",
           course: course.courseCode,
           quantity: "",
@@ -284,7 +285,7 @@ export function deriveTeacherRows(
         add({ description: Number(course.credit) === 1.5 ? "সেশনাল (১.৫)" : "সেশনাল (০.৭৫)", course: course.courseCode, quantity: String(entry.students.sessional || ""), courseCount: sharedCourseCount, classTestCount: "", rate: "400", minimumAmount: Number(course.credit) === 1.5 ? 1500 : undefined });
       if (entry.duties.boardViva)
         add({ description: "ভাইভা (সেন্ট্রাল/বোর্ড)", course: course.courseCode, quantity: String(entry.students.boardViva || ""), courseCount: "1", classTestCount: "", rate: "150", minimumAmount: 500 });
-      if (entry.duties.courseFile && bill.billInfo.examType !== "short")
+      if (!isBacklog && entry.duties.courseFile && bill.billInfo.examType !== "short")
         add({ description: "কোর্স ফাইল প্রস্তুতকরণ", course: course.courseCode, quantity: "", courseCount: sharedCourseCount, classTestCount: "", rate: "6000" });
     });
   });
