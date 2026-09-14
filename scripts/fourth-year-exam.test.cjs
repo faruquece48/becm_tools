@@ -128,3 +128,27 @@ test('completion remarks follow degree credits and publication format', () => {
   assert.equal(current[0].value({ ...graduate, totalCredit: 160, failed: ['CE 1125'] }), 'CE 1125');
   assert.equal(current[0].value({ ...sheet.rows[0], totalCredit: 161, failed: ['CE 1125'] }), 'CE 1125');
 });
+
+
+test('grade sheet uses tabulation totals and student-specific registrations despite stale archives', () => {
+  const { fourthYearGradeSheetTotals } = require('../lib/fourthYearGradeSheet.ts');
+  const extra = obe.courses.find(item => item.type === 'Theory' && item.id !== course.id);
+  const model = buildFourthYearSheet({ ...data,
+    'marks-sheet-backlog': [{ examYear: '2024', academicYear: '4th', semester: '', students: [{ studentId: student.id, earnedCredit: 99, gradePoints: 396 }] }],
+    'result-sheet': [{ examYear: '2024', academicYear: '4th', semester: 'Even', students: [{ studentId: student.id, totalEarnedCredit: 150, totalGradePoints: 450 }] }],
+  }, [{ studentId: student.id, rollNo: student.rollNo, examYear: '2024', academicYear: '4th', courses: [{ courseId: extra.id, courseCode: extra.code, semester: extra.semester }] }], '2024', 'Backlog');
+  const totals = fourthYearGradeSheetTotals(model, { id: 'changed-id', rollNo: student.rollNo });
+  const row = model.rows.find(item => item.id === student.id);
+  assert.equal(totals.registered, Number(course.credit) + Number(extra.credit));
+  assert.equal(totals.earned, Number(course.credit));
+  assert.equal(totals.gpa, 3);
+  assert.equal(totals.cum, 150 + Number(course.credit));
+  assert.equal(totals.cgpa, row.cgpa);
+  assert.ok(!totals.courses.some(item => item.id === historical.id));
+  assert.equal(totals.grades[totals.courses.findIndex(item => item.id === extra.id)], '');
+  const oldTotals = fourthYearGradeSheetTotals(model, special);
+  const oldRow = model.rows.find(item => item.id === special.id);
+  assert.equal(oldTotals.cum, oldRow.totalCredit);
+  assert.equal(oldTotals.gpa, oldRow.gpa);
+  assert.throws(() => fourthYearGradeSheetTotals(model, { id: 'missing', rollNo: 'missing' }), /No fourth-year backlog/);
+});
