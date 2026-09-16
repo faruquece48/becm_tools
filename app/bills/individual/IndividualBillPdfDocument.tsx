@@ -169,7 +169,7 @@ export function IndividualBillPdfPage(props: IndividualBillPdfPageProps) {
           </View>
         </View>;
       })}
-      <View style={[s.row, { fontSize: fontSizes.remunerationBody }]}><View style={[s.cell, s.left, { width: serialPt }]}><Text>কথায়ঃ</Text></View><View style={[s.cell, { width: wordsPt }]}><Text>{amountInBanglaWords(total)} মাত্র</Text></View><View style={[s.cell, { width: ratePt }]}><Text style={s.right}>মোটঃ</Text></View><View style={[s.cell, { width: amountPt }]}><Text style={s.center}>{total.toLocaleString("bn-BD")}</Text></View></View>
+      <View style={[s.row, { fontSize: fontSizes.remunerationBody }]}><View style={[s.cell, s.left, { width: serialPt }]}><Text>কথায়ঃ</Text></View><View style={[s.cell, { width: wordsPt }]}><Text>{amountInBanglaWords(total)} মাত্র ।</Text></View><View style={[s.cell, { width: ratePt }]}><Text style={s.right}>মোটঃ</Text></View><View style={[s.cell, { width: amountPt }]}><Text style={s.center}>{total.toLocaleString("bn-BD")}</Text></View></View>
       <Text style={[s.footerLabel, { fontSize: fontSizes.signatures, marginTop: sectionGaps.remunerationToApproval }]}>প্রতি স্বাক্ষরিত</Text>
       <View style={[s.signatures, { fontSize: fontSizes.signatures, marginTop: sectionGaps.approvalToSignatures }]}><Text style={s.signatureLeft}>সভাপতি, পরীক্ষা কমিটি।</Text><View style={s.signatureRight}><View style={s.signatureLine} /><Text>পরীক্ষকের স্বাক্ষর</Text><Text>তারিখঃ</Text></View></View>
       <View style={[s.finance, { fontSize: fontSizes.accounts, marginTop: sectionGaps.signaturesToAccounts }]}><Text style={s.financeTitle}>হিসাব শাখা পূরণ করিবেন</Text><Text style={s.financeText}>{nameBangla || "........................"} কে {amountInBanglaWords(total)} মাত্র পরিশোধ করা হইল।</Text></View>

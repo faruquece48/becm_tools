@@ -311,7 +311,7 @@ export function deriveTeacherRows(
     .filter((teacher) => sameTeacher(teacher.name, teacherName))
     .forEach(() =>
       add({
-        description: "রেজাল্ট প্রস্তুতকরণ",
+        description: "গ্রেডশীট প্রস্তুতকরণ",
         course: "",
         quantity: bill.tabulationStudentCount
           ? `${bill.tabulationStudentCount}/${bill.studentDuties.length}`
@@ -325,7 +325,7 @@ export function deriveTeacherRows(
     .filter((teacher) => sameTeacher(teacher.name, teacherName))
     .forEach(() =>
       add({
-        description: "রেজাল্ট ভেরিফিকেশন",
+        description: "গ্রেডশীট ভেরিফিকেশন",
         course: "",
         quantity: bill.tabulationStudentCount
           ? `${bill.tabulationStudentCount}/${bill.studentDuties.length}`
@@ -537,8 +537,8 @@ export function buildRemunerationChart(
       title: "টেবুলেশন",
       items: [
         exact("টেবুলেশন"),
-        exact("রেজাল্ট প্রস্তুতকরণ"),
-        exact("রেজাল্ট ভেরিফিকেশন"),
+        exact("গ্রেডশীট প্রস্তুতকরণ"),
+        exact("গ্রেডশীট ভেরিফিকেশন"),
       ],
     },
     {
