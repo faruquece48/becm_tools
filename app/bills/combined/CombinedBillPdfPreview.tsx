@@ -103,6 +103,10 @@ function CanvasPage({ page, pageNumber, onDelete }: { page: PDFPageProxy; pageNu
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const task = page.render({ canvasContext: context, viewport });
+    void task.promise.catch((error: unknown) => {
+      if (error instanceof Error && error.name === "RenderingCancelledException") return;
+      console.error("Failed to render combined bill PDF page", error);
+    });
     return () => task.cancel();
   }, [page]);
   return <article className="relative mx-auto max-w-[900px] bg-white shadow-xl ring-1 ring-slate-200">
