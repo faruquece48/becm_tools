@@ -51,17 +51,29 @@ const hasMixedEvaluationData = (bill: ExaminationBillData) =>
 
 const currentEvaluationData = (bill: ExaminationBillData): ExaminationBillData => {
   const includeNonObe = hasMixedEvaluationData(bill);
+  const isObeOnly = bill.billInfo.evaluationSystem === "obe";
+  const withoutBacklogAdditionalTeachers = (
+    courses: ExaminationBillData["courseDuties"]["obe"]
+  ) => bill.billInfo.examType === "backlog"
+    ? courses.map((course) => ({
+        ...course,
+        parts: course.parts.map((part) => ({ ...part, additionalTeachers: [] })),
+      }))
+    : courses;
   const includeNonObeSessional =
     includeNonObe && bill.sessionalEvaluationSystem === "mixed";
   return {
     ...bill,
     courseDuties: {
       ...bill.courseDuties,
-      nonObe: includeNonObe ? bill.courseDuties.nonObe : [],
+      obe: withoutBacklogAdditionalTeachers(bill.courseDuties.obe),
+nonObe: isObeOnly || !includeNonObe
+        ? []
+        : withoutBacklogAdditionalTeachers(bill.courseDuties.nonObe),
     },
     scrutinies: {
       ...bill.scrutinies,
-      nonObe: includeNonObe ? bill.scrutinies.nonObe : [],
+      nonObe: isObeOnly || !includeNonObe ? [] : bill.scrutinies.nonObe,
     },
     sessionalDuties: includeNonObeSessional
       ? bill.sessionalDuties

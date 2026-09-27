@@ -74,6 +74,21 @@ export default function CourseDutyManager({
     );
   }, [courseDuties.obe, courseDuties.nonObe]);
 
+  useEffect(() => {
+    if (!isBacklog) return;
+    const hasAdditionalTeachers = [...courseDuties.obe, ...courseDuties.nonObe]
+      .some((course) => course.parts.some((part) => part.additionalTeachers.length > 0));
+    if (!hasAdditionalTeachers) return;
+    const withoutAdditionalTeachers = (courses: CourseDuty[]) => courses.map((course) => ({
+      ...course,
+      parts: course.parts.map((part) => ({ ...part, additionalTeachers: [] })),
+    }));
+    setCourseDuties({
+      obe: withoutAdditionalTeachers(courseDuties.obe),
+      nonObe: withoutAdditionalTeachers(courseDuties.nonObe),
+    });
+  }, [courseDuties, isBacklog, setCourseDuties]);
+
   const toggleCourseMinimized = (type: "obe" | "nonObe", index: number) => {
     const key = `${type}-${index}`;
     setMinimizedCourses((current) => {
@@ -280,7 +295,7 @@ export default function CourseDutyManager({
       }
     });
 
-    part.additionalTeachers = !isShortSemester && Object.values(remainingDuty).some(Boolean)
+    part.additionalTeachers = !isShortSemester && !isBacklog && Object.values(remainingDuty).some(Boolean)
       ? [
           {
             name: "",
@@ -529,7 +544,7 @@ export default function CourseDutyManager({
                       );
                       })}
                   </div>
-                  {!isShortSemester && part.additionalTeachers.length > 0 && (
+                  {!isShortSemester && !isBacklog && part.additionalTeachers.length > 0 && (
                     <div className="mt-4 rounded-lg border bg-white p-4 space-y-3">
                       <h4 className="font-bold">Additional Teacher Required</h4>
                       <div className="grid gap-3 md:grid-cols-3">

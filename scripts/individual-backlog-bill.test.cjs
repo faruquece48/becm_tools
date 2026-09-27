@@ -16,13 +16,15 @@ function importedBill(examType) {
   return bill;
 }
 
-test('imported backlog duties produce only eligible charges for main and additional teachers', () => {
+test('imported backlog duties omit legacy additional-teacher charges', () => {
   const bill = importedBill('backlog');
-  for (const teacher of ['Main Teacher', 'Additional Teacher']) {
-    const rows = deriveTeacherRows(bill, teacher);
-    assert.deepEqual(rows.map(row => row.rate), ['5000', '120']);
-    assert.equal(rows.reduce((sum, row) => sum + rowAmount(row), 0), 8600);
-  }
+  const mainRows = deriveTeacherRows(bill, 'Main Teacher');
+  assert.deepEqual(mainRows.map(row => row.rate), ['5000', '120']);
+  assert.equal(mainRows.reduce((sum, row) => sum + rowAmount(row), 0), 8600);
+  assert.deepEqual(deriveTeacherRows(bill, 'Additional Teacher'), []);
+  bill.courseDuties.nonObe = [structuredClone(bill.courseDuties.obe[0])];
+  bill.courseDuties.nonObe[0].parts[0].teacher = 'Stale Non-OBE Teacher';
+  assert.deepEqual(deriveTeacherRows(bill, 'Stale Non-OBE Teacher'), []);
   // Individual-summary pages use the same rows, including mixed examination files.
   const pages = [importedBill('backlog'), importedBill('semester')];
   assert.equal(pages.reduce((sum, page) => sum + deriveTeacherRows(page, 'Main Teacher').reduce((total, row) => total + rowAmount(row), 0), 0), 23950);
@@ -47,8 +49,7 @@ test('mixed examination committee rows split by system and cap member remunerati
     course.courseCode = `BECM 31${index + 1}`;
     return course;
   });
-  // Older saved workspaces can retain the default flag despite populated Non-OBE data.
-  bill.billInfo.evaluationSystem = 'obe';
+  
 
   const chairRows = deriveTeacherRows(bill, 'Chair Teacher');
   assert.deepEqual(chairRows.map(row => row.description), [
@@ -78,6 +79,15 @@ test('OBE-only committee remuneration remains unchanged', () => {
   assert.deepEqual(rows.map(row => row.description), ['পরীক্ষা কমিটির সদস্য']);
   assert.deepEqual(rows.map(row => rowAmount(row)), [5000]);
 });
+test('explicit OBE bills ignore stale Non-OBE course and scrutiny data', () => {
+  const bill = importedBill('semester');
+  bill.courseDuties.nonObe = [structuredClone(bill.courseDuties.obe[0])];
+  bill.courseDuties.nonObe[0].parts[0].teacher = 'Stale Non-OBE Teacher';
+  bill.scrutinies.nonObe = [{ name: 'Stale Non-OBE Scrutiny', designation: '', department: '', scriptCount: 12 }];
+  assert.deepEqual(deriveTeacherRows(bill, 'Stale Non-OBE Teacher'), []);
+  assert.deepEqual(deriveTeacherRows(bill, 'Stale Non-OBE Scrutiny'), []);
+});
+
 test('backlog course-file charges are excluded from saved sessional and industrial duties', () => {
   const bill = importedBill('backlog');
   bill.courseDuties.obe = [];

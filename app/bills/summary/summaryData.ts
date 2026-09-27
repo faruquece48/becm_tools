@@ -140,17 +140,26 @@ function summaryTeacherComparator(rankData?: TeacherRankData) {
 export function normalizeImportedBill(
   data: Partial<ExaminationBillData>
 ): ExaminationBillData {
+  const isBacklog = data.billInfo?.examType === "backlog";
+  const isObeOnly = data.billInfo?.evaluationSystem === "obe";
+  const normalizeCourses = (courses: ExaminationBillData["courseDuties"]["obe"]) =>
+    isBacklog
+      ? courses.map((course) => ({
+          ...course,
+          parts: course.parts.map((part) => ({ ...part, additionalTeachers: [] })),
+        }))
+      : courses;
   return {
     ...emptyBill,
     ...data,
     billInfo: { ...emptyBill.billInfo, ...data.billInfo },
     courseDuties: {
-      obe: data.courseDuties?.obe ?? [],
-      nonObe: data.courseDuties?.nonObe ?? [],
+      obe: normalizeCourses(data.courseDuties?.obe ?? []),
+      nonObe: isObeOnly ? [] : normalizeCourses(data.courseDuties?.nonObe ?? []),
     },
     scrutinies: {
       obe: data.scrutinies?.obe ?? [],
-      nonObe: data.scrutinies?.nonObe ?? [],
+      nonObe: isObeOnly ? [] : data.scrutinies?.nonObe ?? [],
     },
     layoutSettings: {
       ...emptyBill.layoutSettings,

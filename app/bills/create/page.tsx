@@ -190,10 +190,7 @@ export default function Home() {
               setBillData((prev) => {
                 const billInfo =
                   typeof value === "function" ? value(prev.billInfo) : value;
-                if (
-                  prev.billInfo.evaluationSystem === "mixed" &&
-                  billInfo.evaluationSystem === "obe"
-                ) {
+                if (billInfo.evaluationSystem === "obe") {
                   return {
                     ...prev,
                     billInfo,

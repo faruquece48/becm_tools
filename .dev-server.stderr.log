@@ -204,3 +204,653 @@ Unique constraint failed on the fields: (`id`)
 [browser] Invalid object ref: 237 0 R
 [browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
 [browser] Invalid object ref: 16 0 R
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 5
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 5
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 6
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 7
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 5
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 6
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 5
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 6
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 5
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 6
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] Trying to parse invalid object: {"line":1765,"column":30,"offset":19857})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1797,"column":30,"offset":20144})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1829,"column":30,"offset":20595})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1758,"column":30,"offset":19777})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1790,"column":30,"offset":20064})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1822,"column":30,"offset":20515})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1758,"column":30,"offset":19777})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1790,"column":30,"offset":20064})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1822,"column":30,"offset":20515})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1657,"column":30,"offset":18630})
+[browser] Invalid object ref: 209 0 R
+[browser] Trying to parse invalid object: {"line":1689,"column":30,"offset":18917})
+[browser] Invalid object ref: 210 0 R
+[browser] Trying to parse invalid object: {"line":1721,"column":30,"offset":19368})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1758,"column":30,"offset":19777})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1790,"column":30,"offset":20064})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1822,"column":30,"offset":20515})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1765,"column":30,"offset":19857})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1797,"column":30,"offset":20144})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1829,"column":30,"offset":20595})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1783,"column":30,"offset":20061})
+[browser] Invalid object ref: 224 0 R
+[browser] Trying to parse invalid object: {"line":1815,"column":30,"offset":20348})
+[browser] Invalid object ref: 225 0 R
+[browser] Trying to parse invalid object: {"line":1847,"column":30,"offset":20799})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 3
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 4
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] Image with src "/Image/becm.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 1
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] ⨯ unhandledRejection: RenderingCancelledException: Rendering cancelled, page 2
+    at BaseExceptionClosure (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:563:31)
+    at module evaluation (file://C:/Users/HP/Downloads/becm_tools/.next/dev/static/chunks/node_modules_pdfjs-dist_build_pdf_mjs_0ikqf4f._.js:566:2)
+    at async PdfPreviewViewer.useEffect.timeout (app/bills/preview/components/PdfPreviewViewer.tsx:79:21)
+  77 |       setUpdating(true);
+  78 |       const blob = await pdf(<BillPdfDocument bill={bill} />).toBlob();
+> 79 |       const pdfjs = await import("pdfjs-dist");
+     |                     ^
+  80 |       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  81 |         "pdfjs-dist/build/pdf.worker.min.mjs",
+  82 |         import.meta.url
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
