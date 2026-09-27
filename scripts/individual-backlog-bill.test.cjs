@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const ts = require('typescript');
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, filename);
 const { emptyBill } = require('../app/bills/create/components/emptyBill.ts');
-const { deriveTeacherRows, rowAmount } = require('../app/bills/individual/individualBill.ts');
+const { buildRemunerationChart, deriveTeacherRows, rowAmount } = require('../app/bills/individual/individualBill.ts');
 
 function importedBill(examType) {
   const bill = structuredClone(emptyBill);
@@ -33,6 +33,51 @@ test('regular and short-semester duty rules remain intact', () => {
   assert.deepEqual(deriveTeacherRows(importedBill('short'), 'Main Teacher').map(row => row.rate), ['5000', '120', '50']);
 });
 
+test('mixed examination committee rows split by system and cap member remuneration', () => {
+  const bill = importedBill('semester');
+  bill.billInfo.evaluationSystem = 'mixed';
+  bill.committees = [
+    { name: 'Chair Teacher', designation: '', department: '', role: 'Chairman' },
+    { name: 'Member Teacher', designation: '', department: '', role: 'Member' },
+  ];
+  bill.courseDuties.obe.push(structuredClone(bill.courseDuties.obe[0]));
+  bill.courseDuties.obe[1].courseCode = 'BECM 4103';
+  bill.courseDuties.nonObe = Array.from({ length: 4 }, (_, index) => {
+    const course = structuredClone(bill.courseDuties.obe[0]);
+    course.courseCode = `BECM 31${index + 1}`;
+    return course;
+  });
+  // Older saved workspaces can retain the default flag despite populated Non-OBE data.
+  bill.billInfo.evaluationSystem = 'obe';
+
+  const chairRows = deriveTeacherRows(bill, 'Chair Teacher');
+  assert.deepEqual(chairRows.map(row => row.description), [
+    'পরীক্ষা কমিটির সভাপতি (OBE)',
+    'পরীক্ষা কমিটির সদস্য (OBE)',
+    'পরীক্ষা কমিটির সভাপতি (Non-OBE)',
+    'পরীক্ষা কমিটির সদস্য (Non-OBE)',
+  ]);
+  assert.deepEqual(chairRows.map(row => rowAmount(row)), [5000, 3000, 5000, 5000]);
+  const committeeChart = buildRemunerationChart(chairRows)[1];
+  assert.deepEqual(committeeChart.rows.filter(row => row.duty).map(row => row.description), [
+    'পরীক্ষা কমিটির সভাপতি (OBE)',
+    'পরীক্ষা কমিটির সভাপতি (Non-OBE)',
+    'পরীক্ষা কমিটির সদস্য (OBE)',
+    'পরীক্ষা কমিটির সদস্য (Non-OBE)',
+  ]);
+
+  const memberRows = deriveTeacherRows(bill, 'Member Teacher');
+  assert.deepEqual(memberRows.map(row => row.courseCount), ['2', '4']);
+  assert.deepEqual(memberRows.map(row => rowAmount(row)), [3000, 5000]);
+});
+
+test('OBE-only committee remuneration remains unchanged', () => {
+  const bill = importedBill('semester');
+  bill.committees = [{ name: 'Member Teacher', designation: '', department: '', role: 'Member' }];
+  const rows = deriveTeacherRows(bill, 'Member Teacher');
+  assert.deepEqual(rows.map(row => row.description), ['পরীক্ষা কমিটির সদস্য']);
+  assert.deepEqual(rows.map(row => rowAmount(row)), [5000]);
+});
 test('backlog course-file charges are excluded from saved sessional and industrial duties', () => {
   const bill = importedBill('backlog');
   bill.courseDuties.obe = [];

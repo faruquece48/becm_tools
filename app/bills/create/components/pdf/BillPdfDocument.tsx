@@ -458,18 +458,28 @@ export function BillPdfPages({ bill }: { bill: ExaminationBillData }) {
       breakAfterKey: "committee",
       hasData: bill.committees.some((m) => m.name.trim() !== ""),
       includeInBacklog: true,
-      content: (
-        <SimpleTable
-          columns={[
-            { key: "sl", label: "Sl. No.", width: lw.committee.sl ?? 8, align: "center" },
-            { key: "name", label: "Name", width: lw.committee.name ?? 30 },
-            { key: "designationDept", label: "Designation & Department", width: lw.committee.designationDept ?? 42 },
-            { key: "role", label: "Role", width: lw.committee.role ?? 20, align: "center" },
-          ]}
-          rows={committeeRows}
-          showHeader={false}
-        />
-      ),
+      content: (sectionNumber) => {
+        const table = (
+          <SimpleTable
+            columns={[
+              { key: "sl", label: "Sl. No.", width: lw.committee.sl ?? 8, align: "center" },
+              { key: "name", label: "Name", width: lw.committee.name ?? 30 },
+              { key: "designationDept", label: "Designation & Department", width: lw.committee.designationDept ?? 42 },
+              { key: "role", label: "Role", width: lw.committee.role ?? 20, align: "center" },
+            ]}
+            rows={committeeRows}
+            showHeader={false}
+          />
+        );
+        return isMixedEvaluation ? (
+          <View>
+            <Text style={styles.subSectionTitle}>{sectionNumber}.1 OBE (New Syllabus)</Text>
+            {table}
+            <Text style={styles.subSectionTitle}>{sectionNumber}.2 Non-OBE (Old Syllabus)</Text>
+            {table}
+          </View>
+        ) : table;
+      },
     },
     {
       title: "List of Teachers Associated with Paper Setter & Examiner",

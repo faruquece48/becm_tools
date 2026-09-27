@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUp, FilePlus2, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Download, FilePlus2, Trash2 } from "lucide-react";
 import CombinedBillPdfPreview from "../combined/CombinedBillPdfPreview";
 import type { ExaminationBillData } from "../create/components/types";
 import type { StaffRemunerationData } from "@/lib/storage/staffRemuneration";
 import { defaultTeacherRankData, normalizeTeacherRankData, type TeacherRankData } from "@/lib/storage/teacherRank";
 import { loadCurrentWork } from "@/lib/storage/draft";
+import { exportBillData } from "@/lib/storage/exportImport";
 import { applySummaryBillLayout, buildSummaryCustomization, type SummaryCustomization, type TeacherCustomizations } from "@/lib/storage/teacherCustomizations";
 import { withStaffRemunerationData } from "@/lib/staffRemunerationMatching";
 import type { TableLayoutSettings } from "../create/components/types";
@@ -345,21 +346,30 @@ export default function SummaryPage() {
     setDownloading(true);
     try {
       const workspace: SummarySession = { bills, tableGap, remunerationListYear, indexTableWidth, sidebarWidth, deletedPageIndexes };
-      const saveResponse = await fetch("/api/summary-workspace", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(workspace),
-      });
-      const saveBody = await saveResponse.json().catch(() => null) as { error?: string } | null;
-      if (!saveResponse.ok) throw new Error(saveBody?.error || "Could not save the Summary workspace to Neon");
+      let saveWarning = "";
+      try {
+        const saveResponse = await fetch("/api/summary-workspace", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(workspace),
+        });
+        const saveBody = await saveResponse.json().catch(() => null) as { error?: string } | null;
+        if (!saveResponse.ok) saveWarning = saveBody?.error || "Could not save the Summary workspace to Neon";
+      } catch (error) {
+        saveWarning = error instanceof Error ? error.message : "Could not save the Summary workspace to Neon";
+      }
       const blob = previewPdfBlob ?? await pdf(document).toBlob();
       const url = URL.createObjectURL(blob);
       const link = window.document.createElement("a");
       link.href = url;
       link.download = `${downloadFileBase}.pdf`;
+      window.document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
-      setMessage("PDF downloaded and the complete Summary workspace was saved to Neon.");
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage(saveWarning
+        ? `PDF downloaded. Workspace was not saved: ${saveWarning}`
+        : "PDF downloaded and the complete Summary workspace was saved to Neon.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save the Summary workspace.");
     } finally {
@@ -391,6 +401,8 @@ export default function SummaryPage() {
     }
   };
 
+  const canGenerateIndividualBills = hydrated && bills.length > 0;
+
   return <main className="mx-auto max-w-[1600px] p-6">
     <input
       ref={inputRef}
@@ -411,10 +423,12 @@ export default function SummaryPage() {
       <div className="flex flex-wrap gap-2">
         <Link
           href="/bills/individual-summary"
-          aria-disabled={!bills.length}
-          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white ${
-            bills.length ? "bg-emerald-700 hover:bg-emerald-800" : "pointer-events-none bg-slate-400"
-          }`}
+          suppressHydrationWarning
+          aria-disabled={!canGenerateIndividualBills}
+          onClick={(event) => {
+            if (!canGenerateIndividualBills) event.preventDefault();
+          }}
+          className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
         >
           Generate Individual Bills
           <ArrowRight className="h-4 w-4" />
@@ -430,7 +444,7 @@ export default function SummaryPage() {
         <button
           type="button"
           onClick={() => void download()}
-          disabled={!bills.length || downloading || !previewPdfBlob}
+          disabled={!bills.length || downloading}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400"
         >
           {downloading ? "Generating…" : "Download Summary PDF"}
@@ -498,14 +512,25 @@ export default function SummaryPage() {
                   {teachersForBill(item.bill).length} engaged teacher(s)
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => removeBill(item.id)}
-                className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                aria-label={`Remove ${item.fileName}`}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => exportBillData(item.bill, item.fileName)}
+                  className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
+                  aria-label={`Download ${item.fileName}`}
+                  title={`Download ${item.fileName}`}
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeBill(item.id)}
+                  className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                  aria-label={`Remove ${item.fileName}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-slate-500">
               {examinationSummaryTitle(item.bill)}

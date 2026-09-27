@@ -164,15 +164,25 @@ export default function PreviewDocument({ bill }: Props) {
       title: "Examination Committee",
       hasData: bill.committees.some((m) => m.name.trim() !== ""),
       includeInBacklog: true,
-      content: (
-        <PreviewTable
-          columns={committeeCols}
-          rows={committeeRows}
-          widths={bill.layoutSettings.committee}
-          showSerial
-          showHeader={false}
-        />
-      ),
+      content: (sectionNumber) => {
+        const table = (
+          <PreviewTable
+            columns={committeeCols}
+            rows={committeeRows}
+            widths={bill.layoutSettings.committee}
+            showSerial
+            showHeader={false}
+          />
+        );
+        return isMixedEvaluation ? (
+          <div className="space-y-4">
+            <h3 className="font-bold">{sectionNumber}.1 OBE (New Syllabus)</h3>
+            {table}
+            <h3 className="font-bold">{sectionNumber}.2 Non-OBE (Old Syllabus)</h3>
+            {table}
+          </div>
+        ) : table;
+      },
     },
     {
       title: "List of Teachers Associated with Paper Setter & Examiner",

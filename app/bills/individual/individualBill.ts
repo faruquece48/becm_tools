@@ -10,6 +10,7 @@ export interface IndividualBillRow {
   classTestCount: string;
   rate: string;
   minimumAmount?: number;
+  maximumAmount?: number;
 }
 
 const withoutCourtesyTitle = (value: string) =>
@@ -37,8 +38,19 @@ const isPracticalSurveyingApplicable = (bill: ExaminationBillData) =>
   bill.billInfo.year === "1st Year" &&
   bill.billInfo.semester === "Even";
 
+const paperSetterCourseCount = (courses: ExaminationBillData["courseDuties"]["obe"]) =>
+  new Set(
+    courses.map((course, index) => {
+      const identity = `${course.courseCode?.trim().toLocaleLowerCase() || ""}|${course.courseTitle?.trim().toLocaleLowerCase() || ""}`;
+      return identity === "|" ? `legacy-subject-${index}` : identity;
+    })
+  ).size;
+
+const hasMixedEvaluationData = (bill: ExaminationBillData) =>
+  bill.billInfo.evaluationSystem === "mixed" || bill.courseDuties.nonObe.length > 0;
+
 const currentEvaluationData = (bill: ExaminationBillData): ExaminationBillData => {
-  const includeNonObe = bill.billInfo.evaluationSystem === "mixed";
+  const includeNonObe = hasMixedEvaluationData(bill);
   const includeNonObeSessional =
     includeNonObe && bill.sessionalEvaluationSystem === "mixed";
   return {
@@ -167,25 +179,47 @@ export function deriveTeacherRows(
   const rows: IndividualBillRow[] = [];
   const add = (row: Omit<IndividualBillRow, "id">) =>
     rows.push({ ...row, id: `duty-${sequence++}` });
+  const isMixedEvaluation = hasMixedEvaluationData(bill);
+  const committeeCourseCounts = {
+    OBE: paperSetterCourseCount(bill.courseDuties.obe),
+    "Non-OBE": paperSetterCourseCount(bill.courseDuties.nonObe),
+  };
 
   bill.committees.forEach((member, index) => {
     if (!sameTeacher(member.name, teacherName)) return;
     const normalizedRole = member.role?.trim().toLocaleLowerCase();
     const isChairman = normalizedRole === "chairman"
       || (!normalizedRole && index === 0);
-    const committeeDuties = isChairman
-      ? ["পরীক্ষা কমিটির সভাপতি", "পরীক্ষা কমিটির সদস্য"]
-      : ["পরীক্ষা কমিটির সদস্য"];
-    committeeDuties.forEach((description) =>
+    if (!isMixedEvaluation) {
+      const committeeDuties = isChairman
+        ? ["পরীক্ষা কমিটির সভাপতি", "পরীক্ষা কমিটির সদস্য"]
+        : ["পরীক্ষা কমিটির সদস্য"];
+      committeeDuties.forEach((description) =>
+        add({ description, course: "", quantity: "", courseCount: "", classTestCount: "", rate: "5000" })
+      );
+      return;
+    }
+    ([{ key: "OBE", label: "OBE" }, { key: "Non-OBE", label: "Non-OBE" }] as const).forEach(({ key, label }) => {
+      if (isChairman) {
+        add({
+          description: `পরীক্ষা কমিটির সভাপতি (${label})`,
+          course: "",
+          quantity: "",
+          courseCount: "",
+          classTestCount: "",
+          rate: "5000",
+        });
+      }
       add({
-        description,
+        description: `পরীক্ষা কমিটির সদস্য (${label})`,
         course: "",
         quantity: "",
-        courseCount: "",
+        courseCount: String(committeeCourseCounts[key]),
         classTestCount: "",
-        rate: "5000",
-      })
-    );
+        rate: "1500",
+        maximumAmount: 5000,
+      });
+    });
   });
 
   [
@@ -490,6 +524,12 @@ const exact = (label: string): ChartTemplate => ({
   matches: (description) => description === label,
 });
 
+const exactOrEvaluationSection = (label: string): ChartTemplate => ({
+  label,
+  matches: (description) =>
+    description === label || description.startsWith(`${label} (`),
+});
+
 /**
  * Keeps the university's complete remuneration chart visible. A template row
  * is retained when no matching duty exists; repeated duties expand beneath the
@@ -502,7 +542,10 @@ export function buildRemunerationChart(
     { title: "প্রশ্নপত্র প্রণয়ন", items: [exact("প্রশ্নপত্র প্রণয়ন")] },
     {
       title: "প্রশ্নপত্র নিয়ামক (মডারেশন)",
-      items: [exact("পরীক্ষা কমিটির সভাপতি"), exact("পরীক্ষা কমিটির সদস্য")],
+      items: [
+        exactOrEvaluationSection("পরীক্ষা কমিটির সভাপতি"),
+        exactOrEvaluationSection("পরীক্ষা কমিটির সদস্য"),
+      ],
     },
     {
       title: "উত্তরপত্র পরীক্ষণ",
@@ -611,7 +654,7 @@ export function rowAmount(row: IndividualBillRow): number {
   const courses = evaluateQuantity(row.courseCount);
   const tests = evaluateQuantity(row.classTestCount);
   const calculatedAmount = Math.round(rate * quantity * courses * tests * 100) / 100;
-  return Math.max(row.minimumAmount ?? 0, calculatedAmount);
+  return Math.min(row.maximumAmount ?? Number.POSITIVE_INFINITY, Math.max(row.minimumAmount ?? 0, calculatedAmount));
 }
 
 export function isMinimumAmountApplied(row: IndividualBillRow): boolean {

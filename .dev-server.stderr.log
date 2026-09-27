@@ -1,0 +1,122 @@
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="summary/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/bills/sum..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="bills/summ...">
+                <SegmentTrieNode>
+                <ClientPageRoot Component={function SummaryPage} serverProvidedParams={{...}}>
+                  <SummaryPage params={Promise} searchParams={Promise}>
+                    <main className="mx-auto ma...">
+                      <input>
+                      <div className="mb-5 flex ...">
+                        <div>
+                        <div className="flex flex-...">
+                          <LinkComponent href="/bills/ind..." aria-disabled={true} onClick={function onClick} ...>
+                            <a
+                              aria-disabled={true}
++                             className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semi..."
+-                             className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semi..."
+                              ref={function}
+                              onClick={function onClick}
+                              onMouseEnter={function onMouseEnter}
+                              onTouchStart={function onTouchStart}
+                              href="/bills/individual-summary"
+                            >
+                          ...
+                      ...
+              ...
+            ...
+ 
+[browser] Trying to parse invalid object: {"line":1765,"column":30,"offset":19857})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1797,"column":30,"offset":20144})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1829,"column":30,"offset":20595})
+[browser] Invalid object ref: 16 0 R
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="summary/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/bills/sum..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="bills/summ...">
+                <SegmentTrieNode>
+                <ClientPageRoot Component={function SummaryPage} serverProvidedParams={{...}}>
+                  <SummaryPage params={Promise} searchParams={Promise}>
+                    <main className="mx-auto ma...">
+                      <input>
+                      <div className="mb-5 flex ...">
+                        <div>
+                        <div className="flex flex-...">
+                          <LinkComponent href="/bills/ind..." aria-disabled={true} onClick={function onClick} ...>
+                            <a
+                              aria-disabled={true}
++                             className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semi..."
+-                             className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semi..."
+                              ref={function}
+                              onClick={function onClick}
+                              onMouseEnter={function onMouseEnter}
+                              onTouchStart={function onTouchStart}
+                              href="/bills/individual-summary"
+                            >
+                          ...
+                      ...
+              ...
+            ...
+ 
+[browser] Trying to parse invalid object: {"line":1765,"column":30,"offset":19857})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1797,"column":30,"offset":20144})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1829,"column":30,"offset":20595})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R

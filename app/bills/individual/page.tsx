@@ -36,13 +36,21 @@ function convertBillText(node: ReactNode): ReactNode {
   if (!isValidElement<{ children?: ReactNode; className?: string }>(node)) return node;
   if (
     node.props.className?.includes("individual-course-code") ||
-    node.props.className?.includes("individual-formula")
+    node.props.className?.includes("individual-formula") ||
+    node.props.className?.includes("individual-latin-label")
   ) return node;
   return cloneElement(node, undefined, Children.map(node.props.children, convertBillText));
 }
 
 function SutonnyBillText({ children }: { children: ReactNode }) {
   return Children.map(children, convertBillText);
+}
+
+function mixedEvaluationDescription(description: string): ReactNode {
+  const match = description.match(/^(.*) \((OBE|Non-OBE)\)$/u);
+  if (!match) return description;
+  const latinLabel = match[2].startsWith("Non") ? "Non-OBE" : "OBE";
+  return <>{match[1]} <span className="individual-latin-label">({latinLabel})</span></>;
 }
 
 function SutonnyFormula({ value }: { value: string }) {
@@ -280,7 +288,7 @@ export default function IndividualTeacherBillPage() {
                           {rowIndex === 0 && <td rowSpan={section.rows.length} className="text-center">{toBengaliDigits(String(section.serial))}।</td>}
                           {rowIndex === 0 && <td rowSpan={section.rows.length} className="text-center">{section.title}</td>}
                           {workDescriptionRowSpan > 0 && (
-                            <td rowSpan={workDescriptionRowSpan}>{chartRow.description}</td>
+                            <td rowSpan={workDescriptionRowSpan}>{mixedEvaluationDescription(chartRow.description)}</td>
                           )}
                           <td className="individual-course-code individual-table-value text-center">{duty?.course || ""}</td>
                           <td className={`individual-table-value text-center ${duty?.quantity && /[x×*]/i.test(String(duty.quantity)) ? "individual-formula" : ""}`}>
@@ -368,6 +376,10 @@ export default function IndividualTeacherBillPage() {
         }
         .bill-sheet .individual-formula-bijoy {
           font-family: "SutonnyMJ", serif !important;
+        }
+        .individual-print-document .individual-latin-label {
+          font-family: "Times New Roman", Times, serif !important;
+          white-space: nowrap;
         }
         .bill-sheet .individual-formula-operator {
           font-family: "Times New Roman", Times, serif !important;

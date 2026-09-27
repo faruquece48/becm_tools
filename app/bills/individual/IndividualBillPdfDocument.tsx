@@ -157,7 +157,7 @@ export function IndividualBillPdfPage(props: IndividualBillPdfPageProps) {
           <View style={[s.cell, { width: titlePt }]}><Text style={[s.body, s.center, { fontSize: fontSizes.remunerationBody }]}>{section.title}</Text></View>
           <View style={[s.fillHeight, { width: rightPt }]}>
             {groups.map((group) => <View key={group.description} style={[s.row, s.fillHeight]}>
-              <View style={[s.cell, { width: descriptionPt }]}><Text style={[s.body, { fontSize: fontSizes.remunerationBody }]}>{group.description}</Text></View>
+              <View style={[s.cell, { width: descriptionPt }]}><Text style={[s.body, { color: "#000000", opacity: 1, fontSize: group.description.endsWith("(Non-OBE)") ? Math.max(6, fontSizes.remunerationBody * 0.82) : fontSizes.remunerationBody }]}>{group.description}</Text></View>
               <View style={[s.fillHeight, { width: dutyPt }]}>
                 {group.rows.map((row) => {
                   const duty = row.duty;
