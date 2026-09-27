@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { pdf } from "@react-pdf/renderer";
 import { FilePlus2, Link2, Mail } from "lucide-react";
 import type { ColumnWidths, ExaminationBillData } from "../create/components/types";
@@ -25,6 +26,23 @@ const defaultTableWidths: ColumnWidths = { serial: 6, descriptionGroup: 9, descr
 const defaultAddress = "বিইসিএম বিভাগ, রুয়েট।";
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const teacherKey = (name: string) => name.normalize("NFKC").trim().replace(/\s+/gu, " ").toLocaleLowerCase();
+const comparableTeacherKey = (name: string) => teacherKey(name)
+  .replace(/^(?:mr|mrs|ms|mst|dr|prof|professor|engr|architect)\.?\s+/u, "")
+  .replace(/\baojoy\b/gu, "ajoy")
+  .replace(/[^\p{L}\p{N}]+/gu, " ")
+  .trim();
+const informationForTeacher = (
+  name: string,
+  information: Record<string, SavedIndividualTeacherInformation>,
+) => {
+  const exact = information[teacherKey(name)];
+  if (exact) return exact;
+  const comparable = comparableTeacherKey(name);
+  if (!comparable) return undefined;
+  return Object.entries(information).find(([key, record]) =>
+    comparableTeacherKey(record.englishName || key) === comparable
+  )?.[1];
+};
 const fileSafeName = (name: string) => name.trim().replace(/[\\/:*?"<>|]/g, "-") || "Selected_Teacher";
 
 const inputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm";
@@ -38,7 +56,7 @@ function individualPagesFromSummary(
     .flatMap((item, billIndex) => {
       const bill = normalizeImportedBill(item.bill);
       return teachersForBill(bill).map(({ name: teacher, department }, teacherIndex) => {
-        const saved = information[teacherKey(teacher)];
+        const saved = informationForTeacher(teacher, information);
         return {
           id: `summary-${item.id}-${billIndex}-${teacherIndex}`,
           fileName: item.fileName,
@@ -70,6 +88,7 @@ export default function IndividualSummaryBillPage() {
   const [selectedEmailTeacherKeys, setSelectedEmailTeacherKeys] = useState<string[]>([]);
   const [emailing, setEmailing] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
+  const [teacherInformationError, setTeacherInformationError] = useState("");
   const [attachFullSummary, setAttachFullSummary] = useState(true);
   const [summaryWorkspace, setSummaryWorkspace] = useState<SummarySession | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,9 +106,12 @@ export default function IndividualSummaryBillPage() {
     let information = loadAllIndividualTeacherInformation();
     try {
       const response = await fetch("/api/teacher-information", { cache: "no-store" });
-      const body = await response.json() as { records?: Record<string, SavedIndividualTeacherInformation> };
-      if (response.ok) information = body.records ?? {};
-    } catch {
+      const body = await response.json() as { records?: Record<string, SavedIndividualTeacherInformation>; error?: string };
+      if (!response.ok) throw new Error(body.error || "Unable to load saved teacher information");
+      information = body.records ?? {};
+      setTeacherInformationError("");
+    } catch (error) {
+      setTeacherInformationError(error instanceof Error ? error.message : "Unable to load saved teacher information");
       // Existing browser data is only a fallback when Neon cannot be reached.
     }
     setTeacherInformation(information);
@@ -129,7 +151,7 @@ export default function IndividualSummaryBillPage() {
     name,
     billCount,
     key: teacherKey(name),
-    email: teacherInformation[teacherKey(name)]?.email?.trim() || "",
+    email: informationForTeacher(name, teacherInformation)?.email?.trim() || "",
   })), [teacherInformation, teachers]);
   const emailableCandidates = emailCandidates.filter((candidate) => candidate.email);
 
@@ -177,7 +199,7 @@ export default function IndividualSummaryBillPage() {
         if (!parsed.billInfo || typeof parsed.billInfo !== "object") throw new Error("Missing bill information");
         const bill = normalizeImportedBill(parsed);
         teachersForBill(bill).forEach(({ name: teacher, department }, teacherIndex) => {
-          const saved = information[teacherKey(teacher)];
+          const saved = informationForTeacher(teacher, information);
           imported.push({
             id: `${Date.now()}-${fileIndex}-${teacherIndex}-${file.name}`,
             fileName: file.name,
@@ -333,6 +355,7 @@ export default function IndividualSummaryBillPage() {
               <Mail className="mt-0.5 h-4 w-4 text-emerald-700" />
               <div><h3 className="text-sm font-semibold text-emerald-900">Email individual bills</h3><p className="text-xs text-emerald-700">{selectedDepartment || "All departments"}: choose teachers whose saved email will receive their own PDF.</p></div>
             </div>
+            {teacherInformationError && <p role="alert" className="mt-3 rounded border border-amber-300 bg-amber-50 px-2 py-2 text-xs text-amber-900">{teacherInformationError === "Teacher login required" ? <>Sign in as a teacher to load the saved email directory. <Link href="/" className="font-semibold underline">Go to sign in</Link>, then return and click Load from Summary.</> : teacherInformationError}</p>}
             <label className="mt-3 flex items-center gap-2 border-b border-emerald-200 pb-2 text-xs font-semibold text-emerald-900">
               <input type="checkbox" checked={emailableCandidates.length > 0 && emailableCandidates.every((candidate) => selectedEmailTeacherKeys.includes(candidate.key))} onChange={(event) => setSelectedEmailTeacherKeys(event.target.checked ? emailableCandidates.map((candidate) => candidate.key) : [])} />
               Select all teachers with email ({emailableCandidates.length})

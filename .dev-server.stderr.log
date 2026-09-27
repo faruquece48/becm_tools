@@ -120,3 +120,75 @@ https://react.dev/link/hydration-mismatch
 [browser] Invalid object ref: 237 0 R
 [browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
 [browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.visitEvent.upsert()` invocation in
+C:\Users\HP\Downloads\becm_tools\.next\dev\server\chunks\[root-of-the-server]__0ggbd8s._.js:265:33
+
+  262 }, {
+  263     status: 400
+  264 });
+→ 265 await prisma.visitEvent.upsert(
+Unique constraint failed on the fields: (`id`)
+    at <unknown> (app\api\visitors\route.ts:60:29)
+    at async POST (app\api\visitors\route.ts:60:5)
+  58 |     const visitId = body.visitId?.slice(0, 100);
+  59 |     if (!visitId) return NextResponse.json({ error: "Missing visit ID" }, { status: 400 });
+> 60 |     await prisma.visitEvent.upsert({
+     |                             ^
+  61 |       where: { id: visitId },
+  62 |       create: { id: visitId, visitedAt: now, visitDay: day },
+  63 |       update: {}, {
+  code: 'P2002',
+  meta: {
+    modelName: 'VisitEvent',
+    driverAdapterError: Error [DriverAdapterError]: UniqueConstraintViolation
+        at async POST (app\api\visitors\route.ts:60:5)
+      58 |     const visitId = body.visitId?.slice(0, 100);
+      59 |     if (!visitId) return NextResponse.json({ error: "Missing visit ID" }, { status: 400 });
+    > 60 |     await prisma.visitEvent.upsert({
+         |     ^
+      61 |       where: { id: visitId },
+      62 |       create: { id: visitId, visitedAt: now, visitDay: day },
+      63 |       update: {}, {
+      [cause]: [Object]
+    }
+  },
+  clientVersion: '7.8.0'
+}
+[browser] Image with src "/_next/static/media/image_04..0zzkh8-ha6464.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[browser] Trying to parse invalid object: {"line":1765,"column":30,"offset":19857})
+[browser] Invalid object ref: 221 0 R
+[browser] Trying to parse invalid object: {"line":1797,"column":30,"offset":20144})
+[browser] Invalid object ref: 222 0 R
+[browser] Trying to parse invalid object: {"line":1829,"column":30,"offset":20595})
+[browser] Invalid object ref: 16 0 R
+[browser] Trying to parse invalid object: {"line":1884,"column":30,"offset":21208})
+[browser] Invalid object ref: 236 0 R
+[browser] Trying to parse invalid object: {"line":1916,"column":30,"offset":21495})
+[browser] Invalid object ref: 237 0 R
+[browser] Trying to parse invalid object: {"line":1948,"column":30,"offset":21946})
+[browser] Invalid object ref: 16 0 R
