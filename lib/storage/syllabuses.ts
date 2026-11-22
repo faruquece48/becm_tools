@@ -10,12 +10,25 @@ export function applyThesisCreditRule(courses: SyllabusCourse[], year: SyllabusC
   return courses;
 }
 
+export const LATEST_SYLLABUS_EXAM_YEAR = 2026;
+
 export function syllabusCoursesForExam(
   syllabuses: SyllabusSegment[],
   series: string,
   year: SyllabusCourse["year"],
   semester: SyllabusCourse["semester"],
+  examYear?: string,
 ) {
+  // From this examination year onward, every OBE exam follows the latest active syllabus
+  // (for any academic year that the latest syllabus already defines courses for).
+  if (Number(examYear) >= LATEST_SYLLABUS_EXAM_YEAR) {
+    const latest = syllabuses
+      .filter((segment) => segment.active !== false)
+      .sort((left, right) => Number(right.fromSeries) - Number(left.fromSeries))[0];
+    const latestCourses = latest?.courses.filter((course) => course.year === year && course.semester === semester) ?? [];
+    if (latestCourses.length) return applyThesisCreditRule(latestCourses, year, semester);
+  }
+
   const matchingSegments = syllabuses
     .filter((segment) => segment.active !== false && Number(series) >= Number(segment.fromSeries) && Number(series) <= Number(segment.toSeries))
     .sort((left, right) => (Number(left.toSeries) - Number(left.fromSeries)) - (Number(right.toSeries) - Number(right.fromSeries)));
