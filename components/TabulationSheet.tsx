@@ -60,10 +60,58 @@ useEffect(()=>{Promise.all([fetch("/api/students/directory",{cache:"no-store"}).
    function foot(page:number,total:number){doc.setFont("FreeSerif","bolditalic");doc.setFontSize(8);doc.text("Page "+page+" of "+total,R,H-8,{align:"right"})}
    const base=[17,13,31],courseArea=60,cw=courses.map(()=>courseArea/Math.max(1,courses.length)),tail=[9,13,9,12,10,13,9,11,9,26.5,26.5],ws=[...base,...cw,...tail];doc.setFont("FreeSerif","normal");doc.setFontSize(7.3);const lineHeight=7.3*.36,remarksColumnWidth=26.5,remarksPadding=1.5,remarksTextWidth=remarksColumnWidth-remarksPadding*2,isFinalSemester=selection.academicYear==="4th"&&selection.semester==="Even",summaries=cohort.map(student=>({student,s:summary(student)})),ranks=topTenCompetitionRanks(summaries.filter(({s})=>s.totalCredit>=GRADUATION_CREDIT).map(({s})=>s.cgpa)),preparedRows=summaries.map(({student,s})=>{const graduated=s.totalCredit>=GRADUATION_CREDIT,mergeRemarks=graduated,status=graduated?(isFinalSemester?rankedPassedStatus(s.cgpa,ranks):completionStatus(s.cgpa,legacyFormat)):s.failed.join(", "),vals=[student.registrationNo+"\n"+student.series+"-"+(Number(student.series)+1),student.rollNo,student.name+"\n"+(student.gender === "Female" ? "D/O" : "S/O")+" "+student.fatherName,...s.grades,s.quality.toFixed(2),s.earned.toFixed(2),roundSgpa(s.gpa),(s.earned+priorYearlyCredit(student,{...selection,examType:"Regular"},archives,backlogArchives,resultHistory)).toFixed(2),s.previousQuality.toFixed(2),s.previousCredit.toFixed(2),s.totalQuality.toFixed(2),s.totalCredit.toFixed(2),roundedTwo(s.cgpa),status,mergeRemarks?"":s.register.join(", ")],remarkLines=mergeRemarks?(doc.splitTextToSize(status,remarksColumnWidth*2-remarksPadding*2) as string[]).length:Math.max((doc.splitTextToSize(vals[vals.length-2],remarksTextWidth) as string[]).length,(doc.splitTextToSize(vals[vals.length-1],remarksTextWidth) as string[]).length),rowHeight=Math.max(6.2,...vals.slice(0,-2).map(v=>v.split("\n").length*lineHeight+.8),remarkLines*lineHeight+2);return{vals,rowHeight,graduated:mergeRemarks}}),dataChunks:{vals:string[];rowHeight:number;graduated:boolean}[][]=[];let chunk:{vals:string[];rowHeight:number;graduated:boolean}[]=[],usedHeight=0,chunkIndex=0;const rowAreaBottom=130;preparedRows.forEach(row=>{const budget=rowAreaBottom-(chunkIndex===0&&hasNonObeStudents?55:49);if(chunk.length&&usedHeight+row.rowHeight>budget){dataChunks.push(chunk);chunk=[];usedHeight=0;chunkIndex++}chunk.push(row);usedHeight+=row.rowHeight});if(chunk.length)dataChunks.push(chunk);if(!dataChunks.length)dataChunks.push([]);const dataPages=dataChunks.length;
    head();doc.rect(33,78,W-66,25);doc.setFont("FreeSerif","bold");doc.setFontSize(12);doc.text(series+" SERIES",W/2,87,{align:"center"});doc.setFontSize(18);doc.text(selection.academicYear.toUpperCase()+" YEAR "+selection.semester.toUpperCase()+" SEMESTER EXAMINATION, "+selection.examYear,W/2,96,{align:"center"});sign();
-   doc.addPage("a4","landscape");head();let x=L,y=36;cell(x,y,134,10,"OFFERED COURSES AND CREDIT",true,18);cell(x+135,y,134,10,"MARKS AND GRADE",true,18);y+=10;[["Course No.",25],["Course Title",94],["Credit",15]].forEach(v=>{cell(x,y,Number(v[1]),8,String(v[0]),true,12);x+=Number(v[1])});x=L+135;[["Marks",78],["Grade",24],["Grade Point",32]].forEach(v=>{cell(x,y,Number(v[1]),8,String(v[0]),true,12);x+=Number(v[1])});let courseY=y+8;courses.forEach(c=>{doc.setFont("FreeSerif","normal");doc.setFontSize(12);const titleLines:string[]=doc.splitTextToSize(c.title,92.6),rowHeight=Math.max(6,titleLines.length*4.32+1.2);cell(L,courseY,25,rowHeight,c.code,false,12,"left");cell(L+25,courseY,94,rowHeight,c.title,false,12,"left");cell(L+119,courseY,15,rowHeight,Number(c.credit).toFixed(2),false,12);courseY+=rowHeight});gradeRows.forEach((g,i)=>{const yy=y+8+i*6;cell(L+135,yy,78,6,g[0],false,12,"left");cell(L+213,yy,24,6,g[1],false,12);cell(L+237,yy,32,6,g[2],false,12)});cell(L,courseY,119,6,"Total Credit",true,12,"right");cell(L+119,courseY,15,6,courses.reduce((a,c)=>a+n(c.credit),0).toFixed(2),false,12);sign();
+   function drawOfferedCourses(offeredCourses: SyllabusCourse[], firstPage: number, nonObe = false) {
+    let page = firstPage;
+    const beginPage = () => {
+     doc.insertPage(page++);
+     head();
+     const y = nonObe ? 42 : 36;
+     if (nonObe) {
+      doc.setFont("FreeSerif", "bold");
+      doc.setFontSize(12);
+      doc.text("Non-OBE", L, 37);
+     }
+     cell(L, y, 134, 10, "OFFERED COURSES AND CREDIT", true, 18);
+     cell(L + 135, y, 134, 10, "MARKS AND GRADE", true, 18);
+     cell(L, y + 10, 25, 8, "Course No.", true, 12);
+     cell(L + 25, y + 10, 94, 8, "Course Title", true, 12);
+     cell(L + 119, y + 10, 15, 8, "Credit", true, 12);
+     cell(L + 135, y + 10, 78, 8, "Marks", true, 12);
+     cell(L + 213, y + 10, 24, 8, "Grade", true, 12);
+     cell(L + 237, y + 10, 32, 8, "Grade Point", true, 12);
+     gradeRows.forEach(([marks, grade, points], index) => {
+      const rowY = y + 18 + index * 6;
+      cell(L + 135, rowY, 78, 6, marks, false, 12, "left");
+      cell(L + 213, rowY, 24, 6, grade, false, 12);
+      cell(L + 237, rowY, 32, 6, points, false, 12);
+     });
+     return y + 18;
+    };
+    let y = beginPage();
+    for (const course of offeredCourses) {
+     doc.setFont("FreeSerif", "normal");
+     doc.setFontSize(12);
+     const titleLines: string[] = doc.splitTextToSize(course.title, 92.6);
+     const height = Math.max(6, titleLines.length * 4.32 + 1.2);
+     if (y + height + 6 > 132) {
+      sign();
+      y = beginPage();
+     }
+     cell(L, y, 25, height, course.code, false, 12, "left");
+     cell(L + 25, y, 94, height, course.title, false, 12, "left");
+     cell(L + 119, y, 15, height, n(course.credit).toFixed(2), false, 12);
+     y += height;
+    }
+    cell(L, y, 119, 6, "Total Credit", true, 12, "right");
+    cell(L + 119, y, 15, 6, offeredCourses.reduce((sum, course) => sum + n(course.credit), 0).toFixed(2), false, 12);
+    sign();
+    return page;
+   }
+   const nonObeCoursePage = drawOfferedCourses(courses, 2);
    let finalObeY=31;
    for(let p=0;p<dataPages;p++){doc.addPage("a4","landscape");head();const headerY=p===0&&hasNonObeStudents?37:31;if(p===0&&hasNonObeStudents){doc.setFont("FreeSerif","bold");doc.setFontSize(8);doc.text("OBE:",L,33)}const items=dataChunks[p],hs=["Reg. No\n& Session","Roll No.","Student Name",...courses.map(c=>c.code+"\n("+Number(c.credit).toFixed(2)+")"),"GP","Semester\nEarned\nCredit","GPA","Yearly\nEarned\nCredit","Previous\nGP","Previous\nEarned\nCredit","Total\nGP\nEarned","Total\nCredits\nEarned","CGPA"];let xx=L;hs.forEach((h,i)=>{cell(xx,headerY,ws[i],18,h,true,7.3,"center",false);xx+=ws[i]});cell(xx,headerY,53,7,"Remarks",true,7.3,"center",false);cell(xx,headerY+7,26.5,11,legacyFormat?"Failed Subjects":"Status",true,7.3,"center",false);cell(xx+26.5,headerY+7,26.5,11,"Need to Register\nAgain",true,7.3,"center",false);let rowY=headerY+18;items.forEach(row=>{xx=L;const regularCount=row.vals.length-2;row.vals.slice(0,regularCount).forEach((v,i)=>{cell(xx,rowY,ws[i],row.rowHeight,v,false,7.3,i===2?"left":"center",false);xx+=ws[i]});if(row.graduated)cell(xx,rowY,ws[regularCount]+ws[regularCount+1],row.rowHeight,row.vals[regularCount],false,7.3,"center",true,1.5);else{cell(xx,rowY,ws[regularCount],row.rowHeight,row.vals[regularCount],false,7.3,"left",true,1.5);xx+=ws[regularCount];cell(xx,rowY,ws[regularCount+1],row.rowHeight,row.vals[regularCount+1],false,7.3,"left",true,1.5)}rowY+=row.rowHeight});finalObeY=rowY;if(p<dataPages-1||!hasNonObeStudents)sign()}
-   await appendSpecialStudentPdf(doc,selection,"tabulation","Tabulation Sheet",{startY:finalObeY+8,drawSignature:sign,tabulationCourseWidths:Object.fromEntries(courses.map((course,index)=>[normalizedRoll(course.code),cw[index]]))});
+   const nonObeCourses = await appendSpecialStudentPdf(doc,selection,"tabulation","Tabulation Sheet",{startY:finalObeY+8,drawSignature:sign,tabulationCourseWidths:Object.fromEntries(courses.map((course,index)=>[normalizedRoll(course.code),cw[index]]))});
+   if (nonObeCourses?.length) drawOfferedCourses(nonObeCourses, nonObeCoursePage, true);
    const totalPages=doc.getNumberOfPages();for(let page=1;page<=totalPages;page++){doc.setPage(page);foot(page,totalPages)}
    doc.save("tabulation-sheet-"+selection.examYear+"-"+selection.academicYear+"-"+selection.semester+".pdf")
   }catch(error){setMessage(error instanceof Error?error.message:"Unable to generate tabulation sheet.")}finally{setBusy(false)}
