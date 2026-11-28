@@ -274,29 +274,52 @@ fetch("/api/students/directory", { cache: "no-store" }).then(async (response) =>
       [["FreeSerif.ttf", regular, "normal"], ["FreeSerifBold.ttf", bold, "bold"], ["FreeSerifBoldItalic.ttf", boldItalic, "bolditalic"]].forEach(([name, data, style]) => { doc.addFileToVFS(name, data); doc.addFont(name, "FreeSerif", style); });
       const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), L = 17, R = W - 17;
       const widths = [14, 30, 10, 16, 16, 10, 10, 35, 35];
-      function cell(x: number, y: number, w: number, h: number, text: string, isBold = false, size = 7.3, align: "left" | "center" | "right" = "center", horizontalPadding = .7) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", isBold ? "bold" : "normal"); doc.setFontSize(size); const lines: string[] = doc.splitTextToSize(text, Math.max(1, w - horizontalPadding * 2)); const lineHeight = size * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + horizontalPadding : align === "right" ? x + w - horizontalPadding : x + w / 2, start + index * lineHeight, { align })); }
+      const rowFontSize = 9.9;
+      const cellPadding = (column: number) => column === 1 || column >= 7 ? 1.5 : .7;
+      const cellLineHeight = (fontSize: number) => fontSize * .36;
+      const wrapCellText = (text: string, width: number, padding: number): string[] =>
+        doc.splitTextToSize(text, Math.max(1, width - padding * 2));
+      function cell(x: number, y: number, w: number, h: number, text: string, isBold = false, size = 7.3, align: "left" | "center" | "right" = "center", horizontalPadding = .7) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", isBold ? "bold" : "normal"); doc.setFontSize(size); const lines = wrapCellText(text, w, horizontalPadding); const lineHeight = cellLineHeight(size), start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; lines.forEach((line, index) => doc.text(line, align === "left" ? x + horizontalPadding : align === "right" ? x + w - horizontalPadding : x + w / 2, start + index * lineHeight, { align })); }
       function footer(page: number, total: number | string) { doc.line(L, H - 12, R, H - 12); doc.setFont("FreeSerif", "bolditalic"); doc.setFontSize(7.3); doc.text(`Page ${page} of ${total}`, R, H - 8, { align: "right" }); }
       function continuationHeading() { doc.setFont("FreeSerif", "normal"); doc.setFontSize(9); doc.text("Heavens Light is Our Guide", W / 2, 9, { align: "center" }); doc.text("Rajshahi University of Engineering & Technology", W / 2, 13, { align: "center" }); doc.text(`Department of ${departmentName}`, W / 2, 17, { align: "center" }); doc.line(L, 21, R, 21); }
       function headingCell(x: number, y: number, w: number, h: number, text: string) { doc.setLineWidth(.15); doc.rect(x, y, w, h); doc.setFont("FreeSerif", "bold"); const lines = text.split("\n"), baseSize = 9.9; doc.setFontSize(baseSize); const widest = Math.max(...lines.map((line) => doc.getTextWidth(line))), fittedSize = widest > w - 1.4 ? Math.max(7.3, baseSize * (w - 1.4) / widest) : baseSize, lineHeight = fittedSize * .36, start = y + (h - lines.length * lineHeight) / 2 + lineHeight * .78; doc.setFontSize(fittedSize); lines.forEach((line, index) => doc.text(line, x + w / 2, start + index * lineHeight, { align: "center" })); } function tableHeader(y: number) { let x = L; const labels = ["Roll No.", "Student Name", "SGP", "Semester\nEarned\nCredit", "Total\nEarned\nCredit", "SGPA", "CGPA"]; labels.forEach((label, index) => { headingCell(x, y, widths[index], 16, label); x += widths[index]; }); headingCell(x, y, widths[7] + widths[8], 7, "Remarks"); headingCell(x, y + 7, widths[7], 9, legacyFormat ? "Failed Subjects" : "Status"); headingCell(x + widths[7], y + 7, widths[8], 9, "Need to Register\nAgain"); return y + 16; }
       function graduated(value: SummaryRow) { return value.totalCredit >= value.degreeCredit; } function rowValues(value: SummaryRow) { const status = graduated(value) ? (isFinalSemester ? rankedPassedStatus(value.cgpa, ranks) : completionStatus(value.cgpa, legacyFormat)) : cumulativeFailed(value).join(", "); return [value.student.rollNo, value.student.name, value.semesterPoints.toFixed(2), value.semesterCredit.toFixed(2), value.totalCredit.toFixed(2), roundSgpa(value.sgpa), roundedTwo(value.cgpa), status, graduated(value) ? "" : cumulativeRegister(value).join(", ")]; } function rowHeight(value: SummaryRow) {
         doc.setFont("FreeSerif", "normal");
-        doc.setFontSize(9.9);
+        doc.setFontSize(rowFontSize);
         const values = rowValues(value);
         const measured = values.slice(0, 7).map((text, index) => {
-          const lines = doc.splitTextToSize(text, widths[index] - 1.4) as string[];
+          const lines = wrapCellText(text, widths[index], cellPadding(index));
           return lines.length;
         });
         if (graduated(value)) {
-          const lines = doc.splitTextToSize(values[7], widths[7] + widths[8] - 3) as string[];
+          const lines = wrapCellText(values[7], widths[7] + widths[8], cellPadding(7));
           measured.push(lines.length);
         } else {
           values.slice(7).forEach((text, index) => {
-            const lines = doc.splitTextToSize(text, widths[index + 7] - 3) as string[];
+            const lines = wrapCellText(text, widths[index + 7], cellPadding(index + 7));
             measured.push(lines.length);
           });
         }
-        return Math.max(8, ...measured.map((lines) => lines * 3.56 + 1.2));
-      } function row(y: number, value: SummaryRow) { const values = rowValues(value), height = rowHeight(value); let x = L; values.slice(0, 7).forEach((text, index) => { cell(x, y, widths[index], height, text, false, 9.9, index === 1 ? "left" : "center", index === 1 ? 1.5 : .7); x += widths[index]; }); if (graduated(value)) cell(x, y, widths[7] + widths[8], height, values[7], false, 9.9, "center", 1.5); else values.slice(7).forEach((text, index) => { cell(x, y, widths[index + 7], height, text, false, 9.9, "left", 1.5); x += widths[index + 7]; }); return y + height; }
+        return Math.max(8, ...measured.map((lines) => lines * cellLineHeight(rowFontSize) + 1.2));
+      }
+      function row(y: number, value: SummaryRow) {
+        const values = rowValues(value), height = rowHeight(value);
+        let x = L;
+        values.slice(0, 7).forEach((text, index) => {
+          cell(x, y, widths[index], height, text, false, rowFontSize, index === 1 ? "left" : "center", cellPadding(index));
+          x += widths[index];
+        });
+        if (graduated(value)) {
+          cell(x, y, widths[7] + widths[8], height, values[7], false, rowFontSize, "center", cellPadding(7));
+        } else {
+          values.slice(7).forEach((text, index) => {
+            const column = index + 7;
+            cell(x, y, widths[column], height, text, false, rowFontSize, "left", cellPadding(column));
+            x += widths[column];
+          });
+        }
+        return y + height;
+      }
       const actions = ["Registrar, Rajshahi University of Engineering & Technology", "Member Secretary, Academic Council, Rajshahi University of Engineering & Technology", `Chairman, Examination Committee, B.Sc Engineering ${ordinal[selection.academicYear]} Year ${selection.semester} Semester Examination, ${selection.examYear}, Department of ${departmentName} with request to distribute the result sheets to the course advisor(s)`, "Dean, Faculty of Civil Engineering, Rajshahi University of Engineering & Technology", "Director, IQAC, Rajshahi University of Engineering & Technology", "Head of all Departments, Rajshahi University of Engineering & Technology", "Director, Student Welfare's, Rajshahi University of Engineering & Technology", "Comptroller, Rajshahi University of Engineering & Technology", "Librarian, Central Library, Rajshahi University of Engineering & Technology", "All Hall Provosts, Rajshahi University of Engineering & Technology", "Academic/Accounts/Finance, Rajshahi University of Engineering & Technology", "Office-in-charge, Transport/Central Store, Rajshahi University of Engineering & Technology", "All Notice Board, Rajshahi University of Engineering & Technology", "File"];
       const totalPagesToken = "{total_pages_count_string}";
       const dataPages: SummaryRow[][] = []; let pageRows: SummaryRow[] = [], measuredY = 69; for (const value of summaryRows) { const height = rowHeight(value); if (pageRows.length && measuredY + height > H - 14) { dataPages.push(pageRows); pageRows = []; measuredY = 41; } pageRows.push(value); measuredY += height; } dataPages.push(pageRows); const lastDataStart = dataPages.length === 1 ? 69 : 41, lastDataEnd = dataPages[dataPages.length - 1].reduce((position, value) => position + rowHeight(value), lastDataStart), statisticsOnNewPage = lastDataEnd + 7 + 33 > H - 14; let y = 0, currentPage = dataPages.length;

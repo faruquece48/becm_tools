@@ -25,6 +25,7 @@ const emptyForm: FormState = {
 
 const inputClass = "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 disabled:opacity-100";
 const teacherNames = defaultTeacherRankData.departments.flatMap((department) => department.teachers.map((teacher) => teacher.name));
+const memberNames = [...new Set([...teacherNames, "Mr. Md. Nur Alam Riad", "Mr. Md. Towfik Hassan"])];
 const years = Array.from({ length: 10 }, (_, index) => String(new Date().getFullYear() + 1 - index));
 
 export default function TabulatorForm({ mode, recordId }: TabulatorFormProps) {
@@ -97,6 +98,23 @@ export default function TabulatorForm({ mode, recordId }: TabulatorFormProps) {
     </label>
   );
 
+  const personField = (label: string, field: "chairman" | "member1" | "member2") => {
+    const names = field === "chairman" ? teacherNames : memberNames;
+    return (
+    <div className="grid min-w-0 gap-2 sm:grid-cols-[150px_minmax(0,1fr)] sm:items-start">
+      <span className="pt-2 text-sm font-semibold text-slate-700">{label}</span>
+      <div className="grid min-w-0 gap-2 xl:grid-cols-2">
+        <select aria-label={`${label} existing teacher`} className={`${inputClass} min-w-0`} value={form[field]} onChange={(event) => update(field, event.target.value)}>
+          <option value="">Select existing</option>
+          {names.map((name) => <option key={name} value={name}>{name}</option>)}
+          {form[field] && !names.includes(form[field]) && <option value={form[field]}>{form[field]}</option>}
+        </select>
+        <input aria-label={`${label} custom name`} className={`${inputClass} min-w-0`} maxLength={200} value={form[field]} onChange={(event) => update(field, event.target.value)} placeholder="Or type a name" />
+      </div>
+    </div>
+    );
+  };
+
   return (
     <div className="min-h-[calc(100vh-40px)] bg-slate-50 p-4 sm:p-7">
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -107,13 +125,13 @@ export default function TabulatorForm({ mode, recordId }: TabulatorFormProps) {
           <div className="space-y-4">
             {selectField("Exam Type", "examType", ["Regular", "Backlog"])}
             {selectField("Academic Year", "academicYear", ["1st", "2nd", "3rd", "4th"])}
-            {selectField("Chairman", "chairman", teacherNames)}
-            {selectField("Member 2", "member2", teacherNames)}
+            {personField("Chairman", "chairman")}
+            {personField("Member 2", "member2")}
           </div>
           <div className="space-y-4">
             {selectField("Exam Year", "examYear", years)}
             {selectField("Semester", "semester", ["Odd", "Even"])}
-            {selectField("Member 1", "member1", teacherNames)}
+            {personField("Member 1", "member1")}
             <label className="grid gap-2 sm:grid-cols-[190px_1fr] sm:items-center">
               <span className="text-sm font-semibold text-slate-700">Tabulator Create Date</span>
               <input type="date" className={inputClass} value={form.formDate} onChange={(event) => update("formDate", event.target.value)} />

@@ -62,11 +62,19 @@ export default function TabulatorsPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1250px] border-collapse text-sm">
               <thead className="bg-[#082f57] text-white">
-                <tr>{["Sl.", "Exam Type", "Exam Year", "Academic Year", "Semester", "Chairman", "Member 1", "Member 2", "Form Date", "Reporting Date", "Edit", "Delete"].map((heading) => <th key={heading} className="border-r border-white/20 px-3 py-3 text-center font-bold">{heading}</th>)}</tr>
+                <tr>
+                  <th scope="col" className="sticky left-0 z-20 w-40 whitespace-nowrap border-r border-white/20 bg-[#082f57] px-3 py-3 text-center font-bold">Edit members</th>
+                  {["Sl.", "Exam Type", "Exam Year", "Academic Year", "Semester", "Chairman", "Member 1", "Member 2", "Form Date", "Reporting Date", "Delete"].map((heading) => <th key={heading} className="border-r border-white/20 px-3 py-3 text-center font-bold">{heading}</th>)}
+                </tr>
               </thead>
               <tbody>
                 {visibleRecords.map((record, index) => (
                   <tr key={record.id} className="border-b border-slate-200 odd:bg-white even:bg-slate-50 hover:bg-indigo-50/50">
+                    <td className="sticky left-0 z-10 bg-inherit px-3 py-3 text-center">
+                      <Link href={`/teacher/result/tabulators/${record.id}/edit`} aria-label={`Edit members for ${record.examYear} ${record.academicYear} ${record.examType} ${record.semester} tabulator`} className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2.5 font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                        <Pencil className="h-4 w-4" aria-hidden="true" /> Edit members
+                      </Link>
+                    </td>
                     <td className="px-3 py-3 text-center">{(currentPage - 1) * pageSize + index + 1}</td>
                     <td className="px-3 py-3">{record.examType}</td>
                     <td className="px-3 py-3">{record.examYear}</td>
@@ -77,7 +85,6 @@ export default function TabulatorsPage() {
                     <td className="px-3 py-3">{record.member2}</td>
                     <td className="px-3 py-3">{formatTabulatorDate(record.formDate)}</td>
                     <td className="px-3 py-3">{formatTabulatorDate(record.reportingDate)}</td>
-                    <td className="px-3 py-3 text-center"><Link href={`/teacher/result/tabulators/${record.id}/edit`} aria-label="Edit tabulator" className="inline-flex rounded-lg bg-emerald-500 p-2.5 text-white hover:bg-emerald-600"><Pencil className="h-4 w-4" /></Link></td>
                     <td className="px-3 py-3 text-center"><button type="button" onClick={() => remove(record)} aria-label="Delete tabulator" className="inline-flex rounded-lg bg-red-500 p-2.5 text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button></td>
                   </tr>
                 ))}
